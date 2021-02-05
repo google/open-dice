@@ -1,0 +1,386 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+import("//build_overrides/pigweed.gni")
+import("$dir_pw_bloat/bloat.gni")
+import("$dir_pw_build/target_types.gni")
+import("$dir_pw_unit_test/test.gni")
+
+group("default") {
+  deps = [
+    ":fuzzers(//toolchains:host_fuzz)",
+    ":optimized_libs(//toolchains:host_optimized)",
+    ":tests_run(//toolchains:host_debug)",
+  ]
+}
+
+pw_source_set("utils") {
+  public = [
+    "include/dice/dice.h",
+    "include/dice/utils.h",
+  ]
+  sources = [ "src/utils.c" ]
+}
+
+pw_static_library("dice_standalone") {
+  public = [ "include/dice/dice.h" ]
+  sources = [ "src/dice.c" ]
+}
+
+pw_static_library("dice_with_boringssl_ops") {
+  public = [ "include/dice/dice.h" ]
+  sources = [
+    "src/boringssl_cert_op.c",
+    "src/boringssl_hash_kdf_ops.c",
+    "src/dice.c",
+  ]
+  deps = [
+    ":utils",
+    "//third_party/boringssl:crypto",
+  ]
+}
+
+pw_static_library("dice_with_mbedtls_ops") {
+  public = [ "include/dice/dice.h" ]
+  sources = [
+    "src/dice.c",
+    "src/mbedtls_ops.c",
+  ]
+  deps = [
+    ":utils",
+    "//third_party/mbedtls:mbedcrypto",
+  ]
+}
+
+pw_static_library("dice_with_cbor_cert") {
+  public = [ "include/dice/dice.h" ]
+  sources = [
+    "src/boringssl_hash_kdf_ops.c",
+    "src/cbor_cert_op.c",
+    "src/dice.c",
+  ]
+  deps = [
+    ":utils",
+    "//third_party/boringssl:crypto",
+    "//third_party/cn-cbor:cn-cbor",
+  ]
+}
+
+pw_static_library("dice_with_cbor_template_cert") {
+  public = [ "include/dice/dice.h" ]
+  sources = [
+    "src/boringssl_hash_kdf_ops.c",
+    "src/dice.c",
+    "src/template_cbor_cert_op.c",
+  ]
+  deps = [
+    ":utils",
+    "//third_party/boringssl:crypto",
+  ]
+}
+
+pw_static_library("dice_with_x509_template_cert") {
+  public = [ "include/dice/dice.h" ]
+  sources = [
+    "src/boringssl_hash_kdf_ops.c",
+    "src/dice.c",
+    "src/template_cert_op.c",
+  ]
+  deps = [
+    ":utils",
+    "//third_party/boringssl:crypto",
+  ]
+}
+
+pw_source_set("test_utils") {
+  public = [ "include/dice/test_utils.h" ]
+  sources = [ "src/test_utils.cc" ]
+  deps = [
+    ":utils",
+    "$dir_pw_string:pw_string",
+  ]
+  public_deps = [
+    "//third_party/boringssl:crypto",
+    "//third_party/cose-c:cose-c",
+  ]
+  cflags = [ "-Wno-ignored-qualifiers" ]
+}
+
+pw_source_set("fuzz_utils") {
+  public = [
+    "include/dice/dice.h",
+    "include/dice/fuzz_utils.h",
+  ]
+  sources = [ "src/fuzz_utils.cc" ]
+}
+
+pw_test("dice_test") {
+  sources = [ "src/dice_test.cc" ]
+  deps = [
+    ":dice_standalone",
+    ":utils",
+    "//third_party/boringssl:crypto",
+  ]
+}
+
+pw_test("boringssl_ops_test") {
+  sources = [ "src/boringssl_ops_test.cc" ]
+  deps = [
+    ":dice_with_boringssl_ops",
+    ":test_utils",
+    ":utils",
+  ]
+}
+
+pw_executable("boringssl_ops_fuzzer") {
+  sources = [ "src/boringssl_ops_fuzzer.cc" ]
+  deps = [
+    ":dice_with_boringssl_ops",
+    ":fuzz_utils",
+    ":utils",
+  ]
+}
+
+pw_test("template_cert_op_test") {
+  sources = [ "src/template_cert_op_test.cc" ]
+  deps = [
+    ":dice_with_x509_template_cert",
+    ":test_utils",
+    ":utils",
+  ]
+}
+
+pw_executable("template_cert_op_fuzzer") {
+  sources = [ "src/template_cert_op_fuzzer.cc" ]
+  deps = [
+    ":dice_with_x509_template_cert",
+    ":fuzz_utils",
+    ":utils",
+  ]
+}
+
+pw_test("cbor_cert_op_test") {
+  sources = [ "src/cbor_cert_op_test.cc" ]
+  deps = [
+    ":dice_with_cbor_cert",
+    ":test_utils",
+    ":utils",
+  ]
+}
+
+pw_executable("cbor_cert_op_fuzzer") {
+  sources = [ "src/cbor_cert_op_fuzzer.cc" ]
+  deps = [
+    ":dice_with_cbor_cert",
+    ":fuzz_utils",
+    ":utils",
+  ]
+}
+
+pw_test("template_cbor_cert_op_test") {
+  sources = [ "src/template_cbor_cert_op_test.cc" ]
+  deps = [
+    ":dice_with_cbor_template_cert",
+    ":test_utils",
+    ":utils",
+  ]
+}
+
+pw_executable("template_cbor_cert_op_fuzzer") {
+  sources = [ "src/template_cbor_cert_op_fuzzer.cc" ]
+  deps = [
+    ":dice_with_cbor_template_cert",
+    ":fuzz_utils",
+    ":utils",
+  ]
+}
+
+pw_test("mbedtls_ops_test") {
+  sources = [ "src/mbedtls_ops_test.cc" ]
+  deps = [
+    ":dice_with_mbedtls_ops",
+    ":test_utils",
+    ":utils",
+  ]
+}
+
+pw_executable("mbedtls_ops_fuzzer") {
+  sources = [ "src/mbedtls_ops_fuzzer.cc" ]
+  deps = [
+    ":dice_with_mbedtls_ops",
+    ":fuzz_utils",
+    ":utils",
+  ]
+}
+
+pw_test_group("tests") {
+  tests = [
+    ":boringssl_ops_test",
+    ":cbor_cert_op_test",
+    ":dice_test",
+    ":mbedtls_ops_test",
+    ":template_cbor_cert_op_test",
+    ":template_cert_op_test",
+  ]
+}
+
+group("fuzzers") {
+  deps = [
+    ":boringssl_ops_fuzzer",
+    ":cbor_cert_op_fuzzer",
+    ":mbedtls_ops_fuzzer",
+    ":template_cbor_cert_op_fuzzer",
+    ":template_cert_op_fuzzer",
+  ]
+}
+
+pw_static_library("empty_lib") {
+}
+
+pw_executable("empty_main") {
+  sources = [ "src/empty_main.c" ]
+}
+
+pw_executable("dice_standalone_main") {
+  sources = [ "src/dice_standalone_main.c" ]
+  deps = [
+    ":dice_standalone",
+    ":utils",
+  ]
+}
+
+pw_executable("dice_with_boringssl_ops_main") {
+  sources = [ "src/dice_with_boringssl_ops_main.c" ]
+  deps = [
+    ":dice_with_boringssl_ops",
+    ":utils",
+  ]
+}
+
+pw_executable("dice_with_mbedtls_ops_main") {
+  sources = [ "src/dice_with_mbedtls_ops_main.c" ]
+  deps = [
+    ":dice_with_mbedtls_ops",
+    ":utils",
+  ]
+}
+
+pw_executable("dice_with_cbor_cert_main") {
+  sources = [ "src/dice_with_cbor_cert_main.c" ]
+  deps = [
+    ":dice_with_cbor_cert",
+    ":utils",
+  ]
+}
+
+pw_executable("dice_with_cbor_template_cert_main") {
+  sources = [ "src/dice_with_cbor_template_cert_main.c" ]
+  deps = [
+    ":dice_with_cbor_template_cert",
+    ":utils",
+  ]
+}
+
+pw_executable("dice_with_x509_template_cert_main") {
+  sources = [ "src/dice_with_x509_template_cert_main.c" ]
+  deps = [
+    ":dice_with_x509_template_cert",
+    ":utils",
+  ]
+}
+
+pw_size_report("executable_size_report") {
+  title = "Executable sizes (includes thirdparty deps)"
+  base = ":empty_main"
+  binaries = [
+    {
+      target = ":dice_standalone_main"
+      label = "DiceMainFlow only (No Ops)"
+    },
+    {
+      target = ":dice_with_boringssl_ops_main"
+      label = "Boringssl Ops"
+      base = ":dice_standalone_main"
+    },
+    {
+      target = ":dice_with_mbedtls_ops_main"
+      label = "MbedTLS Ops"
+      base = ":dice_standalone_main"
+    },
+    {
+      target = ":dice_with_cbor_cert_main"
+      label = "Boringssl with CBOR Cert"
+      base = ":dice_with_boringssl_ops_main"
+    },
+    {
+      target = ":dice_with_cbor_template_cert_main"
+      label = "Boringssl with CBOR Template Cert"
+      base = ":dice_with_boringssl_ops_main"
+    },
+    {
+      target = ":dice_with_x509_template_cert_main"
+      label = "Boringssl with X.509 Template Cert"
+      base = ":dice_with_boringssl_ops_main"
+    },
+  ]
+}
+
+pw_size_report("library_size_report") {
+  title = "Library sizes (excludes thirdparty deps)"
+  base = ":empty_lib"
+  binaries = [
+    {
+      target = ":dice_standalone"
+      label = "DICE Standalone (No Ops)"
+    },
+    {
+      target = ":dice_with_boringssl_ops"
+      label = "Boringssl Ops"
+      base = ":dice_standalone"
+    },
+    {
+      target = ":dice_with_mbedtls_ops"
+      label = "MbedTLS Ops"
+      base = ":dice_standalone"
+    },
+    {
+      target = ":dice_with_cbor_cert"
+      label = "CBOR Cert"
+      base = ":dice_standalone"
+    },
+    {
+      target = ":dice_with_cbor_template_cert"
+      label = "CBOR Template Cert"
+      base = ":dice_standalone"
+    },
+    {
+      target = ":dice_with_x509_template_cert"
+      label = "X.509 Template Cert"
+      base = ":dice_standalone"
+    },
+  ]
+}
+
+group("optimized_libs") {
+  deps = [
+    ":dice_standalone",
+    ":dice_with_boringssl_ops",
+    ":dice_with_cbor_cert",
+    ":dice_with_cbor_template_cert",
+    ":dice_with_mbedtls_ops",
+    ":dice_with_x509_template_cert",
+    ":executable_size_report",
+    ":library_size_report",
+  ]
+}

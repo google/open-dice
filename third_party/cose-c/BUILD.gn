@@ -1,0 +1,46 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+import("//build_overrides/pigweed.gni")
+import("$dir_pw_build/target_types.gni")
+
+config("external_config") {
+  include_dirs = [
+    "src/include",
+    "include",
+  ]
+}
+
+config("internal_config") {
+  visibility = [ ":*" ]  # Only targets in this file can depend on this.
+  include_dirs = [ "src/src" ]
+  cflags = [ "-Wno-cast-qual" ]
+}
+
+pw_static_library("cose-c") {
+  public = [ "src/include/cose/cose.h" ]
+  sources = [
+    "cose_deps.cc",
+    "src/src/Cose.cpp",
+    "src/src/CoseKey.cpp",
+    "src/src/Sign1.cpp",
+    "src/src/cbor.cpp",
+  ]
+  public_configs = [ ":external_config" ]
+  configs = [ ":internal_config" ]
+  public_deps = [
+    "//third_party/boringssl:crypto",
+    "//third_party/cn-cbor:cn-cbor",
+  ]
+}

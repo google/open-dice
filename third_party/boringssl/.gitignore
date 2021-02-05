@@ -1,0 +1,10 @@
+# Generated files.
+BUILD.generated_tests.gni
+crypto_test_data.cc
+
+# Platform-specific generated files.
+ios-*
+linux-*
+mac-*
+win-*
+

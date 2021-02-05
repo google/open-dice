@@ -1,0 +1,123 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+
+import("//build_overrides/pigweed.gni")
+import("$dir_pigweed/targets/host/target_toolchains.gni")
+import("$dir_pw_toolchain/generate_toolchain.gni")
+
+declare_args() {
+  # These aren't used but they are set by the Pigweed toolchain. Declaring them
+  # here silences gn warnings.
+  pw_trace_BACKEND = ""
+  pw_trace_tokenizer_time = ""
+}
+
+config("common_config") {
+  include_dirs = [ "//include" ]
+
+  # No language extensions, to promote portability.
+  cflags_c = [
+    "-std=c99",
+    "-pedantic",
+  ]
+}
+
+config("enable_sanitizers") {
+  filter_path = rebase_path("sanitize_filter.txt", root_build_dir)
+  cflags = [
+    "-fsanitize=address,undefined,integer",
+    "-fsanitize-blacklist=$filter_path",
+  ]
+  ldflags = cflags
+  inputs = [ "sanitize_filter.txt" ]
+}
+
+config("enable_fuzzer") {
+  cflags = [
+    "-fsanitize=fuzzer",
+    "-O1",
+    "-fno-omit-frame-pointer",
+    "-fno-optimize-sibling-calls",
+  ]
+  ldflags = cflags
+}
+
+# Define a scope for each toolchain that can be fed into generate_toolchain.
+_host_debug = {
+  # Use Pigweed's host_clang_debug toolchain as a base.
+  _toolchain_base = pw_target_toolchain_host.clang_debug
+
+  # Forward everything except the defaults scope from that toolchain.
+  forward_variables_from(_toolchain_base, "*", [ "defaults" ])
+
+  defaults = {
+    # Forward everything from the base toolchain's defaults.
+    forward_variables_from(_toolchain_base.defaults, "*")
+
+    # Extend with custom build arguments for the target.
+    default_configs += [
+      "//toolchains:common_config",
+      "//toolchains:enable_sanitizers",
+    ]
+  }
+}
+
+_host_fuzz = {
+  # Use Pigweed's host_clang_debug toolchain as a base.
+  _toolchain_base = pw_target_toolchain_host.clang_debug
+
+  # Forward everything except the defaults scope from that toolchain.
+  forward_variables_from(_toolchain_base, "*", [ "defaults" ])
+
+  defaults = {
+    # Forward everything from the base toolchain's defaults.
+    forward_variables_from(_toolchain_base.defaults, "*")
+
+    # Extend with custom build arguments for the target.
+    default_configs += [
+      "//toolchains:common_config",
+      "//toolchains:enable_sanitizers",
+      "//toolchains:enable_fuzzer",
+    ]
+  }
+}
+
+_host_optimized = {
+  # Use Pigweed's host_clang_size_optimized toolchain as a base.
+  _toolchain_base = pw_target_toolchain_host.clang_size_optimized
+
+  # Forward everything except the defaults scope from that toolchain.
+  forward_variables_from(_toolchain_base, "*", [ "defaults" ])
+
+  defaults = {
+    # Forward everything from the base toolchain's defaults.
+    forward_variables_from(_toolchain_base.defaults, "*")
+
+    # Extend with custom build arguments for the target.
+    default_configs += [ "//toolchains:common_config" ]
+  }
+}
+
+# Create the actual GN toolchains.
+generate_toolchain("host_debug") {
+  forward_variables_from(_host_debug, "*")
+}
+
+generate_toolchain("host_fuzz") {
+  forward_variables_from(_host_fuzz, "*")
+}
+
+generate_toolchain("host_optimized") {
+  forward_variables_from(_host_optimized, "*")
+}
