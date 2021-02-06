@@ -89,7 +89,7 @@ Sealing CDI. Subsequent DICE transitions would use the current CDI values in
 place of the UDS to compute the subsequent CDI values. See
 [Layering Details](#layering-details).
 
-![Architecture Diagram](images/architecture.png)
+![Architecture Diagram](../images/architecture.png)
 
 ## Use Cases
 
@@ -203,7 +203,7 @@ external authority during manufacturing to complete the certificate chain. See
 As an example, if the CDI private key were used to sign a leaf certificate for
 an attestation key, the certificate chain may look like this:
 
-![Single Layer Certificate Chain Diagram](images/single-layer-cert-chain.png)
+![Single Layer Certificate Chain Diagram](../images/single-layer-cert-chain.png)
 
 ## High-level DICE Flow
 
@@ -422,7 +422,7 @@ and must be destroyed when no longer needed.
 When generating certificates, the authority is the previous CDI key pair and the
 certificates chain together. So the certificate chain may look like this:
 
-![Multi Layer Certificate Chain Diagram](images/multi-layer-cert-chain.png)
+![Multi Layer Certificate Chain Diagram](../images/multi-layer-cert-chain.png)
 
 ## UDS Details
 
