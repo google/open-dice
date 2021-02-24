@@ -3,13 +3,13 @@
 	url = https://boringssl.googlesource.com/boringssl
 [submodule "mbedtls"]
 	path = third_party/mbedtls/src
-	url = https://github.com/ARMmbed/mbedtls.git
+	url = https://pigweed.googlesource.com/third_party/github/ARMmbed/mbedtls.git
 [submodule "cn-cbor"]
 	path = third_party/cn-cbor/src
-	url = https://github.com/jimsch/cn-cbor.git
+	url = https://pigweed.googlesource.com/third_party/github/jimsch/cn-cbor.git
 [submodule "cose-c"]
 	path = third_party/cose-c/src
-	url = https://github.com/cose-wg/COSE-C.git
+	url = https://pigweed.googlesource.com/third_party/github/cose-wg/COSE-C.git
 [submodule "pigweed"]
 	path = third_party/pigweed/src
 	url = https://pigweed.googlesource.com/pigweed/pigweed
