@@ -1,6 +1,6 @@
 [submodule "boringssl"]
 	path = third_party/boringssl/src
-	url = https://boringssl.googlesource.com/boringssl
+	url = https://pigweed.googlesource.com/third_party/boringssl/boringssl
 [submodule "mbedtls"]
 	path = third_party/mbedtls/src
 	url = https://pigweed.googlesource.com/third_party/github/ARMmbed/mbedtls.git
