@@ -33,6 +33,13 @@ pw_source_set("utils") {
   sources = [ "src/utils.c" ]
 }
 
+pw_source_set("cbor_writer") {
+  public = [
+    "include/dice/cbor_writer.h",
+  ]
+  sources = [ "src/cbor_writer.c" ]
+}
+
 pw_static_library("dice_standalone") {
   public = [ "include/dice/dice.h" ]
   sources = [ "src/dice.c" ]
@@ -71,9 +78,9 @@ pw_static_library("dice_with_cbor_cert") {
     "src/dice.c",
   ]
   deps = [
+    ":cbor_writer",
     ":utils",
     "//third_party/boringssl:crypto",
-    "//third_party/cn-cbor:cn-cbor",
   ]
 }
 
@@ -123,6 +130,20 @@ pw_source_set("fuzz_utils") {
     "include/dice/fuzz_utils.h",
   ]
   sources = [ "src/fuzz_utils.cc" ]
+}
+
+pw_test("cbor_writer_test") {
+  sources = [ "src/cbor_writer_test.cc" ]
+  deps = [
+    ":cbor_writer",
+  ]
+}
+
+pw_executable("cbor_writer_fuzzer") {
+  sources = [ "src/cbor_writer_fuzzer.cc" ]
+  deps = [
+    ":cbor_writer",
+  ]
 }
 
 pw_test("dice_test") {
@@ -228,6 +249,7 @@ pw_test_group("tests") {
   tests = [
     ":boringssl_ops_test",
     ":cbor_cert_op_test",
+    ":cbor_writer_test",
     ":dice_test",
     ":mbedtls_ops_test",
     ":template_cbor_cert_op_test",
@@ -239,6 +261,7 @@ group("fuzzers") {
   deps = [
     ":boringssl_ops_fuzzer",
     ":cbor_cert_op_fuzzer",
+    ":cbor_writer_fuzzer",
     ":mbedtls_ops_fuzzer",
     ":template_cbor_cert_op_fuzzer",
     ":template_cert_op_fuzzer",
