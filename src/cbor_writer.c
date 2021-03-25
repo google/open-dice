@@ -26,6 +26,8 @@ enum CborType {
   CBOR_TYPE_TSTR = 3,
   CBOR_TYPE_ARRAY = 4,
   CBOR_TYPE_MAP = 5,
+  // Type 6, tags, are not supported.
+  CBOR_TYPE_SIMPLE = 7,
 };
 
 static size_t CborWriteType(enum CborType type, uint64_t val,
@@ -131,4 +133,16 @@ size_t CborWriteArray(size_t num_elements, struct CborOut* out) {
 
 size_t CborWriteMap(size_t num_pairs, struct CborOut* out) {
   return CborWriteType(CBOR_TYPE_MAP, num_pairs, out);
+}
+
+size_t CborWriteFalse(struct CborOut* out) {
+  return CborWriteType(CBOR_TYPE_SIMPLE, /*val=*/20, out);
+}
+
+size_t CborWriteTrue(struct CborOut* out) {
+  return CborWriteType(CBOR_TYPE_SIMPLE, /*val=*/21, out);
+}
+
+size_t CborWriteNull(struct CborOut* out) {
+  return CborWriteType(CBOR_TYPE_SIMPLE, /*val=*/22, out);
 }

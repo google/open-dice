@@ -159,6 +159,39 @@ TEST(CborWriterTest, MapEncoding) {
   EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
 }
 
+TEST(CborWriterTest, FalseEncoding) {
+  const uint8_t kExpectedEncoding[] = {0xf4};
+  uint8_t buffer[64];
+  CborOut out = {
+      .buffer = buffer,
+      .size = sizeof(buffer),
+  };
+  EXPECT_EQ(sizeof(kExpectedEncoding), CborWriteFalse(&out));
+  EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
+}
+
+TEST(CborWriterTest, TrueEncoding) {
+  const uint8_t kExpectedEncoding[] = {0xf5};
+  uint8_t buffer[64];
+  CborOut out = {
+      .buffer = buffer,
+      .size = sizeof(buffer),
+  };
+  EXPECT_EQ(sizeof(kExpectedEncoding), CborWriteTrue(&out));
+  EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
+}
+
+TEST(CborWriterTest, NullEncoding) {
+  const uint8_t kExpectedEncoding[] = {0xf6};
+  uint8_t buffer[64];
+  CborOut out = {
+      .buffer = buffer,
+      .size = sizeof(buffer),
+  };
+  EXPECT_EQ(sizeof(kExpectedEncoding), CborWriteNull(&out));
+  EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
+}
+
 TEST(CborWriterTest, CborOutInvariants) {
   const uint8_t kData[] = {0xb2, 0x34, 0x75, 0x92, 0x52};
   uint8_t buffer[64];
@@ -171,8 +204,11 @@ TEST(CborWriterTest, CborOutInvariants) {
   EXPECT_EQ(9u, CborWriteTstr("A string", &out));
   EXPECT_EQ(1u, CborWriteArray(/*num_elements=*/16, &out));
   EXPECT_EQ(2u, CborWriteMap(/*num_pairs=*/35, &out));
+  EXPECT_EQ(1u, CborWriteFalse(&out));
+  EXPECT_EQ(1u, CborWriteTrue(&out));
+  EXPECT_EQ(1u, CborWriteNull(&out));
   // Offset is the cumulative size.
-  EXPECT_EQ(3 + 6 + 9 + 1 + 2u, out.offset);
+  EXPECT_EQ(3 + 6 + 9 + 1 + 2 + 1 + 1 + 1u, out.offset);
   // Buffer and size are unchanged.
   EXPECT_EQ(buffer, out.buffer);
   EXPECT_EQ(sizeof(buffer), out.size);
@@ -184,13 +220,16 @@ TEST(CborWriterTest, NullBufferForMeasurement) {
       .buffer = nullptr,
       .size = 2,  // Ignored.
   };
+  EXPECT_EQ(1u, CborWriteNull(&out));
+  EXPECT_EQ(1u, CborWriteTrue(&out));
+  EXPECT_EQ(1u, CborWriteFalse(&out));
   EXPECT_EQ(3u, CborWriteMap(/*num_pairs=*/623, &out));
   EXPECT_EQ(5u, CborWriteArray(/*num_elements=*/70000, &out));
   EXPECT_EQ(7u, CborWriteTstr("length", &out));
   EXPECT_EQ(8u, CborWriteBstr(sizeof(kData), kData, &out));
   EXPECT_EQ(5u, CborWriteInt(-10002000, &out));
   // Offset is the cumulative size.
-  EXPECT_EQ(3 + 5 + 7 + 8 + 5u, out.offset);
+  EXPECT_EQ(1 + 1 + 1 + 3 + 5 + 7 + 8 + 5u, out.offset);
   // Buffer and size are unchanged.
   EXPECT_EQ(nullptr, out.buffer);
   EXPECT_EQ(2u, out.size);
@@ -214,6 +253,13 @@ TEST(CborWriterTest, BufferTooSmall) {
   EXPECT_EQ(0u, CborWriteArray(/*num_elements=*/563, &out));
   out.offset = 0;
   EXPECT_EQ(0u, CborWriteMap(/*num_pairs=*/29, &out));
+  out.size = 0;
+  out.offset = 0;
+  EXPECT_EQ(0u, CborWriteFalse(&out));
+  out.offset = 0;
+  EXPECT_EQ(0u, CborWriteTrue(&out));
+  out.offset = 0;
+  EXPECT_EQ(0u, CborWriteNull(&out));
 }
 
 TEST(CborWriterTest, NotEnoughRemainingSpace) {
@@ -234,6 +280,12 @@ TEST(CborWriterTest, NotEnoughRemainingSpace) {
   EXPECT_EQ(0u, CborWriteArray(/*num_elements=*/352, &out));
   out.offset = sizeof(buffer) - 1;
   EXPECT_EQ(0u, CborWriteMap(/*num_pairs=*/73, &out));
+  out.offset = sizeof(buffer);
+  EXPECT_EQ(0u, CborWriteFalse(&out));
+  out.offset = sizeof(buffer);
+  EXPECT_EQ(0u, CborWriteTrue(&out));
+  out.offset = sizeof(buffer);
+  EXPECT_EQ(0u, CborWriteNull(&out));
 }
 
 TEST(CborWriterTest, OffsetOverflow) {
@@ -254,6 +306,12 @@ TEST(CborWriterTest, OffsetOverflow) {
   EXPECT_EQ(0u, CborWriteArray(/*num_elements=*/41, &out));
   out.offset = SIZE_MAX - 1;
   EXPECT_EQ(0u, CborWriteMap(/*num_pairs=*/998844, &out));
+  out.offset = SIZE_MAX;
+  EXPECT_EQ(0u, CborWriteFalse(&out));
+  out.offset = SIZE_MAX;
+  EXPECT_EQ(0u, CborWriteTrue(&out));
+  out.offset = SIZE_MAX;
+  EXPECT_EQ(0u, CborWriteNull(&out));
 }
 
 TEST(CborWriterTest, MeasurementOffsetOverflow) {
@@ -272,6 +330,12 @@ TEST(CborWriterTest, MeasurementOffsetOverflow) {
   EXPECT_EQ(0u, CborWriteArray(/*num_elements=*/8368257314, &out));
   out.offset = SIZE_MAX - 1;
   EXPECT_EQ(0u, CborWriteMap(/*num_pairs=*/92, &out));
+  out.offset = SIZE_MAX;
+  EXPECT_EQ(0u, CborWriteFalse(&out));
+  out.offset = SIZE_MAX;
+  EXPECT_EQ(0u, CborWriteTrue(&out));
+  out.offset = SIZE_MAX;
+  EXPECT_EQ(0u, CborWriteNull(&out));
 }
 }
 

@@ -47,6 +47,9 @@ size_t CborWriteBstr(size_t data_size, const uint8_t* data,
 size_t CborWriteTstr(const char* str, struct CborOut* out);
 size_t CborWriteArray(size_t num_elements, struct CborOut* out);
 size_t CborWriteMap(size_t num_pairs, struct CborOut* out);
+size_t CborWriteFalse(struct CborOut* out);
+size_t CborWriteTrue(struct CborOut* out);
+size_t CborWriteNull(struct CborOut* out);
 
 #ifdef __cplusplus
 }  // extern "C"

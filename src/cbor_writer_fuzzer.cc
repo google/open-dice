@@ -23,13 +23,16 @@ enum CborWriterFunction {
   WriteTstr,
   WriteArray,
   WriteMap,
-  kMaxValue = WriteMap,
+  WriteFalse,
+  WriteTrue,
+  WriteNull,
+  kMaxValue = WriteNull,
 };
 
 // Use data sizes that exceed the 16-bit range without being excessive.
 constexpr size_t kMaxDataSize = 0xffff + 0x5000;
 constexpr size_t kMaxBufferSize = kMaxDataSize * 3;
-constexpr size_t kIterations = 10;
+constexpr size_t kIterations = 16;
 
 }  // namespace
 
@@ -73,6 +76,15 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         CborWriteMap(num_pairs, &out);
         break;
       }
+      case WriteFalse:
+        CborWriteNull(&out);
+        break;
+      case WriteTrue:
+        CborWriteNull(&out);
+        break;
+      case WriteNull:
+        CborWriteNull(&out);
+        break;
     }
   }
 
