@@ -21,9 +21,6 @@
 #include "dice/cbor_writer.h"
 #include "dice/dice.h"
 #include "dice/utils.h"
-#include "openssl/curve25519.h"
-#include "openssl/is_boringssl.h"
-#include "openssl/sha.h"
 
 // Max size of COSE_Sign1 including payload.
 static const size_t kMaxCertificateSize = 2048;
@@ -95,7 +92,8 @@ static DiceResult EncodePublicKey(uint8_t subject_public_key[32],
 
 // Encodes a CBOR Web Token (CWT) with an issuer, subject, and additional
 // fields.
-static DiceResult EncodeCwt(const DiceInputValues* input_values,
+static DiceResult EncodeCwt(const DiceOps* ops,
+                            const DiceInputValues* input_values,
                             const char* authority_id_hex,
                             const char* subject_id_hex,
                             const uint8_t* encoded_public_key,
@@ -158,8 +156,12 @@ static DiceResult EncodeCwt(const DiceInputValues* input_values,
   // Add the config inputs.
   if (input_values->config_type == kDiceConfigTypeDescriptor) {
     uint8_t config_descriptor_hash[DICE_HASH_SIZE];
-    SHA512(input_values->config_descriptor,
-           input_values->config_descriptor_size, config_descriptor_hash);
+    DiceResult result =
+        ops->hash(ops, input_values->config_descriptor,
+                  input_values->config_descriptor_size, config_descriptor_hash);
+    if (result != kDiceResultOk) {
+      return result;
+    }
     if (
         // Add the config descriptor.
         !CborWriteInt(kConfigDescriptorLabel, &out) ||
@@ -277,8 +279,8 @@ DiceResult DiceGenerateCborCertificateOp(
   }
 
   // Declare buffers which are cleared on 'goto out'.
-  uint8_t subject_bssl_private_key[64];
-  uint8_t authority_bssl_private_key[64];
+  uint8_t subject_private_key[DICE_PRIVATE_KEY_MAX_SIZE];
+  uint8_t authority_private_key[DICE_PRIVATE_KEY_MAX_SIZE];
 
   // These are 'variably modified' types so need to be declared upfront.
   uint8_t encoded_public_key[kMaxPublicKeySize];
@@ -286,9 +288,15 @@ DiceResult DiceGenerateCborCertificateOp(
   uint8_t protected_attributes[kMaxProtectedAttributesSize];
 
   // Derive keys and IDs from the private key seeds.
-  uint8_t subject_public_key[32];
-  ED25519_keypair_from_seed(subject_public_key, subject_bssl_private_key,
-                            subject_private_key_seed);
+  uint8_t subject_public_key[DICE_PUBLIC_KEY_MAX_SIZE];
+  size_t subject_public_key_size;
+  size_t subject_private_key_size;
+  result = ops->keypair_from_seed(
+      ops, subject_private_key_seed, subject_public_key,
+      &subject_public_key_size, subject_private_key, &subject_private_key_size);
+  if (result != kDiceResultOk) {
+    goto out;
+  }
 
   uint8_t subject_id[20];
   result = DiceDeriveCdiCertificateId(ops, subject_public_key, 32, subject_id);
@@ -300,13 +308,20 @@ DiceResult DiceGenerateCborCertificateOp(
                 sizeof(subject_id_hex));
   subject_id_hex[sizeof(subject_id_hex) - 1] = '\0';
 
-  uint8_t authority_public_key[32];
-  ED25519_keypair_from_seed(authority_public_key, authority_bssl_private_key,
-                            authority_private_key_seed);
+  uint8_t authority_public_key[DICE_PUBLIC_KEY_MAX_SIZE];
+  size_t authority_public_key_size;
+  size_t authority_private_key_size;
+  result = ops->keypair_from_seed(
+      ops, authority_private_key_seed, authority_public_key,
+      &authority_public_key_size, authority_private_key,
+      &authority_private_key_size);
+  if (result != kDiceResultOk) {
+    goto out;
+  }
 
   uint8_t authority_id[20];
-  result =
-      DiceDeriveCdiCertificateId(ops, authority_public_key, 32, authority_id);
+  result = DiceDeriveCdiCertificateId(ops, authority_public_key,
+                                      authority_public_key_size, authority_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -335,7 +350,7 @@ DiceResult DiceGenerateCborCertificateOp(
 
   // The CWT is the payload in both the TBS and the final COSE_Sign1 structure.
   size_t payload_size = 0;
-  result = EncodeCwt(input_values, authority_id_hex, subject_id_hex,
+  result = EncodeCwt(ops, input_values, authority_id_hex, subject_id_hex,
                      encoded_public_key, encoded_public_key_size,
                      sizeof(payload), payload, &payload_size);
   if (result != kDiceResultOk) {
@@ -353,15 +368,19 @@ DiceResult DiceGenerateCborCertificateOp(
 
   // Sign the TBS with the authority key.
   uint8_t signature[64];
-  if (1 != ED25519_sign(signature, certificate, *certificate_actual_size,
-                        authority_bssl_private_key)) {
-    result = kDiceResultPlatformError;
+  result = ops->sign(ops, certificate, *certificate_actual_size,
+                     authority_private_key, authority_private_key_size,
+                     sizeof(signature), signature);
+  if (result != kDiceResultOk) {
     goto out;
   }
-  if (1 != ED25519_verify(certificate, *certificate_actual_size, signature,
-                          authority_public_key)) {
-    result = kDiceResultPlatformError;
-    goto out;
+  if (ops->verify) {
+    result = ops->verify(ops, certificate, *certificate_actual_size, signature,
+                         sizeof(signature), authority_public_key,
+                         authority_public_key_size);
+    if (result != kDiceResultOk) {
+      goto out;
+    }
   }
 
   // The final certificate is an untagged COSE_Sign1 structure.
@@ -370,10 +389,8 @@ DiceResult DiceGenerateCborCertificateOp(
       signature, certificate_buffer_size, certificate, certificate_actual_size);
 
 out:
-  ops->clear_memory(ops, sizeof(subject_bssl_private_key),
-                    subject_bssl_private_key);
-  ops->clear_memory(ops, sizeof(authority_bssl_private_key),
-                    authority_bssl_private_key);
+  ops->clear_memory(ops, sizeof(subject_private_key), subject_private_key);
+  ops->clear_memory(ops, sizeof(authority_private_key), authority_private_key);
 
   return result;
 }

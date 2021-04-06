@@ -49,7 +49,7 @@ pw_static_library("dice_with_boringssl_ops") {
   public = [ "include/dice/dice.h" ]
   sources = [
     "src/boringssl_cert_op.c",
-    "src/boringssl_hash_kdf_ops.c",
+    "src/boringssl_hash_kdf_sign_ops.c",
     "src/dice.c",
   ]
   deps = [
@@ -73,7 +73,7 @@ pw_static_library("dice_with_mbedtls_ops") {
 pw_static_library("dice_with_cbor_cert") {
   public = [ "include/dice/dice.h" ]
   sources = [
-    "src/boringssl_hash_kdf_ops.c",
+    "src/boringssl_hash_kdf_sign_ops.c",
     "src/cbor_cert_op.c",
     "src/dice.c",
   ]
@@ -87,7 +87,7 @@ pw_static_library("dice_with_cbor_cert") {
 pw_static_library("dice_with_cbor_template_cert") {
   public = [ "include/dice/dice.h" ]
   sources = [
-    "src/boringssl_hash_kdf_ops.c",
+    "src/boringssl_hash_kdf_sign_ops.c",
     "src/dice.c",
     "src/template_cbor_cert_op.c",
   ]
@@ -100,7 +100,7 @@ pw_static_library("dice_with_cbor_template_cert") {
 pw_static_library("dice_with_x509_template_cert") {
   public = [ "include/dice/dice.h" ]
   sources = [
-    "src/boringssl_hash_kdf_ops.c",
+    "src/boringssl_hash_kdf_sign_ops.c",
     "src/dice.c",
     "src/template_cert_op.c",
   ]

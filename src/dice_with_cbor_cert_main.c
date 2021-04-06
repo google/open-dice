@@ -24,6 +24,9 @@ int main(int argc, char** argv) {
   (void)argv;
   const DiceOps ops = {.hash = DiceBsslHashOp,
                        .kdf = DiceBsslKdfOp,
+                       .keypair_from_seed = DiceBsslEd25519KeypairFromSeed,
+                       .sign = DiceBsslEd25519Sign,
+                       .verify = DiceBsslEd25519Verify,
                        .generate_certificate = DiceGenerateCborCertificateOp,
                        .clear_memory = DiceClearMemory};
   uint8_t cdi_buffer[DICE_CDI_SIZE];

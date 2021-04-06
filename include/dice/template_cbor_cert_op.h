@@ -26,12 +26,14 @@ extern "C" {
 // template using the ED25519-SHA512 signature scheme.
 //
 // If no variable length descriptors are used in a DICE certificate, the
-// certificate can be constructed from a template instead of using a CBOR / COSE
-// library. This implementation includes only hashes and inline configuration in
-// the certificate fields. For convenience this uses the lower level curve25519
-// implementation in boringssl but does not use any CBOR or COSE library. This
-// approach may be especially useful in very low level components where
-// simplicity is paramount.
+// certificate can be constructed from a template instead of using a CBOR /
+// COSE library. This implementation includes only hashes and inline
+// configuration in the certificate fields. This approach may be especially
+// useful in very low level components where simplicity is paramount.
+//
+// The |keypair_from_seed| and |sign| operations in |ops| are required by this
+// function. |verify| is optional but will be used as a safety check of the
+// signature if it is provided.
 //
 // This function will return kDiceResultInvalidInput if 'input_values' specifies
 // any variable length descriptors. In particular:

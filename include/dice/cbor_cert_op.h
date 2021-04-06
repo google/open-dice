@@ -24,6 +24,10 @@ extern "C" {
 // This function implements the 'DiceOps::generate_certificate' callback
 // documented in dice.h. It generates a CWT-style CBOR certificate using the
 // ED25519-SHA512 signature scheme.
+//
+// The |keypair_from_seed| and |sign| operations in |ops| are required by this
+// function. |verify| is optional but will be used as a safety check of the
+// signature if it is provided.
 DiceResult DiceGenerateCborCertificateOp(
     const DiceOps* ops,
     const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],

@@ -35,11 +35,16 @@ using dice::test::DeriveFakeInputValue;
 using dice::test::DiceStateForTest;
 using dice::test::KeyType_Ed25519;
 
-constexpr DiceOps kOps = {.context = NULL,
-                          .hash = DiceBsslHashOp,
-                          .kdf = DiceBsslKdfOp,
-                          .generate_certificate = DiceGenerateCborCertificateOp,
-                          .clear_memory = DiceClearMemory};
+constexpr DiceOps kOps = {
+    .context = NULL,
+    .hash = DiceBsslHashOp,
+    .kdf = DiceBsslKdfOp,
+    .keypair_from_seed = DiceBsslEd25519KeypairFromSeed,
+    .sign = DiceBsslEd25519Sign,
+    .verify = DiceBsslEd25519Verify,
+    .generate_certificate = DiceGenerateCborCertificateOp,
+    .clear_memory = DiceClearMemory,
+};
 
 TEST(DiceOpsTest, KnownAnswerZeroInput) {
   DiceStateForTest current_state = {};

@@ -33,6 +33,22 @@ DiceResult DiceBsslKdfOp(const DiceOps* ops, size_t length, const uint8_t* ikm,
                          const uint8_t* info, size_t info_size,
                          uint8_t* output);
 
+DiceResult DiceBsslEd25519KeypairFromSeed(
+    const DiceOps* ops_not_used, const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    uint8_t public_key[DICE_PUBLIC_KEY_MAX_SIZE], size_t* public_key_size,
+    uint8_t private_key[DICE_PRIVATE_KEY_MAX_SIZE], size_t* private_key_size);
+
+DiceResult DiceBsslEd25519Sign(const DiceOps* ops, const uint8_t* message,
+                               size_t message_size, const uint8_t* private_key,
+                               size_t private_key_size, size_t signature_size,
+                               uint8_t* signature);
+
+DiceResult DiceBsslEd25519Verify(const DiceOps* ops, const uint8_t* message,
+                                 size_t message_size, const uint8_t* signature,
+                                 size_t signature_size,
+                                 const uint8_t* public_key,
+                                 size_t public_key_size);
+
 DiceResult DiceBsslGenerateCertificateOp(
     const DiceOps* ops,
     const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
