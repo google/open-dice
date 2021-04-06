@@ -31,6 +31,9 @@ config("common_config") {
     "-std=c99",
     "-pedantic",
   ]
+
+  # Modern C++ for test and tooling.
+  cflags_cc = [ "-std=c++20" ]
 }
 
 config("enable_sanitizers") {
