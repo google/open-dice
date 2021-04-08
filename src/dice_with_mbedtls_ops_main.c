@@ -21,8 +21,10 @@
 int main(int argc, char** argv) {
   (void)argc;
   (void)argv;
-  const DiceOps ops = {0, DiceMbedtlsHashOp, DiceMbedtlsKdfOp,
-                       DiceMbedtlsGenerateCertificateOp, DiceClearMemory};
+  const DiceOps ops = {.hash = DiceMbedtlsHashOp,
+                       .kdf = DiceMbedtlsKdfOp,
+                       .generate_certificate = DiceMbedtlsGenerateCertificateOp,
+                       .clear_memory = DiceClearMemory};
   uint8_t cdi_buffer[DICE_CDI_SIZE];
   uint8_t cert_buffer[2048];
   size_t cert_size;
