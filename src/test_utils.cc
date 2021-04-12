@@ -159,13 +159,14 @@ class HmacSha512Drbg {
   HMAC_CTX ctx_;
 };
 
-bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(const uint8_t raw_key[32],
-                                        dice::test::KeyType key_type,
-                                        uint8_t raw_public_key[33],
-                                        size_t* raw_public_key_size) {
+bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(
+    const uint8_t raw_key[DICE_PRIVATE_KEY_SEED_SIZE],
+    dice::test::KeyType key_type, uint8_t raw_public_key[33],
+    size_t* raw_public_key_size) {
   if (key_type == dice::test::KeyType_Ed25519) {
-    bssl::UniquePtr<EVP_PKEY> key(EVP_PKEY_new_raw_private_key(
-        EVP_PKEY_ED25519, /*unused=*/nullptr, raw_key, 32));
+    bssl::UniquePtr<EVP_PKEY> key(
+        EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, /*unused=*/nullptr,
+                                     raw_key, DICE_PRIVATE_KEY_SEED_SIZE));
     *raw_public_key_size = 32;
     EVP_PKEY_get_raw_public_key(key.get(), raw_public_key, raw_public_key_size);
     return key;
@@ -296,10 +297,10 @@ bool VerifyX509CertificateChain(const uint8_t* root_certificate,
   return (1 == X509_verify_cert(x509_store_ctx.get()));
 }
 
-void CreateCborUdsCertificate(const uint8_t private_key[32],
-                              const uint8_t id[20],
-                              uint8_t certificate[dice::test::kTestCertSize],
-                              size_t* certificate_size) {
+void CreateCborUdsCertificate(
+    const uint8_t private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    const uint8_t id[20], uint8_t certificate[dice::test::kTestCertSize],
+    size_t* certificate_size) {
   const uint8_t kProtectedAttributesCbor[3] = {
       0xa1 /* map(1) */, 0x01 /* alg(1) */, 0x27 /* EdDSA(-8) */};
   const int64_t kCwtIssuerLabel = 1;
@@ -311,7 +312,7 @@ void CreateCborUdsCertificate(const uint8_t private_key[32],
   // Public key encoded as a COSE_Key.
   uint8_t public_key[32];
   uint8_t bssl_private_key[64];
-  ED25519_keypair_from_seed(public_key, bssl_private_key, private_key);
+  ED25519_keypair_from_seed(public_key, bssl_private_key, private_key_seed);
   cn_cbor_errback error;
   ScopedCbor public_key_cbor(cn_cbor_map_create(&error));
   // kty = okp
@@ -618,8 +619,8 @@ void CreateFakeUdsCertificate(const DiceOps& ops, const uint8_t uds[32],
                               CertificateType cert_type, KeyType key_type,
                               uint8_t certificate[kTestCertSize],
                               size_t* certificate_size) {
-  uint8_t raw_key[32];
-  DiceDeriveCdiPrivateKey(&ops, uds, raw_key);
+  uint8_t raw_key[DICE_PRIVATE_KEY_SEED_SIZE];
+  DiceDeriveCdiPrivateKeySeed(&ops, uds, raw_key);
 
   uint8_t raw_public_key[33];
   size_t raw_public_key_size = 0;

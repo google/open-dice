@@ -34,8 +34,8 @@ DiceResult FakeKdf(const DiceOps* ops, size_t length, const uint8_t* ikm,
 
 DiceResult FakeGenerateCertificate(
     const DiceOps* ops,
-    const uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE],
-    const uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE],
+    const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
     uint8_t* certificate, size_t* certificate_actual_size);
 }  // extern "C"
@@ -66,13 +66,13 @@ struct FakeDiceOps {
 
   // DiceOps calls to |generate_certificate| forward here.
   DiceResult GenerateCertificate(
-      const uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE],
-      const uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE],
+      const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+      const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
       const DiceInputValues* input_values, size_t certificate_buffer_size,
       uint8_t* certificate, size_t* certificate_actual_size) {
     const uint8_t kFakeCert[kFakeCertSize] = {};
-    (void)subject_private_key;
-    (void)authority_private_key;
+    (void)subject_private_key_seed;
+    (void)authority_private_key_seed;
     (void)input_values;
     generate_certificate_count_++;
     if (certificate_buffer_size < kFakeCertSize) {
@@ -118,14 +118,14 @@ DiceResult FakeKdf(const DiceOps* ops, size_t length, const uint8_t* ikm,
 
 DiceResult FakeGenerateCertificate(
     const DiceOps* ops,
-    const uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE],
-    const uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE],
+    const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
     uint8_t* certificate, size_t* certificate_actual_size) {
   return reinterpret_cast<FakeDiceOps*>(ops->context)
-      ->GenerateCertificate(subject_private_key, authority_private_key,
-                            input_values, certificate_buffer_size, certificate,
-                            certificate_actual_size);
+      ->GenerateCertificate(
+          subject_private_key_seed, authority_private_key_seed, input_values,
+          certificate_buffer_size, certificate, certificate_actual_size);
 }
 
 struct DiceStateForTest {

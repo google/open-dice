@@ -26,7 +26,7 @@ extern "C" {
 #define DICE_HASH_SIZE 64
 #define DICE_HIDDEN_SIZE 64
 #define DICE_INLINE_CONFIG_SIZE 64
-#define DICE_PRIVATE_KEY_SIZE 32
+#define DICE_PRIVATE_KEY_SEED_SIZE 32
 
 typedef enum {
   kDiceResultOk,
@@ -115,14 +115,14 @@ struct DiceOps_ {
                     const uint8_t* info, size_t info_size, uint8_t* output);
 
   // Generates an X.509 certificate, or an alternative certificate format, from
-  // the given |subject_private_key| and |input_values|, and signed by
-  // |authority_private_key|. The subject private key is supplied here so the
-  // implementation can choose between asymmetric mechanisms, for example ECDSA
-  // vs Ed25519.
+  // the given |subject_private_key_seed| and |input_values|, and signed by
+  // |authority_private_key_seed|. The subject private key seed is supplied
+  // here so the implementation can choose between asymmetric mechanisms, for
+  // example ECDSA vs Ed25519.
   DiceResult (*generate_certificate)(
       const DiceOps* ops,
-      const uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE],
-      const uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE],
+      const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+      const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
       const DiceInputValues* input_values, size_t certificate_buffer_size,
       uint8_t* certificate, size_t* certificate_actual_size);
 
@@ -133,12 +133,12 @@ struct DiceOps_ {
   void (*clear_memory)(const DiceOps* ops, size_t size, void* address);
 };
 
-// Derives a |cdi_private_key| from a |cdi_attest| value. On success populates
-// |cdi_private_key| and returns kDiceResultOk. Note: of the provided |ops|,
-// only 'kdf' is called.
-DiceResult DiceDeriveCdiPrivateKey(
+// Derives a |cdi_private_key_seed| from a |cdi_attest| value. On success
+// populates |cdi_private_key_seed| and returns kDiceResultOk. Note: of the
+// provided |ops|, only 'kdf' is called.
+DiceResult DiceDeriveCdiPrivateKeySeed(
     const DiceOps* ops, const uint8_t cdi_attest[DICE_CDI_SIZE],
-    uint8_t cdi_private_key[DICE_PRIVATE_KEY_SIZE]);
+    uint8_t cdi_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE]);
 
 // Derives an |id| from a |cdi_public_key| value. Because public keys can vary
 // in length depending on the algorithm, the |cdi_public_key_size| in bytes must

@@ -505,8 +505,8 @@ static DiceResult GetIdFromKey(const DiceOps* ops, const EVP_PKEY* key,
 
 DiceResult DiceBsslGenerateCertificateOp(
     const DiceOps* ops,
-    const uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE],
-    const uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE],
+    const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
     uint8_t* certificate, size_t* certificate_actual_size) {
   DiceResult result = kDiceResultOk;
@@ -521,14 +521,16 @@ DiceResult DiceBsslGenerateCertificateOp(
     result = kDiceResultPlatformError;
     goto out;
   }
-  authority_key = EVP_PKEY_new_raw_private_key(
-      EVP_PKEY_ED25519, NULL, authority_private_key, DICE_PRIVATE_KEY_SIZE);
+  authority_key = EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, NULL,
+                                               authority_private_key_seed,
+                                               DICE_PRIVATE_KEY_SEED_SIZE);
   if (!authority_key) {
     result = kDiceResultPlatformError;
     goto out;
   }
-  subject_key = EVP_PKEY_new_raw_private_key(
-      EVP_PKEY_ED25519, NULL, subject_private_key, DICE_PRIVATE_KEY_SIZE);
+  subject_key = EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, NULL,
+                                             subject_private_key_seed,
+                                             DICE_PRIVATE_KEY_SEED_SIZE);
   if (!subject_key) {
     result = kDiceResultPlatformError;
     goto out;

@@ -36,21 +36,22 @@ static const size_t kMaxCertificateSize = 2048;
 static const size_t kMaxExtensionSize = 2048;
 static const size_t kMaxKeyIdSize = 40;
 
-static DiceResult SetupKeyPair(const uint8_t private_key[DICE_PRIVATE_KEY_SIZE],
-                               mbedtls_pk_context* context) {
+static DiceResult SetupKeyPair(
+    const uint8_t private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    mbedtls_pk_context* context) {
   if (0 !=
       mbedtls_pk_setup(context, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY))) {
     return kDiceResultPlatformError;
   }
-  // Don't use the |private_key| directly, it may not be suitable. Rather use it
-  // to seed a PRNG which is then in turn used to generate the private key. This
-  // implementation uses HMAC_DRBG in a loop with no reduction, like RFC6979.
+  // Use the |private_key_seed| directly to seed a PRNG which is then in turn
+  // used to generate the private key. This implementation uses HMAC_DRBG in a
+  // loop with no reduction, like RFC6979.
   DiceResult result = kDiceResultOk;
   mbedtls_hmac_drbg_context rng_context;
   mbedtls_hmac_drbg_init(&rng_context);
   if (0 != mbedtls_hmac_drbg_seed_buf(
                &rng_context, mbedtls_md_info_from_type(MBEDTLS_MD_SHA512),
-               private_key, DICE_PRIVATE_KEY_SIZE)) {
+               private_key_seed, DICE_PRIVATE_KEY_SEED_SIZE)) {
     result = kDiceResultPlatformError;
     goto out;
   }
@@ -293,8 +294,8 @@ DiceResult DiceMbedtlsKdfOp(const DiceOps* ops_not_used, size_t length,
 
 DiceResult DiceMbedtlsGenerateCertificateOp(
     const DiceOps* ops,
-    const uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE],
-    const uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE],
+    const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
     uint8_t* certificate, size_t* certificate_actual_size) {
   // 1.3.6.1.4.1.11129.2.1.24
@@ -324,7 +325,7 @@ DiceResult DiceMbedtlsGenerateCertificateOp(
   uint8_t tmp_buffer[kMaxCertificateSize];
 
   // Derive key pairs and IDs.
-  result = SetupKeyPair(authority_private_key, &authority_key_context);
+  result = SetupKeyPair(authority_private_key_seed, &authority_key_context);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -344,7 +345,7 @@ DiceResult DiceMbedtlsGenerateCertificateOp(
   if (result != kDiceResultOk) {
     goto out;
   }
-  result = SetupKeyPair(subject_private_key, &subject_key_context);
+  result = SetupKeyPair(subject_private_key_seed, &subject_key_context);
   if (result != kDiceResultOk) {
     goto out;
   }

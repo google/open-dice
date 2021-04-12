@@ -135,8 +135,8 @@ static void CopyField(const uint8_t* src, size_t index, uint8_t* buffer) {
 
 DiceResult DiceGenerateCborCertificateFromTemplateOp(
     const DiceOps* ops,
-    const uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE],
-    const uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE],
+    const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
     uint8_t* certificate, size_t* certificate_actual_size) {
   DiceResult result = kDiceResultOk;
@@ -161,11 +161,10 @@ DiceResult DiceGenerateCborCertificateFromTemplateOp(
   // These are 'variably modified' types so need to be declared upfront.
   uint8_t tbs[kTbsSize];
 
-  // Derive public keys and IDs from the private keys. Note: the Boringssl
-  // implementation refers to the raw private key as a seed.
+  // Derive keys and IDs from the private key seeds.
   uint8_t subject_public_key[32];
   ED25519_keypair_from_seed(subject_public_key, subject_bssl_private_key,
-                            subject_private_key);
+                            subject_private_key_seed);
 
   uint8_t subject_id[20];
   result = DiceDeriveCdiCertificateId(ops, subject_public_key, 32, subject_id);
@@ -178,7 +177,7 @@ DiceResult DiceGenerateCborCertificateFromTemplateOp(
 
   uint8_t authority_public_key[32];
   ED25519_keypair_from_seed(authority_public_key, authority_bssl_private_key,
-                            authority_private_key);
+                            authority_private_key_seed);
 
   uint8_t authority_id[20];
   result =

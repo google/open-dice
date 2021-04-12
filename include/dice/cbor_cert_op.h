@@ -26,8 +26,8 @@ extern "C" {
 // ED25519-SHA512 signature scheme.
 DiceResult DiceGenerateCborCertificateOp(
     const DiceOps* ops,
-    const uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE],
-    const uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE],
+    const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
     uint8_t* certificate, size_t* certificate_actual_size);
 

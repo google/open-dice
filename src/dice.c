@@ -34,14 +34,14 @@ static const uint8_t kIdSalt[] = {
     0x1D, 0xB9, 0x52, 0x0B, 0xA5, 0x1C, 0x7B, 0x29, 0xEA};
 static const size_t kIdSaltSize = 64;
 
-DiceResult DiceDeriveCdiPrivateKey(
+DiceResult DiceDeriveCdiPrivateKeySeed(
     const DiceOps* ops, const uint8_t cdi_attest[DICE_CDI_SIZE],
-    uint8_t cdi_private_key[DICE_PRIVATE_KEY_SIZE]) {
+    uint8_t cdi_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE]) {
   // Use the CDI as input key material, with fixed salt and info.
-  return ops->kdf(ops, /*length=*/DICE_PRIVATE_KEY_SIZE, cdi_attest,
+  return ops->kdf(ops, /*length=*/DICE_PRIVATE_KEY_SEED_SIZE, cdi_attest,
                   /*ikm_size=*/DICE_CDI_SIZE, kAsymSalt, kAsymSaltSize,
                   /*info=*/(const uint8_t*)"Key Pair", /*info_size=*/8,
-                  cdi_private_key);
+                  cdi_private_key_seed);
 }
 
 DiceResult DiceDeriveCdiCertificateId(const DiceOps* ops,
@@ -93,8 +93,8 @@ DiceResult DiceMainFlow(const DiceOps* ops,
                        kHiddenSize];
   uint8_t attest_input_hash[DICE_HASH_SIZE];
   uint8_t seal_input_hash[DICE_HASH_SIZE];
-  uint8_t current_cdi_private_key[DICE_PRIVATE_KEY_SIZE];
-  uint8_t next_cdi_private_key[DICE_PRIVATE_KEY_SIZE];
+  uint8_t current_cdi_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE];
+  uint8_t next_cdi_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE];
 
   // Assemble the input buffer.
   memcpy(&input_buffer[kCodeOffset], input_values->code_hash, kCodeSize);
@@ -149,22 +149,23 @@ DiceResult DiceMainFlow(const DiceOps* ops,
     goto out;
   }
 
-  // Derive asymmetric private keys from the attestation CDI values.
-  result =
-      DiceDeriveCdiPrivateKey(ops, current_cdi_attest, current_cdi_private_key);
+  // Derive asymmetric private key seeds from the attestation CDI values.
+  result = DiceDeriveCdiPrivateKeySeed(ops, current_cdi_attest,
+                                       current_cdi_private_key_seed);
   if (result != kDiceResultOk) {
     goto out;
   }
-  result = DiceDeriveCdiPrivateKey(ops, next_cdi_attest, next_cdi_private_key);
+  result = DiceDeriveCdiPrivateKeySeed(ops, next_cdi_attest,
+                                       next_cdi_private_key_seed);
   if (result != kDiceResultOk) {
     goto out;
   }
 
-  // Generate a certificate for |next_cdi_private_key| with
-  // |current_cdi_private_key| as the authority.
+  // Generate a certificate for |next_cdi_private_key_seed| with
+  // |current_cdi_private_key_seed| as the authority.
   result = ops->generate_certificate(
-      ops, next_cdi_private_key, current_cdi_private_key, input_values,
-      next_cdi_certificate_buffer_size, next_cdi_certificate,
+      ops, next_cdi_private_key_seed, current_cdi_private_key_seed,
+      input_values, next_cdi_certificate_buffer_size, next_cdi_certificate,
       next_cdi_certificate_actual_size);
   if (result != kDiceResultOk) {
     goto out;
@@ -174,8 +175,9 @@ out:
   ops->clear_memory(ops, sizeof(input_buffer), input_buffer);
   ops->clear_memory(ops, sizeof(attest_input_hash), attest_input_hash);
   ops->clear_memory(ops, sizeof(seal_input_hash), seal_input_hash);
-  ops->clear_memory(ops, sizeof(current_cdi_private_key),
-                    current_cdi_private_key);
-  ops->clear_memory(ops, sizeof(next_cdi_private_key), next_cdi_private_key);
+  ops->clear_memory(ops, sizeof(current_cdi_private_key_seed),
+                    current_cdi_private_key_seed);
+  ops->clear_memory(ops, sizeof(next_cdi_private_key_seed),
+                    next_cdi_private_key_seed);
   return result;
 }
