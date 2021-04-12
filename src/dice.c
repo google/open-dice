@@ -34,9 +34,9 @@ static const uint8_t kIdSalt[] = {
     0x1D, 0xB9, 0x52, 0x0B, 0xA5, 0x1C, 0x7B, 0x29, 0xEA};
 static const size_t kIdSaltSize = 64;
 
-DiceResult DiceDeriveCdiPrivateKey(const DiceOps* ops,
-                                   const uint8_t cdi_attest[DICE_CDI_SIZE],
-                                   uint8_t cdi_private_key[DICE_CDI_SIZE]) {
+DiceResult DiceDeriveCdiPrivateKey(
+    const DiceOps* ops, const uint8_t cdi_attest[DICE_CDI_SIZE],
+    uint8_t cdi_private_key[DICE_PRIVATE_KEY_SIZE]) {
   // Use the CDI as input key material, with fixed salt and info.
   return ops->kdf(ops, /*length=*/DICE_PRIVATE_KEY_SIZE, cdi_attest,
                   /*ikm_size=*/DICE_CDI_SIZE, kAsymSalt, kAsymSaltSize,

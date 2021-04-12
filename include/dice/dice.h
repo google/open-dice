@@ -136,9 +136,9 @@ struct DiceOps_ {
 // Derives a |cdi_private_key| from a |cdi_attest| value. On success populates
 // |cdi_private_key| and returns kDiceResultOk. Note: of the provided |ops|,
 // only 'kdf' is called.
-DiceResult DiceDeriveCdiPrivateKey(const DiceOps* ops,
-                                   const uint8_t cdi_attest[DICE_CDI_SIZE],
-                                   uint8_t cdi_private_key[DICE_CDI_SIZE]);
+DiceResult DiceDeriveCdiPrivateKey(
+    const DiceOps* ops, const uint8_t cdi_attest[DICE_CDI_SIZE],
+    uint8_t cdi_private_key[DICE_PRIVATE_KEY_SIZE]);
 
 // Derives an |id| from a |cdi_public_key| value. Because public keys can vary
 // in length depending on the algorithm, the |cdi_public_key_size| in bytes must
