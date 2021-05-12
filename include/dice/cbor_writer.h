@@ -15,6 +15,7 @@
 #ifndef DICE_CBOR_WRITER_H_
 #define DICE_CBOR_WRITER_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -24,32 +25,49 @@ extern "C" {
 
 struct CborOut {
   uint8_t* buffer;
-  size_t size;
-  size_t offset;
+  size_t buffer_size;
+  size_t cursor;
 };
 
+// Initializes an output stream for writing CBOR tokens.
+static inline void CborOutInit(uint8_t* buffer, size_t buffer_size,
+                               struct CborOut* out) {
+  out->buffer = buffer;
+  out->buffer_size = buffer_size;
+  out->cursor = 0;
+}
+
+// Returns the number of bytes of encoded data. If |CborOutOverflowed()|
+// returns false, this number of bytes have been written, otherwise, this is the
+// number of bytes that that would have been written had there been space.
+static inline size_t CborOutSize(const struct CborOut* out) {
+  return out->cursor;
+}
+
+// Returns whether the |out| buffer contains the encoded tokens written to it or
+// whether the encoded tokens did not fit and the contents of the buffer should
+// be considered invalid.
+static inline bool CborOutOverflowed(const struct CborOut* out) {
+  return out->cursor == SIZE_MAX || out->cursor > out->buffer_size;
+}
+
 // These functions write simple deterministically encoded CBOR tokens to an
-// output buffer. If a NULL buffer is provided, nothing is written but the
-// offset is still increased and the size returned to allow for measurement of
-// the encoded data.
+// output buffer. The offset is always increased, even if there is not enough
+// space in the output buffer to allow for measurement of the encoded data.
+// Use |CborOutOverflowed()| to check whether or not the buffer successfully
+// contains all of the of the encoded data.
 //
 // Complex types are constructed from these simple types, see RFC 8949. The
 // caller is responsible for correct and deterministic encoding of complex
 // types.
-//
-// If the encoding would overflow the offset or cannot be written to the
-// remaining space in non-null buffer, 0 is returned and the output stream must
-// be considered corrupted as there may have been a partial update to the
-// output.
-size_t CborWriteInt(int64_t val, struct CborOut* out);
-size_t CborWriteBstr(size_t data_size, const uint8_t* data,
-                     struct CborOut* out);
-size_t CborWriteTstr(const char* str, struct CborOut* out);
-size_t CborWriteArray(size_t num_elements, struct CborOut* out);
-size_t CborWriteMap(size_t num_pairs, struct CborOut* out);
-size_t CborWriteFalse(struct CborOut* out);
-size_t CborWriteTrue(struct CborOut* out);
-size_t CborWriteNull(struct CborOut* out);
+void CborWriteInt(int64_t val, struct CborOut* out);
+void CborWriteBstr(size_t data_size, const uint8_t* data, struct CborOut* out);
+void CborWriteTstr(const char* str, struct CborOut* out);
+void CborWriteArray(size_t num_elements, struct CborOut* out);
+void CborWriteMap(size_t num_pairs, struct CborOut* out);
+void CborWriteFalse(struct CborOut* out);
+void CborWriteTrue(struct CborOut* out);
+void CborWriteNull(struct CborOut* out);
 
 #ifdef __cplusplus
 }  // extern "C"

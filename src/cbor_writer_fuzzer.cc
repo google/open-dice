@@ -41,11 +41,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   auto buffer_size = fdp.ConsumeIntegralInRange<size_t>(0, kMaxBufferSize);
   std::vector<uint8_t> buffer(buffer_size);
-  CborOut out = {
-      .buffer = buffer_size == 0 ? nullptr : buffer.data(),
-      .size = buffer_size,
-      .offset = fdp.ConsumeIntegral<size_t>(),
-  };
+  CborOut out;
+  CborOutInit(buffer.data(), buffer.size(), &out);
 
   for (size_t i = 0; i < kIterations; i++) {
     switch (fdp.ConsumeEnum<CborWriterFunction>()) {

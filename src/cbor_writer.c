@@ -30,9 +30,17 @@ enum CborType {
   CBOR_TYPE_SIMPLE = 7,
 };
 
-static size_t CborWriteType(enum CborType type, uint64_t val,
-                            struct CborOut* out) {
-  // Check how much space is needed.
+static bool CborWriteWouldOverflowCursor(size_t size, struct CborOut* out) {
+  return size > SIZE_MAX - out->cursor;
+}
+
+static bool CborWriteFitsInBuffer(size_t size, struct CborOut* out) {
+  return out->cursor <= out->buffer_size &&
+         size <= out->buffer_size - out->cursor;
+}
+
+static void CborWriteType(enum CborType type, uint64_t val,
+                          struct CborOut* out) {
   size_t size;
   if (val <= 23) {
     size = 1;
@@ -45,104 +53,86 @@ static size_t CborWriteType(enum CborType type, uint64_t val,
   } else {
     size = 9;
   }
-  // Don't allow offset to overflow.
-  if (size > SIZE_MAX - out->offset) {
-    return 0;
+  if (CborWriteWouldOverflowCursor(size, out)) {
+    out->cursor = SIZE_MAX;
+    return;
   }
-  // Only write if a buffer is provided.
-  if (out->buffer) {
-    if (out->size < out->offset + size) {
-      return 0;
-    }
+  if (CborWriteFitsInBuffer(size, out)) {
     if (size == 1) {
-      out->buffer[out->offset] = (type << 5) | val;
+      out->buffer[out->cursor] = (type << 5) | val;
     } else if (size == 2) {
-      out->buffer[out->offset] = (type << 5) | 24;
-      out->buffer[out->offset + 1] = val & 0xff;
+      out->buffer[out->cursor] = (type << 5) | 24;
+      out->buffer[out->cursor + 1] = val & 0xff;
     } else if (size == 3) {
-      out->buffer[out->offset] = (type << 5) | 25;
-      out->buffer[out->offset + 1] = (val >> 8) & 0xff;
-      out->buffer[out->offset + 2] = val & 0xff;
+      out->buffer[out->cursor] = (type << 5) | 25;
+      out->buffer[out->cursor + 1] = (val >> 8) & 0xff;
+      out->buffer[out->cursor + 2] = val & 0xff;
     } else if (size == 5) {
-      out->buffer[out->offset] = (type << 5) | 26;
-      out->buffer[out->offset + 1] = (val >> 24) & 0xff;
-      out->buffer[out->offset + 2] = (val >> 16) & 0xff;
-      out->buffer[out->offset + 3] = (val >> 8) & 0xff;
-      out->buffer[out->offset + 4] = val & 0xff;
+      out->buffer[out->cursor] = (type << 5) | 26;
+      out->buffer[out->cursor + 1] = (val >> 24) & 0xff;
+      out->buffer[out->cursor + 2] = (val >> 16) & 0xff;
+      out->buffer[out->cursor + 3] = (val >> 8) & 0xff;
+      out->buffer[out->cursor + 4] = val & 0xff;
     } else if (size == 9) {
-      out->buffer[out->offset] = (type << 5) | 27;
-      out->buffer[out->offset + 1] = (val >> 56) & 0xff;
-      out->buffer[out->offset + 2] = (val >> 48) & 0xff;
-      out->buffer[out->offset + 3] = (val >> 40) & 0xff;
-      out->buffer[out->offset + 4] = (val >> 32) & 0xff;
-      out->buffer[out->offset + 5] = (val >> 24) & 0xff;
-      out->buffer[out->offset + 6] = (val >> 16) & 0xff;
-      out->buffer[out->offset + 7] = (val >> 8) & 0xff;
-      out->buffer[out->offset + 8] = val & 0xff;
-    } else {
-      return 0;
+      out->buffer[out->cursor] = (type << 5) | 27;
+      out->buffer[out->cursor + 1] = (val >> 56) & 0xff;
+      out->buffer[out->cursor + 2] = (val >> 48) & 0xff;
+      out->buffer[out->cursor + 3] = (val >> 40) & 0xff;
+      out->buffer[out->cursor + 4] = (val >> 32) & 0xff;
+      out->buffer[out->cursor + 5] = (val >> 24) & 0xff;
+      out->buffer[out->cursor + 6] = (val >> 16) & 0xff;
+      out->buffer[out->cursor + 7] = (val >> 8) & 0xff;
+      out->buffer[out->cursor + 8] = val & 0xff;
     }
   }
-  // Update the offset with the size it needs.
-  out->offset += size;
-  return size;
+  out->cursor += size;
 }
 
-static size_t CborWriteStr(enum CborType type, size_t data_size,
-                           const uint8_t* data, struct CborOut* out) {
-  // Write the type.
-  size_t type_size = CborWriteType(type, data_size, out);
-  if (type_size == 0) {
-    return 0;
+static void CborWriteStr(enum CborType type, size_t data_size,
+                         const uint8_t* data, struct CborOut* out) {
+  CborWriteType(type, data_size, out);
+  if (CborWriteWouldOverflowCursor(data_size, out)) {
+    out->cursor = SIZE_MAX;
+    return;
   }
-  // Don't allow offset to overflow.
-  if (data_size > SIZE_MAX - out->offset) {
-    return 0;
+  if (CborWriteFitsInBuffer(data_size, out) && data_size) {
+    memcpy(&out->buffer[out->cursor], data, data_size);
   }
-  // Write the data if a buffer is provided.
-  if (data_size > 0 && out->buffer) {
-    if (out->size < out->offset + data_size) {
-      return 0;
-    }
-    memcpy(&out->buffer[out->offset], data, data_size);
-  }
-  // Update the offset with the size it needs.
-  out->offset += data_size;
-  return type_size + data_size;
+  out->cursor += data_size;
 }
 
-size_t CborWriteInt(int64_t val, struct CborOut* out) {
+void CborWriteInt(int64_t val, struct CborOut* out) {
   if (val < 0) {
-    return CborWriteType(CBOR_TYPE_NINT, (-1 - val), out);
+    CborWriteType(CBOR_TYPE_NINT, (-1 - val), out);
+  } else {
+    CborWriteType(CBOR_TYPE_UINT, val, out);
   }
-  return CborWriteType(CBOR_TYPE_UINT, val, out);
 }
 
-size_t CborWriteBstr(size_t data_size, const uint8_t* data,
-                     struct CborOut* out) {
-  return CborWriteStr(CBOR_TYPE_BSTR, data_size, data, out);
+void CborWriteBstr(size_t data_size, const uint8_t* data, struct CborOut* out) {
+  CborWriteStr(CBOR_TYPE_BSTR, data_size, data, out);
 }
 
-size_t CborWriteTstr(const char* str, struct CborOut* out) {
-  return CborWriteStr(CBOR_TYPE_TSTR, strlen(str), (const uint8_t*)str, out);
+void CborWriteTstr(const char* str, struct CborOut* out) {
+  CborWriteStr(CBOR_TYPE_TSTR, strlen(str), (const uint8_t*)str, out);
 }
 
-size_t CborWriteArray(size_t num_elements, struct CborOut* out) {
-  return CborWriteType(CBOR_TYPE_ARRAY, num_elements, out);
+void CborWriteArray(size_t num_elements, struct CborOut* out) {
+  CborWriteType(CBOR_TYPE_ARRAY, num_elements, out);
 }
 
-size_t CborWriteMap(size_t num_pairs, struct CborOut* out) {
-  return CborWriteType(CBOR_TYPE_MAP, num_pairs, out);
+void CborWriteMap(size_t num_pairs, struct CborOut* out) {
+  CborWriteType(CBOR_TYPE_MAP, num_pairs, out);
 }
 
-size_t CborWriteFalse(struct CborOut* out) {
-  return CborWriteType(CBOR_TYPE_SIMPLE, /*val=*/20, out);
+void CborWriteFalse(struct CborOut* out) {
+  CborWriteType(CBOR_TYPE_SIMPLE, /*val=*/20, out);
 }
 
-size_t CborWriteTrue(struct CborOut* out) {
-  return CborWriteType(CBOR_TYPE_SIMPLE, /*val=*/21, out);
+void CborWriteTrue(struct CborOut* out) {
+  CborWriteType(CBOR_TYPE_SIMPLE, /*val=*/21, out);
 }
 
-size_t CborWriteNull(struct CborOut* out) {
-  return CborWriteType(CBOR_TYPE_SIMPLE, /*val=*/22, out);
+void CborWriteNull(struct CborOut* out) {
+  CborWriteType(CBOR_TYPE_SIMPLE, /*val=*/22, out);
 }

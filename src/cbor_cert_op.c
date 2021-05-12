@@ -35,17 +35,16 @@ static DiceResult EncodeProtectedAttributes(size_t buffer_size, uint8_t* buffer,
   const int64_t kCoseHeaderAlgLabel = 1;
   const int64_t kCoseAlgEdDSA = -8;
 
-  struct CborOut out = {
-      .buffer = buffer,
-      .size = buffer_size,
-  };
-  if (!CborWriteMap(/*num_elements=*/1, &out) ||
-      // Add the algorithm.
-      !CborWriteInt(kCoseHeaderAlgLabel, &out) ||
-      !CborWriteInt(kCoseAlgEdDSA, &out)) {
+  struct CborOut out;
+  CborOutInit(buffer, buffer_size, &out);
+  CborWriteMap(/*num_elements=*/1, &out);
+  // Add the algorithm.
+  CborWriteInt(kCoseHeaderAlgLabel, &out);
+  CborWriteInt(kCoseAlgEdDSA, &out);
+  if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
-  *encoded_size = out.offset;
+  *encoded_size = CborOutSize(&out);
   return kDiceResultOk;
 }
 
@@ -63,30 +62,29 @@ static DiceResult EncodePublicKey(uint8_t subject_public_key[32],
   const int64_t kCoseKeyOpsVerify = 2;
   const int64_t kCoseCrvEd25519 = 6;
 
-  struct CborOut out = {
-      .buffer = buffer,
-      .size = buffer_size,
-  };
-  if (!CborWriteMap(/*num_pairs=*/5, &out) ||
-      // Add the key type.
-      !CborWriteInt(kCoseKeyKtyLabel, &out) ||
-      !CborWriteInt(kCoseKeyTypeOkp, &out) ||
-      // Add the algorithm.
-      !CborWriteInt(kCoseKeyAlgLabel, &out) ||
-      !CborWriteInt(kCoseAlgEdDSA, &out) ||
-      // Add the KeyOps.
-      !CborWriteInt(kCoseKeyOpsLabel, &out) ||
-      !CborWriteArray(/*num_elements=*/1, &out) ||
-      !CborWriteInt(kCoseKeyOpsVerify, &out) ||
-      // Add the curve.
-      !CborWriteInt(kCoseOkpCrvLabel, &out) ||
-      !CborWriteInt(kCoseCrvEd25519, &out) ||
-      // Add the subject public key.
-      !CborWriteInt(kCoseOkpXLabel, &out) ||
-      !CborWriteBstr(/*data_size=*/32, subject_public_key, &out)) {
+  struct CborOut out;
+  CborOutInit(buffer, buffer_size, &out);
+  CborWriteMap(/*num_pairs=*/5, &out);
+  // Add the key type.
+  CborWriteInt(kCoseKeyKtyLabel, &out);
+  CborWriteInt(kCoseKeyTypeOkp, &out);
+  // Add the algorithm.
+  CborWriteInt(kCoseKeyAlgLabel, &out);
+  CborWriteInt(kCoseAlgEdDSA, &out);
+  // Add the KeyOps.
+  CborWriteInt(kCoseKeyOpsLabel, &out);
+  CborWriteArray(/*num_elements=*/1, &out);
+  CborWriteInt(kCoseKeyOpsVerify, &out);
+  // Add the curve.
+  CborWriteInt(kCoseOkpCrvLabel, &out);
+  CborWriteInt(kCoseCrvEd25519, &out);
+  // Add the subject public key.
+  CborWriteInt(kCoseOkpXLabel, &out);
+  CborWriteBstr(/*data_size=*/32, subject_public_key, &out);
+  if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
-  *encoded_size = out.offset;
+  *encoded_size = CborOutSize(&out);
   return kDiceResultOk;
 }
 
@@ -129,29 +127,23 @@ static DiceResult EncodeCwt(const DiceOps* ops,
     map_pairs += 1;
   }
 
-  struct CborOut out = {
-      .buffer = buffer,
-      .size = buffer_size,
-  };
-  if (!CborWriteMap(map_pairs, &out) ||
-      // Add the issuer.
-      !CborWriteInt(kCwtIssuerLabel, &out) ||
-      !CborWriteTstr(authority_id_hex, &out) ||
-      // Add the subject.
-      !CborWriteInt(kCwtSubjectLabel, &out) ||
-      !CborWriteTstr(subject_id_hex, &out) ||
-      // Add the code hash.
-      !CborWriteInt(kCodeHashLabel, &out) ||
-      !CborWriteBstr(DICE_HASH_SIZE, input_values->code_hash, &out)) {
-    return kDiceResultBufferTooSmall;
-  }
+  struct CborOut out;
+  CborOutInit(buffer, buffer_size, &out);
+  CborWriteMap(map_pairs, &out);
+  // Add the issuer.
+  CborWriteInt(kCwtIssuerLabel, &out);
+  CborWriteTstr(authority_id_hex, &out);
+  // Add the subject.
+  CborWriteInt(kCwtSubjectLabel, &out);
+  CborWriteTstr(subject_id_hex, &out);
+  // Add the code hash.
+  CborWriteInt(kCodeHashLabel, &out);
+  CborWriteBstr(DICE_HASH_SIZE, input_values->code_hash, &out);
   // Add the code descriptor, if provided.
   if (input_values->code_descriptor_size > 0) {
-    if (!CborWriteInt(kCodeDescriptorLabel, &out) ||
-        !CborWriteBstr(input_values->code_descriptor_size,
-                       input_values->code_descriptor, &out)) {
-      return kDiceResultBufferTooSmall;
-    }
+    CborWriteInt(kCodeDescriptorLabel, &out);
+    CborWriteBstr(input_values->code_descriptor_size,
+                  input_values->code_descriptor, &out);
   }
   // Add the config inputs.
   if (input_values->config_type == kDiceConfigTypeDescriptor) {
@@ -162,52 +154,41 @@ static DiceResult EncodeCwt(const DiceOps* ops,
     if (result != kDiceResultOk) {
       return result;
     }
-    if (
-        // Add the config descriptor.
-        !CborWriteInt(kConfigDescriptorLabel, &out) ||
-        !CborWriteBstr(input_values->config_descriptor_size,
-                       input_values->config_descriptor, &out) ||
-        // Add the Config hash.
-        !CborWriteInt(kConfigHashLabel, &out) ||
-        !CborWriteBstr(DICE_HASH_SIZE, config_descriptor_hash, &out)) {
-      return kDiceResultBufferTooSmall;
-    }
+    // Add the config descriptor.
+    CborWriteInt(kConfigDescriptorLabel, &out);
+    CborWriteBstr(input_values->config_descriptor_size,
+                  input_values->config_descriptor, &out);
+    // Add the Config hash.
+    CborWriteInt(kConfigHashLabel, &out);
+    CborWriteBstr(DICE_HASH_SIZE, config_descriptor_hash, &out);
   } else if (input_values->config_type == kDiceConfigTypeInline) {
     // Add the inline config.
-    if (!CborWriteInt(kConfigDescriptorLabel, &out) ||
-        !CborWriteBstr(DICE_INLINE_CONFIG_SIZE, input_values->config_value,
-                       &out)) {
-      return kDiceResultBufferTooSmall;
-    }
+    CborWriteInt(kConfigDescriptorLabel, &out);
+    CborWriteBstr(DICE_INLINE_CONFIG_SIZE, input_values->config_value, &out);
   }
   // Add the authority inputs.
-  if (!CborWriteInt(kAuthorityHashLabel, &out) ||
-      !CborWriteBstr(DICE_HASH_SIZE, input_values->authority_hash, &out)) {
-    return kDiceResultBufferTooSmall;
-  }
+  CborWriteInt(kAuthorityHashLabel, &out);
+  CborWriteBstr(DICE_HASH_SIZE, input_values->authority_hash, &out);
   if (input_values->authority_descriptor_size > 0) {
-    if (!CborWriteInt(kAuthorityDescriptorLabel, &out) ||
-        !CborWriteBstr(input_values->authority_descriptor_size,
-                       input_values->authority_descriptor, &out)) {
-      return kDiceResultBufferTooSmall;
-    }
+    CborWriteInt(kAuthorityDescriptorLabel, &out);
+    CborWriteBstr(input_values->authority_descriptor_size,
+                  input_values->authority_descriptor, &out);
   }
   uint8_t mode_byte = input_values->mode;
   uint8_t key_usage = kKeyUsageCertSign;
-  if (
-      // Add the mode input.
-      !CborWriteInt(kModeLabel, &out) ||
-      !CborWriteBstr(/*data_sisze=*/1, &mode_byte, &out) ||
-      // Add the subject public key.
-      !CborWriteInt(kSubjectPublicKeyLabel, &out) ||
-      !CborWriteBstr(encoded_public_key_size, encoded_public_key, &out) ||
-      // Add the key usage.
-      !CborWriteInt(kKeyUsageLabel, &out) ||
-      !CborWriteBstr(/*data_size=*/1, &key_usage, &out)) {
+  // Add the mode input.
+  CborWriteInt(kModeLabel, &out);
+  CborWriteBstr(/*data_sisze=*/1, &mode_byte, &out);
+  // Add the subject public key.
+  CborWriteInt(kSubjectPublicKeyLabel, &out);
+  CborWriteBstr(encoded_public_key_size, encoded_public_key, &out);
+  // Add the key usage.
+  CborWriteInt(kKeyUsageLabel, &out);
+  CborWriteBstr(/*data_size=*/1, &key_usage, &out);
+  if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
-
-  *encoded_size = out.offset;
+  *encoded_size = CborOutSize(&out);
   return kDiceResultOk;
 }
 
@@ -216,24 +197,22 @@ static DiceResult EncodeCoseTbs(const uint8_t* protected_attributes,
                                 const uint8_t* payload, size_t payload_size,
                                 size_t buffer_size, uint8_t* buffer,
                                 size_t* encoded_size) {
-  struct CborOut out = {
-      .buffer = buffer,
-      .size = buffer_size,
-  };
-  if (
-      // TBS is an array of four elements.
-      !CborWriteArray(/*num_elements=*/4, &out) ||
-      // Context string field.
-      !CborWriteTstr("Signature1", &out) ||
-      // Protected attributes from COSE_Sign1.
-      !CborWriteBstr(protected_attributes_size, protected_attributes, &out) ||
-      // Empty application data.
-      !CborWriteBstr(/*data_size=*/0, /*data=*/NULL, &out) ||
-      // Payload from COSE_Sign1.
-      !CborWriteBstr(payload_size, payload, &out)) {
+  struct CborOut out;
+  CborOutInit(buffer, buffer_size, &out);
+  // TBS is an array of four elements.
+  CborWriteArray(/*num_elements=*/4, &out);
+  // Context string field.
+  CborWriteTstr("Signature1", &out);
+  // Protected attributes from COSE_Sign1.
+  CborWriteBstr(protected_attributes_size, protected_attributes, &out);
+  // Empty application data.
+  CborWriteBstr(/*data_size=*/0, /*data=*/NULL, &out);
+  // Payload from COSE_Sign1.
+  CborWriteBstr(payload_size, payload, &out);
+  if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
-  *encoded_size = out.offset;
+  *encoded_size = CborOutSize(&out);
   return kDiceResultOk;
 }
 
@@ -243,24 +222,22 @@ static DiceResult EncodeCoseSign1(const uint8_t* protected_attributes,
                                   const uint8_t signature[64],
                                   size_t buffer_size, uint8_t* buffer,
                                   size_t* encoded_size) {
-  struct CborOut out = {
-      .buffer = buffer,
-      .size = buffer_size,
-  };
-  if (
-      // COSE_Sign1 is an array of four elements.
-      !CborWriteArray(/*num_elements=*/4, &out) ||
-      // Protected attributes.
-      !CborWriteBstr(protected_attributes_size, protected_attributes, &out) ||
-      // Empty map for unprotected attributes.
-      !CborWriteMap(/*num_pairs=*/0, &out) ||
-      // Payload.
-      !CborWriteBstr(payload_size, payload, &out) ||
-      // Signature.
-      !CborWriteBstr(/*num_elements=*/64, signature, &out)) {
+  struct CborOut out;
+  CborOutInit(buffer, buffer_size, &out);
+  // COSE_Sign1 is an array of four elements.
+  CborWriteArray(/*num_elements=*/4, &out);
+  // Protected attributes.
+  CborWriteBstr(protected_attributes_size, protected_attributes, &out);
+  // Empty map for unprotected attributes.
+  CborWriteMap(/*num_pairs=*/0, &out);
+  // Payload.
+  CborWriteBstr(payload_size, payload, &out);
+  // Signature.
+  CborWriteBstr(/*num_elements=*/64, signature, &out);
+  if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
-  *encoded_size = out.offset;
+  *encoded_size = CborOutSize(&out);
   return kDiceResultOk;
 }
 
