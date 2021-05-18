@@ -69,6 +69,12 @@ void CborWriteFalse(struct CborOut* out);
 void CborWriteTrue(struct CborOut* out);
 void CborWriteNull(struct CborOut* out);
 
+// These functions write the type header and reserve space for the caller to
+// populate. The reserved space is left uninitialized. Returns NULL if space
+// could not be reserved in the output buffer.
+uint8_t* CborAllocBstr(size_t data_size, struct CborOut* out);
+char* CborAllocTstr(size_t size, struct CborOut* out);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

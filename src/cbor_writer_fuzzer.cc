@@ -20,7 +20,9 @@ namespace {
 enum CborWriterFunction {
   WriteInt,
   WriteBstr,
+  AllocBstr,
   WriteTstr,
+  AllocTstr,
   WriteArray,
   WriteMap,
   WriteFalse,
@@ -32,7 +34,7 @@ enum CborWriterFunction {
 // Use data sizes that exceed the 16-bit range without being excessive.
 constexpr size_t kMaxDataSize = 0xffff + 0x5000;
 constexpr size_t kMaxBufferSize = kMaxDataSize * 3;
-constexpr size_t kIterations = 16;
+constexpr size_t kIterations = 20;
 
 }  // namespace
 
@@ -56,11 +58,29 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         CborWriteBstr(bstr_data.size(), bstr_data.data(), &out);
         break;
       }
+      case AllocBstr: {
+        auto bstr_data_size =
+            fdp.ConsumeIntegralInRange<size_t>(0, kMaxDataSize);
+        uint8_t* ptr = CborAllocBstr(bstr_data_size, &out);
+        if (ptr) {
+          memset(ptr, 0x5a, bstr_data_size);
+        }
+        break;
+      }
       case WriteTstr: {
         auto tstr_data_size =
             fdp.ConsumeIntegralInRange<size_t>(0, kMaxDataSize);
         std::string str(tstr_data_size, 'a');
         CborWriteTstr(str.c_str(), &out);
+        break;
+      }
+      case AllocTstr: {
+        auto tstr_data_size =
+            fdp.ConsumeIntegralInRange<size_t>(0, kMaxDataSize);
+        char* str = CborAllocTstr(tstr_data_size, &out);
+        if (str) {
+          memset(str, 'q', tstr_data_size);
+        }
         break;
       }
       case WriteArray: {

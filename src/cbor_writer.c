@@ -88,17 +88,22 @@ static void CborWriteType(enum CborType type, uint64_t val,
   out->cursor += size;
 }
 
-static void CborWriteStr(enum CborType type, size_t data_size,
-                         const uint8_t* data, struct CborOut* out) {
+static void* CborAllocStr(enum CborType type, size_t data_size,
+                          struct CborOut* out) {
   CborWriteType(type, data_size, out);
-  if (CborWriteWouldOverflowCursor(data_size, out)) {
-    out->cursor = SIZE_MAX;
-    return;
+  bool overflow = CborWriteWouldOverflowCursor(data_size, out);
+  bool fit = CborWriteFitsInBuffer(data_size, out);
+  void* ptr = (overflow || !fit) ? NULL : &out->buffer[out->cursor];
+  out->cursor = overflow ? SIZE_MAX : out->cursor + data_size;
+  return ptr;
+}
+
+static void CborWriteStr(enum CborType type, size_t data_size, const void* data,
+                         struct CborOut* out) {
+  uint8_t* ptr = CborAllocStr(type, data_size, out);
+  if (ptr && data_size) {
+    memcpy(ptr, data, data_size);
   }
-  if (CborWriteFitsInBuffer(data_size, out) && data_size) {
-    memcpy(&out->buffer[out->cursor], data, data_size);
-  }
-  out->cursor += data_size;
 }
 
 void CborWriteInt(int64_t val, struct CborOut* out) {
@@ -113,8 +118,16 @@ void CborWriteBstr(size_t data_size, const uint8_t* data, struct CborOut* out) {
   CborWriteStr(CBOR_TYPE_BSTR, data_size, data, out);
 }
 
+uint8_t* CborAllocBstr(size_t data_size, struct CborOut* out) {
+  return CborAllocStr(CBOR_TYPE_BSTR, data_size, out);
+}
+
 void CborWriteTstr(const char* str, struct CborOut* out) {
-  CborWriteStr(CBOR_TYPE_TSTR, strlen(str), (const uint8_t*)str, out);
+  CborWriteStr(CBOR_TYPE_TSTR, strlen(str), str, out);
+}
+
+char* CborAllocTstr(size_t size, struct CborOut* out) {
+  return CborAllocStr(CBOR_TYPE_TSTR, size, out);
 }
 
 void CborWriteArray(size_t num_elements, struct CborOut* out) {

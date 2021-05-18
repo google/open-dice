@@ -117,6 +117,20 @@ TEST(CborWriterTest, BstrEncoding) {
   EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
 }
 
+TEST(CborWriterTest, BstrAllocEncoding) {
+  const uint8_t kExpectedEncoding[] = {0x45, 'a', 'l', 'l', 'o', 'c'};
+  const uint8_t kData[] = {'a', 'l', 'l', 'o', 'c'};
+  uint8_t buffer[64];
+  uint8_t* ptr;
+  CborOut out;
+  CborOutInit(buffer, sizeof(buffer), &out);
+  ptr = CborAllocBstr(sizeof(kData), &out);
+  EXPECT_NE(nullptr, ptr);
+  EXPECT_FALSE(CborOutOverflowed(&out));
+  memcpy(ptr, kData, sizeof(kData));
+  EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
+}
+
 TEST(CborWriterTest, TstrEncoding) {
   const uint8_t kExpectedEncoding[] = {0x65, 'w', 'o', 'r', 'l', 'd'};
   uint8_t buffer[64];
@@ -124,6 +138,20 @@ TEST(CborWriterTest, TstrEncoding) {
   CborOutInit(buffer, sizeof(buffer), &out);
   CborWriteTstr("world", &out);
   EXPECT_FALSE(CborOutOverflowed(&out));
+  EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
+}
+
+TEST(CborWriterTest, TstrAllocEncoding) {
+  const uint8_t kExpectedEncoding[] = {0x65, 's', 'p', 'a', 'c', 'e'};
+  const char kStr[] = "space";
+  char* ptr;
+  uint8_t buffer[64];
+  CborOut out;
+  CborOutInit(buffer, sizeof(buffer), &out);
+  ptr = CborAllocTstr(strlen(kStr), &out);
+  EXPECT_NE(nullptr, ptr);
+  EXPECT_FALSE(CborOutOverflowed(&out));
+  memcpy(ptr, kStr, sizeof(kStr));
   EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
 }
 
@@ -184,7 +212,9 @@ TEST(CborWriterTest, CborOutInvariants) {
   CborOutInit(buffer, sizeof(buffer), &out);
   CborWriteInt(0xab34, &out);
   CborWriteBstr(sizeof(kData), kData, &out);
+  EXPECT_NE(nullptr, CborAllocBstr(7, &out));
   CborWriteTstr("A string", &out);
+  EXPECT_NE(nullptr, CborAllocTstr(6, &out));
   CborWriteArray(/*num_elements=*/16, &out);
   CborWriteMap(/*num_pairs=*/35, &out);
   CborWriteFalse(&out);
@@ -192,7 +222,7 @@ TEST(CborWriterTest, CborOutInvariants) {
   CborWriteNull(&out);
   EXPECT_FALSE(CborOutOverflowed(&out));
   // Offset is the cumulative size.
-  EXPECT_EQ(3 + 6 + 9 + 1 + 2 + 1 + 1 + 1u, CborOutSize(&out));
+  EXPECT_EQ(3 + 6 + 8 + 9 + 7 + 1 + 2 + 1 + 1 + 1u, CborOutSize(&out));
 }
 
 TEST(CborWriterTest, NullBufferForMeasurement) {
@@ -204,13 +234,15 @@ TEST(CborWriterTest, NullBufferForMeasurement) {
   CborWriteFalse(&out);
   CborWriteMap(/*num_pairs=*/623, &out);
   CborWriteArray(/*num_elements=*/70000, &out);
+  EXPECT_EQ(nullptr, CborAllocTstr(8, &out));
   CborWriteTstr("length", &out);
+  EXPECT_EQ(nullptr, CborAllocBstr(1, &out));
   CborWriteBstr(sizeof(kData), kData, &out);
   CborWriteInt(-10002000, &out);
   // Measurement has occurred, but output did not.
   EXPECT_TRUE(CborOutOverflowed(&out));
   // Offset is the cumulative size.
-  EXPECT_EQ(1 + 1 + 1 + 3 + 5 + 7 + 8 + 5u, CborOutSize(&out));
+  EXPECT_EQ(1 + 1 + 1 + 3 + 5 + 9 + 7 + 2 + 8 + 5u, CborOutSize(&out));
 }
 
 TEST(CborWriterTest, BufferTooSmall) {
@@ -226,7 +258,13 @@ TEST(CborWriterTest, BufferTooSmall) {
   CborWriteBstr(sizeof(kData), kData, &out);
   EXPECT_TRUE(CborOutOverflowed(&out));
   CborOutInit(buffer, sizeof(buffer), &out);
+  EXPECT_EQ(nullptr, CborAllocBstr(sizeof(kData), &out));
+  EXPECT_TRUE(CborOutOverflowed(&out));
+  CborOutInit(buffer, sizeof(buffer), &out);
   CborWriteTstr("Buffer too small", &out);
+  EXPECT_TRUE(CborOutOverflowed(&out));
+  CborOutInit(buffer, sizeof(buffer), &out);
+  EXPECT_EQ(nullptr, CborAllocTstr(16, &out));
   EXPECT_TRUE(CborOutOverflowed(&out));
   CborOutInit(buffer, sizeof(buffer), &out);
   CborWriteArray(/*num_elements=*/563, &out);
@@ -260,7 +298,15 @@ TEST(CborWriterTest, NotEnoughRemainingSpace) {
   EXPECT_TRUE(CborOutOverflowed(&out));
   CborOutInit(buffer, sizeof(buffer), &out);
   CborWriteBstr(sizeof(buffer) - 3, zeros, &out);
+  EXPECT_EQ(nullptr, CborAllocBstr(sizeof(kData), &out));
+  EXPECT_TRUE(CborOutOverflowed(&out));
+  CborOutInit(buffer, sizeof(buffer), &out);
+  CborWriteBstr(sizeof(buffer) - 3, zeros, &out);
   CborWriteTstr("Won't fit", &out);
+  EXPECT_TRUE(CborOutOverflowed(&out));
+  CborOutInit(buffer, sizeof(buffer), &out);
+  CborWriteBstr(sizeof(buffer) - 3, zeros, &out);
+  EXPECT_EQ(nullptr, CborAllocTstr(4, &out));
   EXPECT_TRUE(CborOutOverflowed(&out));
   CborOutInit(buffer, sizeof(buffer), &out);
   CborWriteBstr(sizeof(buffer) - 3, zeros, &out);
@@ -298,7 +344,15 @@ TEST(CborWriterTest, OffsetOverflow) {
   EXPECT_TRUE(CborOutOverflowed(&out));
   CborOutInit(buffer, sizeof(buffer), &out);
   CborWriteBstr(SIZE_MAX - 10, nullptr, &out);
+  EXPECT_EQ(nullptr, CborAllocBstr(sizeof(kData), &out));
+  EXPECT_TRUE(CborOutOverflowed(&out));
+  CborOutInit(buffer, sizeof(buffer), &out);
+  CborWriteBstr(SIZE_MAX - 10, nullptr, &out);
   CborWriteTstr("Overflow", &out);
+  EXPECT_TRUE(CborOutOverflowed(&out));
+  CborOutInit(buffer, sizeof(buffer), &out);
+  CborWriteBstr(SIZE_MAX - 10, nullptr, &out);
+  EXPECT_EQ(nullptr, CborAllocTstr(4, &out));
   EXPECT_TRUE(CborOutOverflowed(&out));
   CborOutInit(buffer, sizeof(buffer), &out);
   CborWriteBstr(SIZE_MAX - 10, nullptr, &out);
@@ -335,7 +389,15 @@ TEST(CborWriterTest, MeasurementOffsetOverflow) {
   EXPECT_TRUE(CborOutOverflowed(&out));
   CborOutInit(nullptr, 0, &out);
   CborWriteBstr(SIZE_MAX - 10, nullptr, &out);
+  EXPECT_EQ(nullptr, CborAllocBstr(sizeof(kData), &out));
+  EXPECT_TRUE(CborOutOverflowed(&out));
+  CborOutInit(nullptr, 0, &out);
+  CborWriteBstr(SIZE_MAX - 10, nullptr, &out);
   CborWriteTstr("Measured overflow", &out);
+  EXPECT_TRUE(CborOutOverflowed(&out));
+  CborOutInit(nullptr, 0, &out);
+  CborWriteBstr(SIZE_MAX - 10, nullptr, &out);
+  EXPECT_EQ(nullptr, CborAllocTstr(6, &out));
   EXPECT_TRUE(CborOutOverflowed(&out));
   CborOutInit(nullptr, 0, &out);
   CborWriteBstr(SIZE_MAX - 10, nullptr, &out);
