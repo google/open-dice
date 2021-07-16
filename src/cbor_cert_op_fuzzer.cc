@@ -23,6 +23,9 @@ namespace {
 constexpr DiceOps kOps = {.context = NULL,
                           .hash = DiceBsslHashOp,
                           .kdf = DiceBsslKdfOp,
+                          .keypair_from_seed = DiceBsslEd25519KeypairFromSeed,
+                          .sign = DiceBsslEd25519Sign,
+                          .verify = DiceBsslEd25519Verify,
                           .generate_certificate = DiceGenerateCborCertificateOp,
                           .clear_memory = DiceClearMemory};
 
