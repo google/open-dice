@@ -22,10 +22,10 @@
 
 #include "dice/dice.h"
 #include "dice/known_test_values.h"
+#include "dice/test_framework.h"
 #include "dice/test_utils.h"
 #include "dice/utils.h"
 #include "pw_string/format.h"
-#include "pw_unit_test/framework.h"
 
 namespace {
 

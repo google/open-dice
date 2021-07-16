@@ -14,7 +14,7 @@
 
 #include "dice/cbor_writer.h"
 
-#include "pw_unit_test/framework.h"
+#include "dice/test_framework.h"
 
 namespace {
 
@@ -401,7 +401,7 @@ TEST(CborWriterTest, MeasurementOffsetOverflow) {
   EXPECT_TRUE(CborOutOverflowed(&out));
   CborOutInit(nullptr, 0, &out);
   CborWriteBstr(SIZE_MAX - 10, nullptr, &out);
-  CborWriteArray(/*num_elements=*/8368257314, &out);
+  CborWriteArray(/*num_elements=*/4073290018, &out);
   EXPECT_TRUE(CborOutOverflowed(&out));
   CborOutInit(nullptr, 0, &out);
   CborWriteBstr(SIZE_MAX - 10, nullptr, &out);

@@ -15,12 +15,12 @@
 #include "dice/dice.h"
 
 #include "dice/known_test_values.h"
+#include "dice/test_framework.h"
 #include "dice/utils.h"
 #include "openssl/crypto.h"
 #include "openssl/digest.h"
 #include "openssl/hkdf.h"
 #include "openssl/sha.h"
-#include "pw_unit_test/framework.h"
 
 namespace {
 
