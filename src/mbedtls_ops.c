@@ -12,12 +12,15 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#include "dice/mbedtls_ops.h"
+// This is an implementation of DiceGenerateCertificate and the crypto
+// operations that uses mbedtls. The algorithms used are SHA512, HKDF-SHA512,
+// and deterministic ECDSA-P256-SHA512.
 
 #include <stdint.h>
 #include <string.h>
 
 #include "dice/dice.h"
+#include "dice/ops.h"
 #include "dice/utils.h"
 #include "mbedtls/asn1.h"
 #include "mbedtls/asn1write.h"
@@ -67,20 +70,20 @@ out:
   return result;
 }
 
-static DiceResult GetIdFromKey(const DiceOps* ops,
-                               const mbedtls_pk_context* context,
+static DiceResult GetIdFromKey(void* context,
+                               const mbedtls_pk_context* pk_context,
                                uint8_t id[20]) {
   uint8_t raw_public_key[33];
   size_t raw_public_key_size = 0;
-  mbedtls_ecp_keypair* key = mbedtls_pk_ec(*context);
+  mbedtls_ecp_keypair* key = mbedtls_pk_ec(*pk_context);
 
   if (0 != mbedtls_ecp_point_write_binary(
                &key->grp, &key->Q, MBEDTLS_ECP_PF_COMPRESSED,
                &raw_public_key_size, raw_public_key, sizeof(raw_public_key))) {
     return kDiceResultPlatformError;
   }
-  return DiceDeriveCdiCertificateId(ops, raw_public_key, raw_public_key_size,
-                                    id);
+  return DiceDeriveCdiCertificateId(context, raw_public_key,
+                                    raw_public_key_size, id);
 }
 
 // 54 byte name is prefix (13), hex id (40), and a null terminator.
@@ -267,10 +270,9 @@ static DiceResult GetDiceExtensionData(const DiceInputValues* input_values,
   return kDiceResultOk;
 }
 
-DiceResult DiceMbedtlsHashOp(const DiceOps* ops_not_used, const uint8_t* input,
-                             size_t input_size,
-                             uint8_t output[DICE_HASH_SIZE]) {
-  (void)ops_not_used;
+DiceResult DiceHash(void* context_not_used, const uint8_t* input,
+                    size_t input_size, uint8_t output[DICE_HASH_SIZE]) {
+  (void)context_not_used;
   if (0 != mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA512), input,
                       input_size, output)) {
     return kDiceResultPlatformError;
@@ -278,12 +280,10 @@ DiceResult DiceMbedtlsHashOp(const DiceOps* ops_not_used, const uint8_t* input,
   return kDiceResultOk;
 }
 
-DiceResult DiceMbedtlsKdfOp(const DiceOps* ops_not_used, size_t length,
-                            const uint8_t* ikm, size_t ikm_size,
-                            const uint8_t* salt, size_t salt_size,
-                            const uint8_t* info, size_t info_size,
-                            uint8_t* output) {
-  (void)ops_not_used;
+DiceResult DiceKdf(void* context_not_used, size_t length, const uint8_t* ikm,
+                   size_t ikm_size, const uint8_t* salt, size_t salt_size,
+                   const uint8_t* info, size_t info_size, uint8_t* output) {
+  (void)context_not_used;
   if (0 != mbedtls_hkdf(mbedtls_md_info_from_type(MBEDTLS_MD_SHA512), salt,
                         salt_size, ikm, ikm_size, info, info_size, output,
                         length)) {
@@ -292,8 +292,8 @@ DiceResult DiceMbedtlsKdfOp(const DiceOps* ops_not_used, size_t length,
   return kDiceResultOk;
 }
 
-DiceResult DiceMbedtlsGenerateCertificateOp(
-    const DiceOps* ops,
+DiceResult DiceGenerateCertificate(
+    void* context,
     const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
@@ -331,7 +331,7 @@ DiceResult DiceMbedtlsGenerateCertificateOp(
   }
 
   uint8_t authority_id[20];
-  result = GetIdFromKey(ops, &authority_key_context, authority_id);
+  result = GetIdFromKey(context, &authority_key_context, authority_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -351,7 +351,7 @@ DiceResult DiceMbedtlsGenerateCertificateOp(
   }
 
   uint8_t subject_id[20];
-  result = GetIdFromKey(ops, &subject_key_context, subject_id);
+  result = GetIdFromKey(context, &subject_key_context, subject_id);
   if (result != kDiceResultOk) {
     goto out;
   }

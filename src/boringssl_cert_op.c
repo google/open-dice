@@ -12,10 +12,14 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
+// This is a DiceGenerateCertificate implementation that uses boringssl for
+// crypto and certificate generation. The algorithms used are SHA512,
+// HKDF-SHA512, and Ed25519-SHA512.
+
 #include <stdint.h>
 
-#include "dice/boringssl_ops.h"
 #include "dice/dice.h"
+#include "dice/ops.h"
 #include "dice/utils.h"
 #include "openssl/asn1.h"
 #include "openssl/asn1t.h"
@@ -492,19 +496,19 @@ out:
   return result;
 }
 
-static DiceResult GetIdFromKey(const DiceOps* ops, const EVP_PKEY* key,
+static DiceResult GetIdFromKey(void* context, const EVP_PKEY* key,
                                uint8_t id[20]) {
   uint8_t raw_public_key[32];
   size_t raw_public_key_size = sizeof(raw_public_key);
   if (!EVP_PKEY_get_raw_public_key(key, raw_public_key, &raw_public_key_size)) {
     return kDiceResultPlatformError;
   }
-  return DiceDeriveCdiCertificateId(ops, raw_public_key, raw_public_key_size,
-                                    id);
+  return DiceDeriveCdiCertificateId(context, raw_public_key,
+                                    raw_public_key_size, id);
 }
 
-DiceResult DiceBsslGenerateCertificateOp(
-    const DiceOps* ops,
+DiceResult DiceGenerateCertificate(
+    void* context,
     const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
@@ -541,12 +545,12 @@ DiceResult DiceBsslGenerateCertificateOp(
   }
 
   uint8_t authority_id[20];
-  result = GetIdFromKey(ops, authority_key, authority_id);
+  result = GetIdFromKey(context, authority_key, authority_id);
   if (result != kDiceResultOk) {
     goto out;
   }
   uint8_t subject_id[20];
-  result = GetIdFromKey(ops, subject_key, subject_id);
+  result = GetIdFromKey(context, subject_key, subject_id);
   if (result != kDiceResultOk) {
     goto out;
   }

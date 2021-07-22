@@ -12,15 +12,12 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#include "dice/template_cert_op.h"
-
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #include <memory>
 
-#include "dice/boringssl_ops.h"
 #include "dice/dice.h"
 #include "dice/known_test_values.h"
 #include "dice/test_framework.h"
@@ -35,19 +32,12 @@ using dice::test::DeriveFakeInputValue;
 using dice::test::DiceStateForTest;
 using dice::test::KeyType_Ed25519;
 
-constexpr DiceOps kOps = {
-    .context = NULL,
-    .hash = DiceBsslHashOp,
-    .kdf = DiceBsslKdfOp,
-    .generate_certificate = DiceGenerateCertificateFromTemplateOp,
-    .clear_memory = DiceClearMemory};
-
 TEST(DiceOpsTest, KnownAnswerZeroInput) {
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
   DiceResult result = DiceMainFlow(
-      &kOps, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
@@ -75,7 +65,7 @@ TEST(DiceOpsTest, KnownAnswerHashOnlyInput) {
                        input_values.config_value);
 
   DiceResult result = DiceMainFlow(
-      &kOps, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
@@ -99,7 +89,7 @@ TEST(DiceOpsTest, WithCodeDescriptor) {
   input_values.code_descriptor = descriptor;
   input_values.code_descriptor_size = sizeof(descriptor);
   DiceResult result = DiceMainFlow(
-      &kOps, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultInvalidInput, result);
@@ -114,7 +104,7 @@ TEST(DiceOpsTest, WithConfigDescriptor) {
   input_values.config_descriptor_size = sizeof(descriptor);
   input_values.config_type = kDiceConfigTypeDescriptor;
   DiceResult result = DiceMainFlow(
-      &kOps, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultInvalidInput, result);
@@ -128,7 +118,7 @@ TEST(DiceOpsTest, WithAuthorityDescriptor) {
   input_values.authority_descriptor = descriptor;
   input_values.authority_descriptor_size = sizeof(descriptor);
   DiceResult result = DiceMainFlow(
-      &kOps, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultInvalidInput, result);
@@ -141,7 +131,7 @@ TEST(DiceOpsTest, NonZeroMode) {
   DiceInputValues input_values = {};
   input_values.mode = kDiceModeDebug;
   DiceResult result = DiceMainFlow(
-      &kOps, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
@@ -153,7 +143,7 @@ TEST(DiceOpsTest, SmallCertBuffer) {
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
   DiceResult result = DiceMainFlow(
-      &kOps, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       12 /* too small */, next_state.certificate, &next_state.certificate_size,
       next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultBufferTooSmall, result);
@@ -167,7 +157,7 @@ TEST(DiceOpsTest, InvalidConfigType) {
   DiceInputValues input_values = {};
   input_values.config_type = (DiceConfigType)55;
   DiceResult result = DiceMainFlow(
-      &kOps, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultInvalidInput, result);
@@ -189,7 +179,7 @@ TEST(DiceOpsTest, PartialCertChain) {
     inputs[i].mode = kDiceModeNormal;
     EXPECT_EQ(
         kDiceResultOk,
-        DiceMainFlow(&kOps, states[i].cdi_attest, states[i].cdi_seal,
+        DiceMainFlow(/*context=*/NULL, states[i].cdi_attest, states[i].cdi_seal,
                      &inputs[i], sizeof(states[i + 1].certificate),
                      states[i + 1].certificate, &states[i + 1].certificate_size,
                      states[i + 1].cdi_attest, states[i + 1].cdi_seal));
@@ -216,7 +206,7 @@ TEST(DiceOpsTest, FullCertChain) {
     inputs[i].mode = kDiceModeNormal;
     EXPECT_EQ(
         kDiceResultOk,
-        DiceMainFlow(&kOps, states[i].cdi_attest, states[i].cdi_seal,
+        DiceMainFlow(/*context=*/NULL, states[i].cdi_attest, states[i].cdi_seal,
                      &inputs[i], sizeof(states[i + 1].certificate),
                      states[i + 1].certificate, &states[i + 1].certificate_size,
                      states[i + 1].cdi_attest, states[i + 1].cdi_seal));
@@ -225,7 +215,7 @@ TEST(DiceOpsTest, FullCertChain) {
   uint8_t root_certificate[dice::test::kTestCertSize];
   size_t root_certificate_size = 0;
   dice::test::CreateFakeUdsCertificate(
-      kOps, states[0].cdi_attest, CertificateType_X509, KeyType_Ed25519,
+      NULL, states[0].cdi_attest, CertificateType_X509, KeyType_Ed25519,
       root_certificate, &root_certificate_size);
   EXPECT_TRUE(dice::test::VerifyCertificateChain(
       CertificateType_X509, root_certificate, root_certificate_size, &states[1],

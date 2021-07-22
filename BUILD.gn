@@ -21,7 +21,7 @@ group("default") {
   deps = [
     ":fuzzers(//toolchains:host_fuzz)",
     ":optimized_libs(//toolchains:host_optimized)",
-    ":tests_run(//toolchains:host_debug)",
+    ":tests.run(//toolchains:host_debug)",
   ]
 }
 
@@ -30,7 +30,10 @@ pw_source_set("utils") {
     "include/dice/dice.h",
     "include/dice/utils.h",
   ]
-  sources = [ "src/utils.c" ]
+  sources = [
+    "src/clear_memory.c",
+    "src/utils.c",
+  ]
 }
 
 pw_source_set("cbor_writer") {
@@ -124,12 +127,8 @@ pw_source_set("test_utils") {
   cflags = [ "-Wno-ignored-qualifiers" ]
 }
 
-pw_source_set("fuzz_utils") {
-  public = [
-    "include/dice/dice.h",
-    "include/dice/fuzz_utils.h",
-  ]
-  sources = [ "src/fuzz_utils.cc" ]
+pw_source_set("fuzzer") {
+  sources = [ "src/fuzzer.cc" ]
 }
 
 pw_test("cbor_writer_test") {
@@ -165,11 +164,9 @@ pw_test("boringssl_ops_test") {
 }
 
 pw_executable("boringssl_ops_fuzzer") {
-  sources = [ "src/boringssl_ops_fuzzer.cc" ]
   deps = [
     ":dice_with_boringssl_ops",
-    ":fuzz_utils",
-    ":utils",
+    ":fuzzer",
   ]
 }
 
@@ -183,11 +180,9 @@ pw_test("template_cert_op_test") {
 }
 
 pw_executable("template_cert_op_fuzzer") {
-  sources = [ "src/template_cert_op_fuzzer.cc" ]
   deps = [
     ":dice_with_x509_template_cert",
-    ":fuzz_utils",
-    ":utils",
+    ":fuzzer",
   ]
 }
 
@@ -201,11 +196,9 @@ pw_test("cbor_cert_op_test") {
 }
 
 pw_executable("cbor_cert_op_fuzzer") {
-  sources = [ "src/cbor_cert_op_fuzzer.cc" ]
   deps = [
     ":dice_with_cbor_cert",
-    ":fuzz_utils",
-    ":utils",
+    ":fuzzer",
   ]
 }
 
@@ -219,11 +212,9 @@ pw_test("template_cbor_cert_op_test") {
 }
 
 pw_executable("template_cbor_cert_op_fuzzer") {
-  sources = [ "src/template_cbor_cert_op_fuzzer.cc" ]
   deps = [
     ":dice_with_cbor_template_cert",
-    ":fuzz_utils",
-    ":utils",
+    ":fuzzer",
   ]
 }
 
@@ -237,11 +228,9 @@ pw_test("mbedtls_ops_test") {
 }
 
 pw_executable("mbedtls_ops_fuzzer") {
-  sources = [ "src/mbedtls_ops_fuzzer.cc" ]
   deps = [
     ":dice_with_mbedtls_ops",
-    ":fuzz_utils",
-    ":utils",
+    ":fuzzer",
   ]
 }
 
@@ -283,43 +272,42 @@ pw_executable("dice_standalone_main") {
   ]
 }
 
+pw_source_set("dice_main") {
+  sources = [ "src/dice_main.c" ]
+}
+
 pw_executable("dice_with_boringssl_ops_main") {
-  sources = [ "src/dice_with_boringssl_ops_main.c" ]
   deps = [
+    ":dice_main",
     ":dice_with_boringssl_ops",
-    ":utils",
   ]
 }
 
 pw_executable("dice_with_mbedtls_ops_main") {
-  sources = [ "src/dice_with_mbedtls_ops_main.c" ]
   deps = [
+    ":dice_main",
     ":dice_with_mbedtls_ops",
-    ":utils",
   ]
 }
 
 pw_executable("dice_with_cbor_cert_main") {
-  sources = [ "src/dice_with_cbor_cert_main.c" ]
   deps = [
+    ":dice_main",
     ":dice_with_cbor_cert",
-    ":utils",
   ]
 }
 
 pw_executable("dice_with_cbor_template_cert_main") {
-  sources = [ "src/dice_with_cbor_template_cert_main.c" ]
   deps = [
+    ":dice_main",
     ":dice_with_cbor_template_cert",
-    ":utils",
   ]
 }
 
 pw_executable("dice_with_x509_template_cert_main") {
-  sources = [ "src/dice_with_x509_template_cert_main.c" ]
   deps = [
+    ":dice_main",
     ":dice_with_x509_template_cert",
-    ":utils",
   ]
 }
 

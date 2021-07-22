@@ -12,7 +12,8 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#include "dice/cbor_cert_op.h"
+// This is a DiceGenerateCertificate implementation that generates a CWT-style
+// CBOR certificate using the ED25519-SHA512 signature scheme.
 
 #include <stddef.h>
 #include <stdint.h>
@@ -20,6 +21,7 @@
 
 #include "dice/cbor_writer.h"
 #include "dice/dice.h"
+#include "dice/ops.h"
 #include "dice/utils.h"
 
 // Max size of COSE_Sign1 including payload.
@@ -90,8 +92,7 @@ static DiceResult EncodePublicKey(uint8_t subject_public_key[32],
 
 // Encodes a CBOR Web Token (CWT) with an issuer, subject, and additional
 // fields.
-static DiceResult EncodeCwt(const DiceOps* ops,
-                            const DiceInputValues* input_values,
+static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
                             const char* authority_id_hex,
                             const char* subject_id_hex,
                             const uint8_t* encoded_public_key,
@@ -149,8 +150,8 @@ static DiceResult EncodeCwt(const DiceOps* ops,
   if (input_values->config_type == kDiceConfigTypeDescriptor) {
     uint8_t config_descriptor_hash[DICE_HASH_SIZE];
     DiceResult result =
-        ops->hash(ops, input_values->config_descriptor,
-                  input_values->config_descriptor_size, config_descriptor_hash);
+        DiceHash(context, input_values->config_descriptor,
+                 input_values->config_descriptor_size, config_descriptor_hash);
     if (result != kDiceResultOk) {
       return result;
     }
@@ -241,8 +242,8 @@ static DiceResult EncodeCoseSign1(const uint8_t* protected_attributes,
   return kDiceResultOk;
 }
 
-DiceResult DiceGenerateCborCertificateOp(
-    const DiceOps* ops,
+DiceResult DiceGenerateCertificate(
+    void* context,
     const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
@@ -268,15 +269,16 @@ DiceResult DiceGenerateCborCertificateOp(
   uint8_t subject_public_key[DICE_PUBLIC_KEY_MAX_SIZE];
   size_t subject_public_key_size;
   size_t subject_private_key_size;
-  result = ops->keypair_from_seed(
-      ops, subject_private_key_seed, subject_public_key,
-      &subject_public_key_size, subject_private_key, &subject_private_key_size);
+  result = DiceKeypairFromSeed(context, subject_private_key_seed,
+                               subject_public_key, &subject_public_key_size,
+                               subject_private_key, &subject_private_key_size);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   uint8_t subject_id[20];
-  result = DiceDeriveCdiCertificateId(ops, subject_public_key, 32, subject_id);
+  result =
+      DiceDeriveCdiCertificateId(context, subject_public_key, 32, subject_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -288,16 +290,16 @@ DiceResult DiceGenerateCborCertificateOp(
   uint8_t authority_public_key[DICE_PUBLIC_KEY_MAX_SIZE];
   size_t authority_public_key_size;
   size_t authority_private_key_size;
-  result = ops->keypair_from_seed(
-      ops, authority_private_key_seed, authority_public_key,
-      &authority_public_key_size, authority_private_key,
-      &authority_private_key_size);
+  result =
+      DiceKeypairFromSeed(context, authority_private_key_seed,
+                          authority_public_key, &authority_public_key_size,
+                          authority_private_key, &authority_private_key_size);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   uint8_t authority_id[20];
-  result = DiceDeriveCdiCertificateId(ops, authority_public_key,
+  result = DiceDeriveCdiCertificateId(context, authority_public_key,
                                       authority_public_key_size, authority_id);
   if (result != kDiceResultOk) {
     goto out;
@@ -327,7 +329,7 @@ DiceResult DiceGenerateCborCertificateOp(
 
   // The CWT is the payload in both the TBS and the final COSE_Sign1 structure.
   size_t payload_size = 0;
-  result = EncodeCwt(ops, input_values, authority_id_hex, subject_id_hex,
+  result = EncodeCwt(context, input_values, authority_id_hex, subject_id_hex,
                      encoded_public_key, encoded_public_key_size,
                      sizeof(payload), payload, &payload_size);
   if (result != kDiceResultOk) {
@@ -345,19 +347,17 @@ DiceResult DiceGenerateCborCertificateOp(
 
   // Sign the TBS with the authority key.
   uint8_t signature[64];
-  result = ops->sign(ops, certificate, *certificate_actual_size,
-                     authority_private_key, authority_private_key_size,
-                     sizeof(signature), signature);
+  result = DiceSign(context, certificate, *certificate_actual_size,
+                    authority_private_key, authority_private_key_size,
+                    sizeof(signature), signature);
   if (result != kDiceResultOk) {
     goto out;
   }
-  if (ops->verify) {
-    result = ops->verify(ops, certificate, *certificate_actual_size, signature,
-                         sizeof(signature), authority_public_key,
-                         authority_public_key_size);
-    if (result != kDiceResultOk) {
-      goto out;
-    }
+  result = DiceVerify(context, certificate, *certificate_actual_size, signature,
+                      sizeof(signature), authority_public_key,
+                      authority_public_key_size);
+  if (result != kDiceResultOk) {
+    goto out;
   }
 
   // The final certificate is an untagged COSE_Sign1 structure.
@@ -366,8 +366,9 @@ DiceResult DiceGenerateCborCertificateOp(
       signature, certificate_buffer_size, certificate, certificate_actual_size);
 
 out:
-  ops->clear_memory(ops, sizeof(subject_private_key), subject_private_key);
-  ops->clear_memory(ops, sizeof(authority_private_key), authority_private_key);
+  DiceClearMemory(context, sizeof(subject_private_key), subject_private_key);
+  DiceClearMemory(context, sizeof(authority_private_key),
+                  authority_private_key);
 
   return result;
 }

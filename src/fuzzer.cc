@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License. You may obtain a copy of
@@ -12,9 +12,8 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#include "dice/fuzz_utils.h"
-
 #include "dice/dice.h"
+#include "dice/utils.h"
 #include "fuzzer/FuzzedDataProvider.h"
 
 namespace {
@@ -68,10 +67,7 @@ struct FuzzedInputValues {
 
 }  // namespace
 
-namespace dice {
-namespace fuzz {
-
-int FuzzDiceMainFlow(const DiceOps* ops, const uint8_t* data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   // Exit early if there might not be enough data to fill buffers.
   if (size < 512) {
     return 0;
@@ -100,13 +96,9 @@ int FuzzDiceMainFlow(const DiceOps* ops, const uint8_t* data, size_t size) {
   fdp.ConsumeData(&next_cdi_seal, DICE_CDI_SIZE);
 
   // Fuzz the main flow.
-  DiceMainFlow(ops, current_cdi_attest, current_cdi_seal, input_values,
-               kNextCdiCertificateBufferSize, next_cdi_certificate,
-               &next_cdi_certificate_actual_size, next_cdi_attest,
-               next_cdi_seal);
-
+  DiceMainFlow(/*context=*/NULL, current_cdi_attest, current_cdi_seal,
+               input_values, kNextCdiCertificateBufferSize,
+               next_cdi_certificate, &next_cdi_certificate_actual_size,
+               next_cdi_attest, next_cdi_seal);
   return 0;
 }
-
-}  // namespace fuzz
-}  // namespace dice

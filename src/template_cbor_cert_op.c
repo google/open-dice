@@ -19,10 +19,27 @@
 // implementation in boringssl. This approach may be especially useful in very
 // low level components where simplicity is paramount.
 
+// This is an implementation of the DiceGenerateCertificate that generates a
+// CWT-style CBOR certificate based on a template using the ED25519-SHA512
+// signature scheme.
+//
+// If no variable length descriptors are used in a DICE certificate, the
+// certificate can be constructed from a template instead of using a CBOR /
+// COSE library. This implementation includes only hashes and inline
+// configuration in the certificate fields. This approach may be especially
+// useful in very low level components where simplicity is paramount.
+//
+// This function will return kDiceResultInvalidInput if 'input_values' specifies
+// any variable length descriptors. In particular:
+//   * code_descriptor_size must be zero
+//   * authority_descriptor_size must be zero
+//   * config_type must be kDiceConfigTypeInline
+
 #include <stdint.h>
 #include <string.h>
 
 #include "dice/dice.h"
+#include "dice/ops.h"
 #include "dice/utils.h"
 
 // A well-formed certificate, but with zeros in all fields to be filled.
@@ -131,8 +148,8 @@ static void CopyField(const uint8_t* src, size_t index, uint8_t* buffer) {
   memcpy(&buffer[kFieldTable[index].offset], src, kFieldTable[index].length);
 }
 
-DiceResult DiceGenerateCborCertificateFromTemplateOp(
-    const DiceOps* ops,
+DiceResult DiceGenerateCertificate(
+    void* context,
     const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
@@ -163,15 +180,15 @@ DiceResult DiceGenerateCborCertificateFromTemplateOp(
   uint8_t subject_public_key[DICE_PUBLIC_KEY_MAX_SIZE];
   size_t subject_public_key_size;
   size_t subject_private_key_size;
-  result = ops->keypair_from_seed(
-      ops, subject_private_key_seed, subject_public_key,
-      &subject_public_key_size, subject_private_key, &subject_private_key_size);
+  result = DiceKeypairFromSeed(context, subject_private_key_seed,
+                               subject_public_key, &subject_public_key_size,
+                               subject_private_key, &subject_private_key_size);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   uint8_t subject_id[20];
-  result = DiceDeriveCdiCertificateId(ops, subject_public_key,
+  result = DiceDeriveCdiCertificateId(context, subject_public_key,
                                       subject_public_key_size, subject_id);
   if (result != kDiceResultOk) {
     goto out;
@@ -183,16 +200,16 @@ DiceResult DiceGenerateCborCertificateFromTemplateOp(
   uint8_t authority_public_key[DICE_PUBLIC_KEY_MAX_SIZE];
   size_t authority_public_key_size;
   size_t authority_private_key_size;
-  result = ops->keypair_from_seed(
-      ops, authority_private_key_seed, authority_public_key,
-      &authority_public_key_size, authority_private_key,
-      &authority_private_key_size);
+  result =
+      DiceKeypairFromSeed(context, authority_private_key_seed,
+                          authority_public_key, &authority_public_key_size,
+                          authority_private_key, &authority_private_key_size);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   uint8_t authority_id[20];
-  result = DiceDeriveCdiCertificateId(ops, authority_public_key,
+  result = DiceDeriveCdiCertificateId(context, authority_public_key,
                                       authority_public_key_size, authority_id);
   if (result != kDiceResultOk) {
     goto out;
@@ -220,22 +237,21 @@ DiceResult DiceGenerateCborCertificateFromTemplateOp(
          kFieldTable[kFieldIndexPayload].length);
 
   uint8_t signature[64];
-  result = ops->sign(ops, tbs, kTbsSize, authority_private_key,
-                     authority_private_key_size, sizeof(signature), signature);
+  result = DiceSign(context, tbs, kTbsSize, authority_private_key,
+                    authority_private_key_size, sizeof(signature), signature);
   if (result != kDiceResultOk) {
     goto out;
   }
-  if (ops->verify) {
-    result = ops->verify(ops, tbs, kTbsSize, signature, sizeof(signature),
-                         authority_public_key, authority_public_key_size);
-    if (result != kDiceResultOk) {
-      goto out;
-    }
+  result = DiceVerify(context, tbs, kTbsSize, signature, sizeof(signature),
+                      authority_public_key, authority_public_key_size);
+  if (result != kDiceResultOk) {
+    goto out;
   }
   CopyField(signature, kFieldIndexSignature, certificate);
 
 out:
-  ops->clear_memory(ops, sizeof(subject_private_key), subject_private_key);
-  ops->clear_memory(ops, sizeof(authority_private_key), authority_private_key);
+  DiceClearMemory(context, sizeof(subject_private_key), subject_private_key);
+  DiceClearMemory(context, sizeof(authority_private_key),
+                  authority_private_key);
   return result;
 }

@@ -14,23 +14,17 @@
 
 #include <stdint.h>
 
-#include "dice/boringssl_ops.h"
 #include "dice/dice.h"
-#include "dice/template_cert_op.h"
 #include "dice/utils.h"
 
 int main(int argc, char** argv) {
   (void)argc;
   (void)argv;
-  const DiceOps ops = {
-      .hash = DiceBsslHashOp,
-      .kdf = DiceBsslKdfOp,
-      .generate_certificate = DiceGenerateCertificateFromTemplateOp,
-      .clear_memory = DiceClearMemory};
   uint8_t cdi_buffer[DICE_CDI_SIZE];
   uint8_t cert_buffer[2048];
   size_t cert_size;
   DiceInputValues input_values = {0};
-  return (int)DiceMainFlow(&ops, cdi_buffer, cdi_buffer, &input_values, 2048,
-                           cert_buffer, &cert_size, cdi_buffer, cdi_buffer);
+  return (int)DiceMainFlow(/*context=*/NULL, cdi_buffer, cdi_buffer,
+                           &input_values, sizeof(cert_buffer), cert_buffer,
+                           &cert_size, cdi_buffer, cdi_buffer);
 }

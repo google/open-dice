@@ -12,12 +12,29 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#include "dice/template_cert_op.h"
+// This is an implementation of the DiceGenerateCertificate that generates an
+// X.509 certificate based on a template using the ED25519-SHA512 signature
+// scheme.
+//
+// If no variable length descriptors are used in a DICE certificate, the
+// certificate can be constructed from a template instead of using an ASN.1
+// library. This implementation includes only hashes and inline configuration in
+// the DICE extension. For convenience this uses the lower level curve25519
+// implementation in boringssl but does not use anything else (no ASN.1, X.509,
+// etc). This approach may be especially useful in very low level components
+// where simplicity is paramount.
+//
+// This function will return kDiceResultInvalidInput if 'input_values' specifies
+// any variable length descriptors. In particular:
+//   * code_descriptor_size must be zero
+//   * authority_descriptor_size must be zero
+//   * config_type must be kDiceConfigTypeInline
 
 #include <stdint.h>
 #include <string.h>
 
 #include "dice/dice.h"
+#include "dice/ops.h"
 #include "dice/utils.h"
 #include "openssl/curve25519.h"
 #include "openssl/is_boringssl.h"
@@ -148,8 +165,8 @@ static void CopyField(const uint8_t* src, size_t index, uint8_t* buffer) {
   memcpy(&buffer[kFieldTable[index].offset], src, kFieldTable[index].length);
 }
 
-DiceResult DiceGenerateCertificateFromTemplateOp(
-    const DiceOps* ops,
+DiceResult DiceGenerateCertificate(
+    void* context,
     const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
@@ -179,7 +196,8 @@ DiceResult DiceGenerateCertificateFromTemplateOp(
                             subject_private_key_seed);
 
   uint8_t subject_id[20];
-  result = DiceDeriveCdiCertificateId(ops, subject_public_key, 32, subject_id);
+  result =
+      DiceDeriveCdiCertificateId(context, subject_public_key, 32, subject_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -192,8 +210,8 @@ DiceResult DiceGenerateCertificateFromTemplateOp(
                             authority_private_key_seed);
 
   uint8_t authority_id[20];
-  result =
-      DiceDeriveCdiCertificateId(ops, authority_public_key, 32, authority_id);
+  result = DiceDeriveCdiCertificateId(context, authority_public_key, 32,
+                                      authority_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -234,9 +252,9 @@ DiceResult DiceGenerateCertificateFromTemplateOp(
   CopyField(signature, kFieldIndexSignature, certificate);
 
 out:
-  ops->clear_memory(ops, sizeof(subject_bssl_private_key),
-                    subject_bssl_private_key);
-  ops->clear_memory(ops, sizeof(authority_bssl_private_key),
-                    authority_bssl_private_key);
+  DiceClearMemory(context, sizeof(subject_bssl_private_key),
+                  subject_bssl_private_key);
+  DiceClearMemory(context, sizeof(authority_bssl_private_key),
+                  authority_bssl_private_key);
   return result;
 }

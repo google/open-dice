@@ -24,27 +24,10 @@
 
 namespace {
 
-extern "C" {
-DiceResult FakeHash(const DiceOps* ops, const uint8_t* input, size_t input_size,
-                    uint8_t output[DICE_HASH_SIZE]);
-
-DiceResult FakeKdf(const DiceOps* ops, size_t length, const uint8_t* ikm,
-                   size_t ikm_size, const uint8_t* salt, size_t salt_size,
-                   const uint8_t* info, size_t info_size, uint8_t* output);
-
-DiceResult FakeGenerateCertificate(
-    const DiceOps* ops,
-    const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
-    const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
-    const DiceInputValues* input_values, size_t certificate_buffer_size,
-    uint8_t* certificate, size_t* certificate_actual_size);
-}  // extern "C"
-
 const size_t kFakeCertSize = 200;
 
 struct FakeDiceOps {
   FakeDiceOps() { CRYPTO_library_init(); }
-  operator const DiceOps*() const { return &ops_; }
 
   // DiceOps calls to |hash| forward here.
   DiceResult Hash(const uint8_t* input, size_t input_size,
@@ -93,39 +76,33 @@ struct FakeDiceOps {
   int hash_count_ = 0;
   int kdf_count_ = 0;
   int generate_certificate_count_ = 0;
-
-  // This is used as the DiceOps argument for DiceMainFlow calls.
-  DiceOps ops_ = {.context = this,
-                  .hash = FakeHash,
-                  .kdf = FakeKdf,
-                  .generate_certificate = FakeGenerateCertificate,
-                  .clear_memory = DiceClearMemory};
 };
 
+extern "C" {
 // These callbacks forward to a FakeDiceOps instance.
-DiceResult FakeHash(const DiceOps* ops, const uint8_t* input, size_t input_size,
+DiceResult DiceHash(void* context, const uint8_t* input, size_t input_size,
                     uint8_t output[DICE_HASH_SIZE]) {
-  return reinterpret_cast<FakeDiceOps*>(ops->context)
-      ->Hash(input, input_size, output);
+  return reinterpret_cast<FakeDiceOps*>(context)->Hash(input, input_size,
+                                                       output);
 }
 
-DiceResult FakeKdf(const DiceOps* ops, size_t length, const uint8_t* ikm,
+DiceResult DiceKdf(void* context, size_t length, const uint8_t* ikm,
                    size_t ikm_size, const uint8_t* salt, size_t salt_size,
                    const uint8_t* info, size_t info_size, uint8_t* output) {
-  return reinterpret_cast<FakeDiceOps*>(ops->context)
-      ->Kdf(length, ikm, ikm_size, salt, salt_size, info, info_size, output);
+  return reinterpret_cast<FakeDiceOps*>(context)->Kdf(
+      length, ikm, ikm_size, salt, salt_size, info, info_size, output);
 }
 
-DiceResult FakeGenerateCertificate(
-    const DiceOps* ops,
+DiceResult DiceGenerateCertificate(
+    void* context,
     const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
     uint8_t* certificate, size_t* certificate_actual_size) {
-  return reinterpret_cast<FakeDiceOps*>(ops->context)
-      ->GenerateCertificate(
-          subject_private_key_seed, authority_private_key_seed, input_values,
-          certificate_buffer_size, certificate, certificate_actual_size);
+  return reinterpret_cast<FakeDiceOps*>(context)->GenerateCertificate(
+      subject_private_key_seed, authority_private_key_seed, input_values,
+      certificate_buffer_size, certificate, certificate_actual_size);
+}
 }
 
 struct DiceStateForTest {
@@ -141,7 +118,7 @@ TEST(DiceTest, KnownAnswer) {
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
   DiceResult result = DiceMainFlow(
-      ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      &ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
@@ -159,7 +136,7 @@ TEST(DiceTest, HashFail) {
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
   DiceResult result = DiceMainFlow(
-      ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      &ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultPlatformError, result);
@@ -172,7 +149,7 @@ TEST(DiceTest, KdfFail) {
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
   DiceResult result = DiceMainFlow(
-      ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      &ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultPlatformError, result);
@@ -185,7 +162,7 @@ TEST(DiceTest, CertFail) {
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
   DiceResult result = DiceMainFlow(
-      ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      &ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultPlatformError, result);
@@ -197,7 +174,7 @@ TEST(DiceTest, CertTooSmall) {
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
   DiceResult result = DiceMainFlow(
-      ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      &ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       kFakeCertSize - 1, next_state.certificate, &next_state.certificate_size,
       next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultBufferTooSmall, result);
@@ -210,7 +187,7 @@ TEST(DiceTest, NoExtraneousOps) {
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
   DiceResult result = DiceMainFlow(
-      ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      &ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);

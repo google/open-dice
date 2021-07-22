@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License. You may obtain a copy of
@@ -12,23 +12,17 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#include "dice/dice.h"
-#include "dice/fuzz_utils.h"
-#include "dice/mbedtls_ops.h"
-#include "dice/utils.h"
+// This is a basic, standalone implementation of DiceClearMemory that aims to
+// write zeros to the memory without the compiler optimizing it away by using a
+// volatile data pointer. Attention has not been given to performance, clearing
+// caches or other potential side channels.
 
-namespace {
+#include "dice/ops.h"
 
-constexpr DiceOps kOps = {
-    .context = NULL,
-    .hash = DiceMbedtlsHashOp,
-    .kdf = DiceMbedtlsKdfOp,
-    .generate_certificate = DiceMbedtlsGenerateCertificateOp,
-    .clear_memory = DiceClearMemory};
-
-}  // namespace
-
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-  dice::fuzz::FuzzDiceMainFlow(&kOps, data, size);
-  return 0;
+void DiceClearMemory(void* context, size_t size, void* address) {
+  (void)context;
+  volatile uint8_t* p = address;
+  for (size_t i = 0; i < size; i++) {
+    p[i] = 0;
+  }
 }

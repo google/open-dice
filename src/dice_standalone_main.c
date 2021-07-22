@@ -17,19 +17,19 @@
 #include "dice/dice.h"
 #include "dice/utils.h"
 
-DiceResult FakeHash(const DiceOps* ops, const uint8_t* input, size_t input_size,
+DiceResult DiceHash(void* context, const uint8_t* input, size_t input_size,
                     uint8_t output[DICE_HASH_SIZE]) {
-  (void)ops;
+  (void)context;
   (void)input;
   (void)input_size;
   (void)output;
   return kDiceResultOk;
 }
 
-DiceResult FakeKdf(const DiceOps* ops, size_t length, const uint8_t* ikm,
+DiceResult DiceKdf(void* context, size_t length, const uint8_t* ikm,
                    size_t ikm_size, const uint8_t* salt, size_t salt_size,
                    const uint8_t* info, size_t info_size, uint8_t* output) {
-  (void)ops;
+  (void)context;
   (void)length;
   (void)ikm;
   (void)ikm_size;
@@ -41,13 +41,13 @@ DiceResult FakeKdf(const DiceOps* ops, size_t length, const uint8_t* ikm,
   return kDiceResultOk;
 }
 
-DiceResult FakeCertificate(
-    const DiceOps* ops,
+DiceResult DiceGenerateCertificate(
+    void* context,
     const uint8_t subject_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
     uint8_t* certificate, size_t* certificate_actual_size) {
-  (void)ops;
+  (void)context;
   (void)subject_private_key_seed;
   (void)authority_private_key_seed;
   (void)input_values;
@@ -60,14 +60,11 @@ DiceResult FakeCertificate(
 int main(int argc, char** argv) {
   (void)argc;
   (void)argv;
-  const DiceOps ops = {.hash = FakeHash,
-                       .kdf = FakeKdf,
-                       .generate_certificate = FakeCertificate,
-                       .clear_memory = DiceClearMemory};
   uint8_t cdi_buffer[DICE_CDI_SIZE];
   uint8_t cert_buffer[2048];
   size_t cert_size;
   DiceInputValues input_values = {0};
-  return (int)DiceMainFlow(&ops, cdi_buffer, cdi_buffer, &input_values, 2048,
-                           cert_buffer, &cert_size, cdi_buffer, cdi_buffer);
+  return (int)DiceMainFlow(/*context=*/NULL, cdi_buffer, cdi_buffer,
+                           &input_values, sizeof(cert_buffer), cert_buffer,
+                           &cert_size, cdi_buffer, cdi_buffer);
 }

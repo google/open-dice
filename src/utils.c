@@ -29,11 +29,3 @@ void DiceHexEncode(const uint8_t* in, size_t num_bytes, void* out,
     }
   }
 }
-
-void DiceClearMemory(const DiceOps* ops, size_t size, void* address) {
-  (void)ops;
-  volatile uint8_t* p = address;
-  for (size_t i = 0; i < size; i++) {
-    p[i] = 0;
-  }
-}

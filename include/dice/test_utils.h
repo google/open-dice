@@ -49,7 +49,7 @@ void DeriveFakeInputValue(const char* seed, size_t length, uint8_t* output);
 
 // Generates a self-signed X.509 UDS certificate for the given |uds| value. The
 // signature scheme is ED25519-SHA512.
-void CreateFakeUdsCertificate(const DiceOps& ops, const uint8_t uds[32],
+void CreateFakeUdsCertificate(void* context, const uint8_t uds[32],
                               CertificateType cert_type, KeyType key_type,
                               uint8_t certificate[kTestCertSize],
                               size_t* certificate_size);

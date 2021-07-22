@@ -31,9 +31,6 @@ extern "C" {
 void DiceHexEncode(const uint8_t* in, size_t num_bytes, void* out,
                    size_t out_size);
 
-// A default implementation of DiceOps.clear_memory.
-void DiceClearMemory(const DiceOps* ops, size_t size, void* address);
-
 #ifdef __cplusplus
 }  // extern "C"
 #endif

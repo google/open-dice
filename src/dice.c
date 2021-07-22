@@ -16,6 +16,8 @@
 
 #include <string.h>
 
+#include "dice/ops.h"
+
 static const uint8_t kAsymSalt[] = {
     0x63, 0xB6, 0xA0, 0x4D, 0x2C, 0x07, 0x7F, 0xC1, 0x0F, 0x63, 0x9F,
     0x21, 0xDA, 0x79, 0x38, 0x44, 0x35, 0x6C, 0xC2, 0xB0, 0xB4, 0x41,
@@ -35,24 +37,24 @@ static const uint8_t kIdSalt[] = {
 static const size_t kIdSaltSize = 64;
 
 DiceResult DiceDeriveCdiPrivateKeySeed(
-    const DiceOps* ops, const uint8_t cdi_attest[DICE_CDI_SIZE],
+    void* context, const uint8_t cdi_attest[DICE_CDI_SIZE],
     uint8_t cdi_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE]) {
   // Use the CDI as input key material, with fixed salt and info.
-  return ops->kdf(ops, /*length=*/DICE_PRIVATE_KEY_SEED_SIZE, cdi_attest,
-                  /*ikm_size=*/DICE_CDI_SIZE, kAsymSalt, kAsymSaltSize,
-                  /*info=*/(const uint8_t*)"Key Pair", /*info_size=*/8,
-                  cdi_private_key_seed);
+  return DiceKdf(context, /*length=*/DICE_PRIVATE_KEY_SEED_SIZE, cdi_attest,
+                 /*ikm_size=*/DICE_CDI_SIZE, kAsymSalt, kAsymSaltSize,
+                 /*info=*/(const uint8_t*)"Key Pair", /*info_size=*/8,
+                 cdi_private_key_seed);
 }
 
-DiceResult DiceDeriveCdiCertificateId(const DiceOps* ops,
+DiceResult DiceDeriveCdiCertificateId(void* context,
                                       const uint8_t* cdi_public_key,
                                       size_t cdi_public_key_size,
                                       uint8_t id[20]) {
   // Use the public key as input key material, with fixed salt and info.
   DiceResult result =
-      ops->kdf(ops, /*length=*/20, cdi_public_key, cdi_public_key_size, kIdSalt,
-               kIdSaltSize,
-               /*info=*/(const uint8_t*)"ID", /*info_size=*/2, id);
+      DiceKdf(context, /*length=*/20, cdi_public_key, cdi_public_key_size,
+              kIdSalt, kIdSaltSize,
+              /*info=*/(const uint8_t*)"ID", /*info_size=*/2, id);
   if (result == kDiceResultOk) {
     // Clear the top bit to keep the integer positive.
     id[0] &= ~0x80;
@@ -60,7 +62,7 @@ DiceResult DiceDeriveCdiCertificateId(const DiceOps* ops,
   return result;
 }
 
-DiceResult DiceMainFlow(const DiceOps* ops,
+DiceResult DiceMainFlow(void* context,
                         const uint8_t current_cdi_attest[DICE_CDI_SIZE],
                         const uint8_t current_cdi_seal[DICE_CDI_SIZE],
                         const DiceInputValues* input_values,
@@ -105,9 +107,9 @@ DiceResult DiceMainFlow(const DiceOps* ops,
     result = kDiceResultInvalidInput;
     goto out;
   } else {
-    result = ops->hash(ops, input_values->config_descriptor,
-                       input_values->config_descriptor_size,
-                       &input_buffer[kConfigOffset]);
+    result = DiceHash(context, input_values->config_descriptor,
+                      input_values->config_descriptor_size,
+                      &input_buffer[kConfigOffset]);
     if (result != kDiceResultOk) {
       goto out;
     }
@@ -121,28 +123,28 @@ DiceResult DiceMainFlow(const DiceOps* ops,
   // attestation all the inputs are used, and for sealing only the authority,
   // mode, and hidden inputs are used.
   result =
-      ops->hash(ops, input_buffer, sizeof(input_buffer), attest_input_hash);
+      DiceHash(context, input_buffer, sizeof(input_buffer), attest_input_hash);
   if (result != kDiceResultOk) {
     goto out;
   }
-  result = ops->hash(ops, &input_buffer[kAuthorityOffset],
-                     kAuthoritySize + kModeSize + kHiddenSize, seal_input_hash);
+  result = DiceHash(context, &input_buffer[kAuthorityOffset],
+                    kAuthoritySize + kModeSize + kHiddenSize, seal_input_hash);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   // Compute the next CDI values. For each of these the current CDI value is
   // used as input key material and the input hash is used as salt.
-  result = ops->kdf(ops, /*length=*/DICE_CDI_SIZE, current_cdi_attest,
-                    /*ikm_size=*/DICE_CDI_SIZE, attest_input_hash,
-                    /*salt_size=*/DICE_HASH_SIZE,
-                    /*info=*/(const uint8_t*)"CDI_Attest", /*info_size=*/10,
-                    next_cdi_attest);
+  result = DiceKdf(context, /*length=*/DICE_CDI_SIZE, current_cdi_attest,
+                   /*ikm_size=*/DICE_CDI_SIZE, attest_input_hash,
+                   /*salt_size=*/DICE_HASH_SIZE,
+                   /*info=*/(const uint8_t*)"CDI_Attest", /*info_size=*/10,
+                   next_cdi_attest);
   if (result != kDiceResultOk) {
     goto out;
   }
-  result = ops->kdf(
-      ops, /*length=*/DICE_CDI_SIZE, current_cdi_seal,
+  result = DiceKdf(
+      context, /*length=*/DICE_CDI_SIZE, current_cdi_seal,
       /*ikm_size=*/DICE_CDI_SIZE, seal_input_hash, /*salt_size=*/DICE_HASH_SIZE,
       /*info=*/(const uint8_t*)"CDI_Seal", /*info_size=*/8, next_cdi_seal);
   if (result != kDiceResultOk) {
@@ -150,12 +152,12 @@ DiceResult DiceMainFlow(const DiceOps* ops,
   }
 
   // Derive asymmetric private key seeds from the attestation CDI values.
-  result = DiceDeriveCdiPrivateKeySeed(ops, current_cdi_attest,
+  result = DiceDeriveCdiPrivateKeySeed(context, current_cdi_attest,
                                        current_cdi_private_key_seed);
   if (result != kDiceResultOk) {
     goto out;
   }
-  result = DiceDeriveCdiPrivateKeySeed(ops, next_cdi_attest,
+  result = DiceDeriveCdiPrivateKeySeed(context, next_cdi_attest,
                                        next_cdi_private_key_seed);
   if (result != kDiceResultOk) {
     goto out;
@@ -163,8 +165,8 @@ DiceResult DiceMainFlow(const DiceOps* ops,
 
   // Generate a certificate for |next_cdi_private_key_seed| with
   // |current_cdi_private_key_seed| as the authority.
-  result = ops->generate_certificate(
-      ops, next_cdi_private_key_seed, current_cdi_private_key_seed,
+  result = DiceGenerateCertificate(
+      context, next_cdi_private_key_seed, current_cdi_private_key_seed,
       input_values, next_cdi_certificate_buffer_size, next_cdi_certificate,
       next_cdi_certificate_actual_size);
   if (result != kDiceResultOk) {
@@ -172,12 +174,12 @@ DiceResult DiceMainFlow(const DiceOps* ops,
   }
 out:
   // Clear sensitive memory.
-  ops->clear_memory(ops, sizeof(input_buffer), input_buffer);
-  ops->clear_memory(ops, sizeof(attest_input_hash), attest_input_hash);
-  ops->clear_memory(ops, sizeof(seal_input_hash), seal_input_hash);
-  ops->clear_memory(ops, sizeof(current_cdi_private_key_seed),
-                    current_cdi_private_key_seed);
-  ops->clear_memory(ops, sizeof(next_cdi_private_key_seed),
-                    next_cdi_private_key_seed);
+  DiceClearMemory(context, sizeof(input_buffer), input_buffer);
+  DiceClearMemory(context, sizeof(attest_input_hash), attest_input_hash);
+  DiceClearMemory(context, sizeof(seal_input_hash), seal_input_hash);
+  DiceClearMemory(context, sizeof(current_cdi_private_key_seed),
+                  current_cdi_private_key_seed);
+  DiceClearMemory(context, sizeof(next_cdi_private_key_seed),
+                  next_cdi_private_key_seed);
   return result;
 }

@@ -615,12 +615,12 @@ void DeriveFakeInputValue(const char* seed, size_t length, uint8_t* output) {
   }
 }
 
-void CreateFakeUdsCertificate(const DiceOps& ops, const uint8_t uds[32],
+void CreateFakeUdsCertificate(void* context, const uint8_t uds[32],
                               CertificateType cert_type, KeyType key_type,
                               uint8_t certificate[kTestCertSize],
                               size_t* certificate_size) {
   uint8_t raw_key[DICE_PRIVATE_KEY_SEED_SIZE];
-  DiceDeriveCdiPrivateKeySeed(&ops, uds, raw_key);
+  DiceDeriveCdiPrivateKeySeed(context, uds, raw_key);
 
   uint8_t raw_public_key[33];
   size_t raw_public_key_size = 0;
@@ -628,7 +628,7 @@ void CreateFakeUdsCertificate(const DiceOps& ops, const uint8_t uds[32],
       KeyFromRawKey(raw_key, key_type, raw_public_key, &raw_public_key_size));
 
   uint8_t id[20];
-  DiceDeriveCdiCertificateId(&ops, raw_public_key, raw_public_key_size, id);
+  DiceDeriveCdiCertificateId(context, raw_public_key, raw_public_key_size, id);
 
   if (cert_type == CertificateType_X509) {
     CreateX509UdsCertificate(key.get(), id, certificate, certificate_size);
