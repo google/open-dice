@@ -61,6 +61,7 @@ static inline bool CborOutOverflowed(const struct CborOut* out) {
 // caller is responsible for correct and deterministic encoding of complex
 // types.
 void CborWriteInt(int64_t val, struct CborOut* out);
+void CborWriteUint(uint64_t val, struct CborOut* out);
 void CborWriteBstr(size_t data_size, const uint8_t* data, struct CborOut* out);
 void CborWriteTstr(const char* str, struct CborOut* out);
 void CborWriteArray(size_t num_elements, struct CborOut* out);

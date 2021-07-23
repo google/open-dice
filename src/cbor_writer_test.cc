@@ -91,6 +91,19 @@ TEST(CborWriterTest, Int9Bytes) {
   EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
 }
 
+TEST(CborWriterTest, Uint9Bytes) {
+  const uint8_t kExpectedEncoding[] = {27,   0x00, 0x00, 0x00, 0x01, 0x00,
+                                       0x00, 0x00, 0x00, 27,   0xff, 0xff,
+                                       0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+  uint8_t buffer[64];
+  CborOut out;
+  CborOutInit(buffer, sizeof(buffer), &out);
+  CborWriteUint(0x100000000, &out);
+  CborWriteUint(UINT64_MAX, &out);
+  EXPECT_FALSE(CborOutOverflowed(&out));
+  EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
+}
+
 TEST(CborWriterTest, IntByteOrder) {
   const uint8_t kExpectedEncoding[] = {
       25,   0x12, 0x34, 26,   0x12, 0x34, 0x56, 0x78, 27,

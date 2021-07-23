@@ -19,6 +19,7 @@ namespace {
 
 enum CborWriterFunction {
   WriteInt,
+  WriteUint,
   WriteBstr,
   AllocBstr,
   WriteTstr,
@@ -34,7 +35,7 @@ enum CborWriterFunction {
 // Use data sizes that exceed the 16-bit range without being excessive.
 constexpr size_t kMaxDataSize = 0xffff + 0x5000;
 constexpr size_t kMaxBufferSize = kMaxDataSize * 3;
-constexpr size_t kIterations = 20;
+constexpr size_t kIterations = CborWriterFunction::kMaxValue * 2;
 
 }  // namespace
 
@@ -50,6 +51,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     switch (fdp.ConsumeEnum<CborWriterFunction>()) {
       case WriteInt:
         CborWriteInt(fdp.ConsumeIntegral<int64_t>(), &out);
+        break;
+      case WriteUint:
+        CborWriteUint(fdp.ConsumeIntegral<uint64_t>(), &out);
         break;
       case WriteBstr: {
         auto bstr_data_size =

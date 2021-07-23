@@ -114,6 +114,10 @@ void CborWriteInt(int64_t val, struct CborOut* out) {
   }
 }
 
+void CborWriteUint(uint64_t val, struct CborOut* out) {
+  CborWriteType(CBOR_TYPE_UINT, val, out);
+}
+
 void CborWriteBstr(size_t data_size, const uint8_t* data, struct CborOut* out) {
   CborWriteStr(CBOR_TYPE_BSTR, data_size, data, out);
 }
