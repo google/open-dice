@@ -24,6 +24,13 @@
 #include "dice/ops.h"
 #include "dice/utils.h"
 
+#if DICE_PUBLIC_KEY_SIZE != 32
+#error "Only Ed25519 is supported; 32 bytes needed to store the public key."
+#endif
+#if DICE_SIGNATURE_SIZE != 64
+#error "Only Ed25519 is supported; 64 bytes needed to store the signature."
+#endif
+
 // Max size of COSE_Sign1 including payload.
 static const size_t kMaxCertificateSize = 2048;
 // Max size of COSE_Key encoding.
@@ -50,7 +57,7 @@ static DiceResult EncodeProtectedAttributes(size_t buffer_size, uint8_t* buffer,
   return kDiceResultOk;
 }
 
-static DiceResult EncodePublicKey(uint8_t subject_public_key[32],
+static DiceResult EncodePublicKey(uint8_t subject_public_key[DICE_PUBLIC_KEY_SIZE],
                                   size_t buffer_size, uint8_t* buffer,
                                   size_t* encoded_size) {
   // Constants per RFC 8152.
@@ -82,7 +89,7 @@ static DiceResult EncodePublicKey(uint8_t subject_public_key[32],
   CborWriteInt(kCoseCrvEd25519, &out);
   // Add the subject public key.
   CborWriteInt(kCoseOkpXLabel, &out);
-  CborWriteBstr(/*data_size=*/32, subject_public_key, &out);
+  CborWriteBstr(/*data_size=*/DICE_PUBLIC_KEY_SIZE, subject_public_key, &out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
@@ -220,7 +227,7 @@ static DiceResult EncodeCoseTbs(const uint8_t* protected_attributes,
 static DiceResult EncodeCoseSign1(const uint8_t* protected_attributes,
                                   size_t protected_attributes_size,
                                   const uint8_t* payload, size_t payload_size,
-                                  const uint8_t signature[64],
+                                  const uint8_t signature[DICE_SIGNATURE_SIZE],
                                   size_t buffer_size, uint8_t* buffer,
                                   size_t* encoded_size) {
   struct CborOut out;
@@ -234,7 +241,7 @@ static DiceResult EncodeCoseSign1(const uint8_t* protected_attributes,
   // Payload.
   CborWriteBstr(payload_size, payload, &out);
   // Signature.
-  CborWriteBstr(/*num_elements=*/64, signature, &out);
+  CborWriteBstr(/*num_elements=*/DICE_SIGNATURE_SIZE, signature, &out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
@@ -257,8 +264,8 @@ DiceResult DiceGenerateCertificate(
   }
 
   // Declare buffers which are cleared on 'goto out'.
-  uint8_t subject_private_key[DICE_PRIVATE_KEY_MAX_SIZE];
-  uint8_t authority_private_key[DICE_PRIVATE_KEY_MAX_SIZE];
+  uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE];
+  uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE];
 
   // These are 'variably modified' types so need to be declared upfront.
   uint8_t encoded_public_key[kMaxPublicKeySize];
@@ -266,19 +273,16 @@ DiceResult DiceGenerateCertificate(
   uint8_t protected_attributes[kMaxProtectedAttributesSize];
 
   // Derive keys and IDs from the private key seeds.
-  uint8_t subject_public_key[DICE_PUBLIC_KEY_MAX_SIZE];
-  size_t subject_public_key_size;
-  size_t subject_private_key_size;
+  uint8_t subject_public_key[DICE_PUBLIC_KEY_SIZE];
   result = DiceKeypairFromSeed(context, subject_private_key_seed,
-                               subject_public_key, &subject_public_key_size,
-                               subject_private_key, &subject_private_key_size);
+                               subject_public_key, subject_private_key);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   uint8_t subject_id[20];
   result =
-      DiceDeriveCdiCertificateId(context, subject_public_key, 32, subject_id);
+      DiceDeriveCdiCertificateId(context, subject_public_key, DICE_PUBLIC_KEY_SIZE, subject_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -287,20 +291,16 @@ DiceResult DiceGenerateCertificate(
                 sizeof(subject_id_hex));
   subject_id_hex[sizeof(subject_id_hex) - 1] = '\0';
 
-  uint8_t authority_public_key[DICE_PUBLIC_KEY_MAX_SIZE];
-  size_t authority_public_key_size;
-  size_t authority_private_key_size;
-  result =
-      DiceKeypairFromSeed(context, authority_private_key_seed,
-                          authority_public_key, &authority_public_key_size,
-                          authority_private_key, &authority_private_key_size);
+  uint8_t authority_public_key[DICE_PUBLIC_KEY_SIZE];
+  result = DiceKeypairFromSeed(context, authority_private_key_seed,
+                               authority_public_key, authority_private_key);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   uint8_t authority_id[20];
   result = DiceDeriveCdiCertificateId(context, authority_public_key,
-                                      authority_public_key_size, authority_id);
+                                      DICE_PUBLIC_KEY_SIZE, authority_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -346,16 +346,14 @@ DiceResult DiceGenerateCertificate(
   }
 
   // Sign the TBS with the authority key.
-  uint8_t signature[64];
+  uint8_t signature[DICE_SIGNATURE_SIZE];
   result = DiceSign(context, certificate, *certificate_actual_size,
-                    authority_private_key, authority_private_key_size,
-                    sizeof(signature), signature);
+                    authority_private_key, signature);
   if (result != kDiceResultOk) {
     goto out;
   }
   result = DiceVerify(context, certificate, *certificate_actual_size, signature,
-                      sizeof(signature), authority_public_key,
-                      authority_public_key_size);
+                      authority_public_key);
   if (result != kDiceResultOk) {
     goto out;
   }

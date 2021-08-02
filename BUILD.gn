@@ -25,17 +25,6 @@ group("default") {
   ]
 }
 
-pw_source_set("utils") {
-  public = [
-    "include/dice/dice.h",
-    "include/dice/utils.h",
-  ]
-  sources = [
-    "src/clear_memory.c",
-    "src/utils.c",
-  ]
-}
-
 pw_source_set("cbor_writer") {
   public = [
     "include/dice/cbor_writer.h",
@@ -43,88 +32,118 @@ pw_source_set("cbor_writer") {
   sources = [ "src/cbor_writer.c" ]
 }
 
+config("standalone_ops_config") {
+  include_dirs = [ "//include/dice/config/standalone" ]
+}
+
 pw_static_library("dice_standalone") {
-  public = [ "include/dice/dice.h" ]
-  sources = [ "src/dice.c" ]
+  public = [
+    "include/dice/dice.h",
+    "include/dice/utils.h",
+  ]
+  sources = [
+    "src/clear_memory.c",
+    "src/dice.c"
+  ]
+  all_dependent_configs = [ ":standalone_ops_config" ]
+}
+
+config("boringssl_ed25519_ops_config") {
+  include_dirs = [ "//include/dice/config/boringssl_ed25519" ]
 }
 
 pw_static_library("dice_with_boringssl_ops") {
-  public = [ "include/dice/dice.h" ]
+  public = [
+    "include/dice/dice.h",
+    "include/dice/utils.h",
+  ]
   sources = [
     "src/boringssl_cert_op.c",
     "src/boringssl_hash_kdf_sign_ops.c",
+    "src/clear_memory.c",
     "src/dice.c",
+    "src/utils.c",
   ]
   deps = [
-    ":utils",
     "//third_party/boringssl:crypto",
   ]
+  all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
+}
+
+config("mbedtls_ops_config") {
+  include_dirs = [ "//include//dice/config/mbedtls_ecdsa_p256" ]
 }
 
 pw_static_library("dice_with_mbedtls_ops") {
-  public = [ "include/dice/dice.h" ]
+  public = [
+    "include/dice/dice.h",
+    "include/dice/utils.h",
+  ]
   sources = [
+    "src/clear_memory.c",
     "src/dice.c",
     "src/mbedtls_ops.c",
+    "src/utils.c",
   ]
   deps = [
-    ":utils",
     "//third_party/mbedtls:mbedcrypto",
   ]
+  all_dependent_configs = [ ":mbedtls_ops_config" ]
 }
 
 pw_static_library("dice_with_cbor_cert") {
-  public = [ "include/dice/dice.h" ]
+  public = [
+    "include/dice/dice.h",
+    "include/dice/utils.h",
+  ]
   sources = [
     "src/boringssl_hash_kdf_sign_ops.c",
     "src/cbor_cert_op.c",
+    "src/clear_memory.c",
     "src/dice.c",
+    "src/utils.c",
   ]
   deps = [
     ":cbor_writer",
-    ":utils",
     "//third_party/boringssl:crypto",
   ]
+  all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
 }
 
 pw_static_library("dice_with_cbor_template_cert") {
-  public = [ "include/dice/dice.h" ]
+  public = [
+    "include/dice/dice.h",
+    "include/dice/utils.h",
+  ]
   sources = [
     "src/boringssl_hash_kdf_sign_ops.c",
+    "src/clear_memory.c",
     "src/dice.c",
     "src/template_cbor_cert_op.c",
+    "src/utils.c",
   ]
   deps = [
-    ":utils",
     "//third_party/boringssl:crypto",
   ]
+  all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
 }
 
 pw_static_library("dice_with_x509_template_cert") {
-  public = [ "include/dice/dice.h" ]
+  public = [
+    "include/dice/dice.h",
+    "include/dice/utils.h",
+  ]
   sources = [
     "src/boringssl_hash_kdf_sign_ops.c",
+    "src/clear_memory.c",
     "src/dice.c",
     "src/template_cert_op.c",
+    "src/utils.c",
   ]
   deps = [
-    ":utils",
     "//third_party/boringssl:crypto",
   ]
-}
-
-pw_source_set("test_utils") {
-  public = [ "include/dice/test_utils.h" ]
-  sources = [ "src/test_utils.cc" ]
-  deps = [
-    ":utils",
-    "$dir_pw_string:pw_string",
-  ]
-  public_deps = [
-    "//third_party/boringssl:crypto",
-    "//third_party/cose-c:cose-c",
-  ]
-  cflags = [ "-Wno-ignored-qualifiers" ]
+  all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
 }
 
 pw_source_set("fuzzer") {
@@ -149,17 +168,20 @@ pw_test("dice_test") {
   sources = [ "src/dice_test.cc" ]
   deps = [
     ":dice_standalone",
-    ":utils",
     "//third_party/boringssl:crypto",
   ]
 }
 
 pw_test("boringssl_ops_test") {
-  sources = [ "src/boringssl_ops_test.cc" ]
+  sources = [
+    "src/boringssl_ops_test.cc",
+    "src/test_utils.cc",
+  ]
   deps = [
     ":dice_with_boringssl_ops",
-    ":test_utils",
-    ":utils",
+    "//third_party/boringssl:crypto",
+    "//third_party/cose-c:cose-c",
+    "$dir_pw_string:pw_string",
   ]
 }
 
@@ -171,11 +193,15 @@ pw_executable("boringssl_ops_fuzzer") {
 }
 
 pw_test("template_cert_op_test") {
-  sources = [ "src/template_cert_op_test.cc" ]
+  sources = [
+    "src/template_cert_op_test.cc",
+    "src/test_utils.cc",
+  ]
   deps = [
     ":dice_with_x509_template_cert",
-    ":test_utils",
-    ":utils",
+    "//third_party/boringssl:crypto",
+    "//third_party/cose-c:cose-c",
+    "$dir_pw_string:pw_string",
   ]
 }
 
@@ -187,11 +213,15 @@ pw_executable("template_cert_op_fuzzer") {
 }
 
 pw_test("cbor_cert_op_test") {
-  sources = [ "src/cbor_cert_op_test.cc" ]
+  sources = [
+    "src/cbor_cert_op_test.cc",
+    "src/test_utils.cc",
+  ]
   deps = [
     ":dice_with_cbor_cert",
-    ":test_utils",
-    ":utils",
+    "//third_party/boringssl:crypto",
+    "//third_party/cose-c:cose-c",
+    "$dir_pw_string:pw_string",
   ]
 }
 
@@ -203,11 +233,15 @@ pw_executable("cbor_cert_op_fuzzer") {
 }
 
 pw_test("template_cbor_cert_op_test") {
-  sources = [ "src/template_cbor_cert_op_test.cc" ]
+  sources = [
+    "src/template_cbor_cert_op_test.cc",
+    "src/test_utils.cc",
+  ]
   deps = [
     ":dice_with_cbor_template_cert",
-    ":test_utils",
-    ":utils",
+    "//third_party/boringssl:crypto",
+    "//third_party/cose-c:cose-c",
+    "$dir_pw_string:pw_string",
   ]
 }
 
@@ -219,11 +253,15 @@ pw_executable("template_cbor_cert_op_fuzzer") {
 }
 
 pw_test("mbedtls_ops_test") {
-  sources = [ "src/mbedtls_ops_test.cc" ]
+  sources = [
+    "src/mbedtls_ops_test.cc",
+    "src/test_utils.cc",
+  ]
   deps = [
     ":dice_with_mbedtls_ops",
-    ":test_utils",
-    ":utils",
+    "//third_party/boringssl:crypto",
+    "//third_party/cose-c:cose-c",
+    "$dir_pw_string:pw_string",
   ]
 }
 
@@ -266,10 +304,7 @@ pw_executable("empty_main") {
 
 pw_executable("dice_standalone_main") {
   sources = [ "src/dice_standalone_main.c" ]
-  deps = [
-    ":dice_standalone",
-    ":utils",
-  ]
+  deps = [ ":dice_standalone" ]
 }
 
 pw_source_set("dice_main") {

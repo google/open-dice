@@ -27,8 +27,6 @@ extern "C" {
 #define DICE_HIDDEN_SIZE 64
 #define DICE_INLINE_CONFIG_SIZE 64
 #define DICE_PRIVATE_KEY_SEED_SIZE 32
-#define DICE_PUBLIC_KEY_MAX_SIZE 48
-#define DICE_PRIVATE_KEY_MAX_SIZE 64
 
 typedef enum {
   kDiceResultOk,

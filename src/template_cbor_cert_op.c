@@ -42,6 +42,13 @@
 #include "dice/ops.h"
 #include "dice/utils.h"
 
+#if DICE_PUBLIC_KEY_SIZE != 32
+#error "Only Ed25519 is supported; 32 bytes needed to store the public key."
+#endif
+#if DICE_SIGNATURE_SIZE != 64
+#error "Only Ed25519 is supported; 64 bytes needed to store the signature."
+#endif
+
 // A well-formed certificate, but with zeros in all fields to be filled.
 static const uint8_t kTemplate[441] = {
     // Constant encoding.
@@ -170,26 +177,23 @@ DiceResult DiceGenerateCertificate(
   }
 
   // Declare buffers which are cleared on 'goto out'.
-  uint8_t subject_private_key[DICE_PRIVATE_KEY_MAX_SIZE];
-  uint8_t authority_private_key[DICE_PRIVATE_KEY_MAX_SIZE];
+  uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE];
+  uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE];
 
   // These are 'variably modified' types so need to be declared upfront.
   uint8_t tbs[kTbsSize];
 
   // Derive keys and IDs from the private key seeds.
-  uint8_t subject_public_key[DICE_PUBLIC_KEY_MAX_SIZE];
-  size_t subject_public_key_size;
-  size_t subject_private_key_size;
+  uint8_t subject_public_key[DICE_PUBLIC_KEY_SIZE];
   result = DiceKeypairFromSeed(context, subject_private_key_seed,
-                               subject_public_key, &subject_public_key_size,
-                               subject_private_key, &subject_private_key_size);
+                               subject_public_key, subject_private_key);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   uint8_t subject_id[20];
   result = DiceDeriveCdiCertificateId(context, subject_public_key,
-                                      subject_public_key_size, subject_id);
+                                      DICE_PUBLIC_KEY_SIZE, subject_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -197,20 +201,16 @@ DiceResult DiceGenerateCertificate(
   DiceHexEncode(subject_id, sizeof(subject_id), subject_id_hex,
                 sizeof(subject_id_hex));
 
-  uint8_t authority_public_key[DICE_PUBLIC_KEY_MAX_SIZE];
-  size_t authority_public_key_size;
-  size_t authority_private_key_size;
-  result =
-      DiceKeypairFromSeed(context, authority_private_key_seed,
-                          authority_public_key, &authority_public_key_size,
-                          authority_private_key, &authority_private_key_size);
+  uint8_t authority_public_key[DICE_PUBLIC_KEY_SIZE];
+  result = DiceKeypairFromSeed(context, authority_private_key_seed,
+                               authority_public_key, authority_private_key);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   uint8_t authority_id[20];
   result = DiceDeriveCdiCertificateId(context, authority_public_key,
-                                      authority_public_key_size, authority_id);
+                                      DICE_PUBLIC_KEY_SIZE, authority_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -236,14 +236,12 @@ DiceResult DiceGenerateCertificate(
          &certificate[kFieldTable[kFieldIndexPayload].offset],
          kFieldTable[kFieldIndexPayload].length);
 
-  uint8_t signature[64];
-  result = DiceSign(context, tbs, kTbsSize, authority_private_key,
-                    authority_private_key_size, sizeof(signature), signature);
+  uint8_t signature[DICE_SIGNATURE_SIZE];
+  result = DiceSign(context, tbs, kTbsSize, authority_private_key, signature);
   if (result != kDiceResultOk) {
     goto out;
   }
-  result = DiceVerify(context, tbs, kTbsSize, signature, sizeof(signature),
-                      authority_public_key, authority_public_key_size);
+  result = DiceVerify(context, tbs, kTbsSize, signature, authority_public_key);
   if (result != kDiceResultOk) {
     goto out;
   }
