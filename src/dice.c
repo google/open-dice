@@ -49,7 +49,7 @@ DiceResult DiceDeriveCdiPrivateKeySeed(
 DiceResult DiceDeriveCdiCertificateId(void* context,
                                       const uint8_t* cdi_public_key,
                                       size_t cdi_public_key_size,
-                                      uint8_t id[20]) {
+                                      uint8_t id[DICE_ID_SIZE]) {
   // Use the public key as input key material, with fixed salt and info.
   DiceResult result =
       DiceKdf(context, /*length=*/20, cdi_public_key, cdi_public_key_size,

@@ -195,7 +195,7 @@ DiceResult DiceGenerateCertificate(
   ED25519_keypair_from_seed(subject_public_key, subject_bssl_private_key,
                             subject_private_key_seed);
 
-  uint8_t subject_id[20];
+  uint8_t subject_id[DICE_ID_SIZE];
   result =
       DiceDeriveCdiCertificateId(context, subject_public_key, 32, subject_id);
   if (result != kDiceResultOk) {
@@ -209,7 +209,7 @@ DiceResult DiceGenerateCertificate(
   ED25519_keypair_from_seed(authority_public_key, authority_bssl_private_key,
                             authority_private_key_seed);
 
-  uint8_t authority_id[20];
+  uint8_t authority_id[DICE_ID_SIZE];
   result = DiceDeriveCdiCertificateId(context, authority_public_key, 32,
                                       authority_id);
   if (result != kDiceResultOk) {

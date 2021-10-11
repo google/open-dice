@@ -191,7 +191,7 @@ DiceResult DiceGenerateCertificate(
     goto out;
   }
 
-  uint8_t subject_id[20];
+  uint8_t subject_id[DICE_ID_SIZE];
   result = DiceDeriveCdiCertificateId(context, subject_public_key,
                                       DICE_PUBLIC_KEY_SIZE, subject_id);
   if (result != kDiceResultOk) {
@@ -208,7 +208,7 @@ DiceResult DiceGenerateCertificate(
     goto out;
   }
 
-  uint8_t authority_id[20];
+  uint8_t authority_id[DICE_ID_SIZE];
   result = DiceDeriveCdiCertificateId(context, authority_public_key,
                                       DICE_PUBLIC_KEY_SIZE, authority_id);
   if (result != kDiceResultOk) {

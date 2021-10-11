@@ -27,6 +27,7 @@ extern "C" {
 #define DICE_HIDDEN_SIZE 64
 #define DICE_INLINE_CONFIG_SIZE 64
 #define DICE_PRIVATE_KEY_SEED_SIZE 32
+#define DICE_ID_SIZE 20
 
 typedef enum {
   kDiceResultOk,
@@ -108,7 +109,7 @@ DiceResult DiceDeriveCdiPrivateKeySeed(
 DiceResult DiceDeriveCdiCertificateId(void* context,
                                       const uint8_t* cdi_public_key,
                                       size_t cdi_public_key_size,
-                                      uint8_t id[20]);
+                                      uint8_t id[DICE_ID_SIZE]);
 
 // Executes the main DICE flow.
 //

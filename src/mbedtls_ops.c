@@ -72,7 +72,7 @@ out:
 
 static DiceResult GetIdFromKey(void* context,
                                const mbedtls_pk_context* pk_context,
-                               uint8_t id[20]) {
+                               uint8_t id[DICE_ID_SIZE]) {
   uint8_t raw_public_key[33];
   size_t raw_public_key_size = 0;
   mbedtls_ecp_keypair* key = mbedtls_pk_ec(*pk_context);
@@ -87,17 +87,19 @@ static DiceResult GetIdFromKey(void* context,
 }
 
 // 54 byte name is prefix (13), hex id (40), and a null terminator.
-static void GetNameFromId(const uint8_t id[20], char name[54]) {
+static void GetNameFromId(const uint8_t id[DICE_ID_SIZE], char name[54]) {
   strcpy(name, "serialNumber=");
-  DiceHexEncode(id, /*num_bytes=*/20, (uint8_t*)&name[13], /*out_size=*/40);
+  DiceHexEncode(id, /*num_bytes=*/DICE_ID_SIZE, (uint8_t*)&name[13],
+                /*out_size=*/40);
   name[53] = '\0';
 }
 
-static DiceResult GetSubjectKeyIdFromId(const uint8_t id[20],
+static DiceResult GetSubjectKeyIdFromId(const uint8_t id[DICE_ID_SIZE],
                                         size_t buffer_size, uint8_t* buffer,
                                         size_t* actual_size) {
   uint8_t* pos = buffer + buffer_size;
-  int length_or_error = mbedtls_asn1_write_octet_string(&pos, buffer, id, 20);
+  int length_or_error =
+      mbedtls_asn1_write_octet_string(&pos, buffer, id, DICE_ID_SIZE);
   if (length_or_error < 0) {
     return kDiceResultPlatformError;
   }
@@ -126,11 +128,12 @@ static int AddAuthorityKeyIdEncoding(uint8_t** pos, uint8_t* start,
   return length;
 }
 
-static DiceResult GetAuthorityKeyIdFromId(const uint8_t id[20],
+static DiceResult GetAuthorityKeyIdFromId(const uint8_t id[DICE_ID_SIZE],
                                           size_t buffer_size, uint8_t* buffer,
                                           size_t* actual_size) {
   uint8_t* pos = buffer + buffer_size;
-  int length_or_error = mbedtls_asn1_write_raw_buffer(&pos, buffer, id, 20);
+  int length_or_error =
+      mbedtls_asn1_write_raw_buffer(&pos, buffer, id, DICE_ID_SIZE);
   if (length_or_error < 0) {
     return kDiceResultPlatformError;
   }
@@ -330,7 +333,7 @@ DiceResult DiceGenerateCertificate(
     goto out;
   }
 
-  uint8_t authority_id[20];
+  uint8_t authority_id[DICE_ID_SIZE];
   result = GetIdFromKey(context, &authority_key_context, authority_id);
   if (result != kDiceResultOk) {
     goto out;
@@ -350,7 +353,7 @@ DiceResult DiceGenerateCertificate(
     goto out;
   }
 
-  uint8_t subject_id[20];
+  uint8_t subject_id[DICE_ID_SIZE];
   result = GetIdFromKey(context, &subject_key_context, subject_id);
   if (result != kDiceResultOk) {
     goto out;

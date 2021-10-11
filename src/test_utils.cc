@@ -202,7 +202,7 @@ bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(
   return nullptr;
 }
 
-void CreateX509UdsCertificate(EVP_PKEY* key, const uint8_t id[20],
+void CreateX509UdsCertificate(EVP_PKEY* key, const uint8_t id[DICE_ID_SIZE],
                               uint8_t certificate[dice::test::kTestCertSize],
                               size_t* certificate_size) {
   bssl::UniquePtr<X509> x509(X509_new());
@@ -213,7 +213,7 @@ void CreateX509UdsCertificate(EVP_PKEY* key, const uint8_t id[20],
   X509_set_serialNumber(x509.get(), serial.get());
 
   uint8_t id_hex[40];
-  DiceHexEncode(id, 20, id_hex, sizeof(id_hex));
+  DiceHexEncode(id, DICE_ID_SIZE, id_hex, sizeof(id_hex));
   bssl::UniquePtr<X509_NAME> issuer_name(X509_NAME_new());
   X509_NAME_add_entry_by_NID(issuer_name.get(), NID_serialNumber, MBSTRING_UTF8,
                              id_hex, sizeof(id_hex), 0, 0);
@@ -228,7 +228,7 @@ void CreateX509UdsCertificate(EVP_PKEY* key, const uint8_t id[20],
   X509_set_notAfter(x509.get(), not_after.get());
 
   bssl::UniquePtr<ASN1_OCTET_STRING> subject_key_id(ASN1_OCTET_STRING_new());
-  ASN1_OCTET_STRING_set(subject_key_id.get(), id, 20);
+  ASN1_OCTET_STRING_set(subject_key_id.get(), id, DICE_ID_SIZE);
   bssl::UniquePtr<X509_EXTENSION> subject_key_id_ext(X509V3_EXT_i2d(
       NID_subject_key_identifier, /*crit=*/0, subject_key_id.get()));
   X509_add_ext(x509.get(), subject_key_id_ext.get(), /*loc=*/-1);
@@ -299,8 +299,8 @@ bool VerifyX509CertificateChain(const uint8_t* root_certificate,
 
 void CreateCborUdsCertificate(
     const uint8_t private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
-    const uint8_t id[20], uint8_t certificate[dice::test::kTestCertSize],
-    size_t* certificate_size) {
+    const uint8_t id[DICE_ID_SIZE],
+    uint8_t certificate[dice::test::kTestCertSize], size_t* certificate_size) {
   const uint8_t kProtectedAttributesCbor[3] = {
       0xa1 /* map(1) */, 0x01 /* alg(1) */, 0x27 /* EdDSA(-8) */};
   const int64_t kCwtIssuerLabel = 1;
@@ -331,7 +331,7 @@ void CreateCborUdsCertificate(
   // Simple CWT payload with issuer, subject, and use the same subject public
   // key field as a CDI certificate to make verification easy.
   char id_hex[41];
-  DiceHexEncode(id, 20, id_hex, sizeof(id_hex));
+  DiceHexEncode(id, DICE_ID_SIZE, id_hex, sizeof(id_hex));
   id_hex[40] = '\0';
   ScopedCbor cwt(cn_cbor_map_create(&error));
   cn_cbor_mapput_int(cwt.get(), kCwtIssuerLabel,
@@ -627,7 +627,7 @@ void CreateFakeUdsCertificate(void* context, const uint8_t uds[32],
   bssl::UniquePtr<EVP_PKEY> key(
       KeyFromRawKey(raw_key, key_type, raw_public_key, &raw_public_key_size));
 
-  uint8_t id[20];
+  uint8_t id[DICE_ID_SIZE];
   DiceDeriveCdiCertificateId(context, raw_public_key, raw_public_key_size, id);
 
   if (cert_type == CertificateType_X509) {
