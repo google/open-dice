@@ -303,6 +303,7 @@ pw_test_group("tests") {
     ":mbedtls_ops_test",
     ":template_cbor_cert_op_test",
     ":template_cert_op_test",
+    "//src/android:bcc_test",
   ]
 }
 
@@ -315,6 +316,7 @@ group("fuzzers") {
     ":mbedtls_ops_fuzzer",
     ":template_cbor_cert_op_fuzzer",
     ":template_cert_op_fuzzer",
+    "//src/android:bcc_fuzzer",
   ]
 }
 
@@ -451,5 +453,6 @@ group("optimized_libs") {
     ":dice_with_x509_template_cert",
     ":executable_size_report",
     ":library_size_report",
+    "//src/android:bcc",
   ]
 }

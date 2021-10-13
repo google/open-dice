@@ -12,7 +12,7 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#include "dice/dice.h"
+#include "dice/android/bcc.h"
 #include "dice/fuzz_utils.h"
 #include "dice/utils.h"
 #include "fuzzer/FuzzedDataProvider.h"
@@ -30,28 +30,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   // Prepare the fuzzed inputs.
   auto input_values = FuzzedInputValues::ConsumeFrom(fdp);
-  uint8_t current_cdi_attest[DICE_CDI_SIZE] = {};
-  uint8_t current_cdi_seal[DICE_CDI_SIZE] = {};
-
-  fdp.ConsumeData(&current_cdi_attest, sizeof(current_cdi_attest));
-  fdp.ConsumeData(&current_cdi_seal, sizeof(current_cdi_seal));
+  auto bcc_handover = ConsumeRandomLengthStringAsBytesFrom(fdp);
 
   // Initialize output parameters with fuzz data in case they are wrongly being
   // read from.
-  constexpr size_t kNextCdiCertificateBufferSize = 1024;
-  auto next_cdi_certificate_actual_size = fdp.ConsumeIntegral<size_t>();
-  uint8_t next_cdi_certificate[kNextCdiCertificateBufferSize] = {};
-  uint8_t next_cdi_attest[DICE_CDI_SIZE] = {};
-  uint8_t next_cdi_seal[DICE_CDI_SIZE] = {};
+  constexpr size_t kNextBccHandoverBufferSize = 1024;
+  auto next_bcc_handover_actual_size = fdp.ConsumeIntegral<size_t>();
+  uint8_t next_bcc_handover[kNextBccHandoverBufferSize] = {};
 
-  fdp.ConsumeData(&next_cdi_certificate, kNextCdiCertificateBufferSize);
-  fdp.ConsumeData(&next_cdi_attest, DICE_CDI_SIZE);
-  fdp.ConsumeData(&next_cdi_seal, DICE_CDI_SIZE);
+  fdp.ConsumeData(&next_bcc_handover, kNextBccHandoverBufferSize);
 
   // Fuzz the main flow.
-  DiceMainFlow(/*context=*/NULL, current_cdi_attest, current_cdi_seal,
-               input_values, kNextCdiCertificateBufferSize,
-               next_cdi_certificate, &next_cdi_certificate_actual_size,
-               next_cdi_attest, next_cdi_seal);
+  BccHandoverMainFlow(/*context=*/NULL, bcc_handover.data(),
+                      bcc_handover.size(), input_values,
+                      kNextBccHandoverBufferSize, next_bcc_handover,
+                      &next_bcc_handover_actual_size);
+
   return 0;
 }
