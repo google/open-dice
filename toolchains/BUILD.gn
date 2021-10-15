@@ -28,6 +28,7 @@ config("common_config") {
 
   # No language extensions, to promote portability.
   cflags_c = [
+    "-Wvla",
     "-std=c99",
     "-pedantic",
   ]

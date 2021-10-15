@@ -49,6 +49,9 @@
 #error "Only Ed25519 is supported; 64 bytes needed to store the signature."
 #endif
 
+// 20 bytes of header, 366 bytes of payload.
+#define DICE_TBS_SIZE 386
+
 // A well-formed certificate, but with zeros in all fields to be filled.
 static const uint8_t kTemplate[441] = {
     // Constant encoding.
@@ -123,8 +126,6 @@ static const uint8_t kTemplate[441] = {
 static const uint8_t kTbsHeader[20] = {0x84, 0x6a, 0x53, 0x69, 0x67, 0x6e, 0x61,
                                        0x74, 0x75, 0x72, 0x65, 0x31, 0x43, 0xa1,
                                        0x01, 0x27, 0x40, 0x59, 0x01, 0x6e};
-// 20 bytes of header, 366 bytes of payload.
-static const size_t kTbsSize = 386;
 
 static const struct {
   size_t offset;
@@ -180,9 +181,6 @@ DiceResult DiceGenerateCertificate(
   uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE];
   uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE];
 
-  // These are 'variably modified' types so need to be declared upfront.
-  uint8_t tbs[kTbsSize];
-
   // Derive keys and IDs from the private key seeds.
   uint8_t subject_public_key[DICE_PUBLIC_KEY_SIZE];
   result = DiceKeypairFromSeed(context, subject_private_key_seed,
@@ -231,17 +229,20 @@ DiceResult DiceGenerateCertificate(
   certificate[kFieldTable[kFieldIndexMode].offset] = input_values->mode;
 
   // Fill the TBS structure using the payload from the certificate.
+  uint8_t tbs[DICE_TBS_SIZE];
   memcpy(tbs, kTbsHeader, sizeof(kTbsHeader));
   memcpy(&tbs[sizeof(kTbsHeader)],
          &certificate[kFieldTable[kFieldIndexPayload].offset],
          kFieldTable[kFieldIndexPayload].length);
 
   uint8_t signature[DICE_SIGNATURE_SIZE];
-  result = DiceSign(context, tbs, kTbsSize, authority_private_key, signature);
+  result =
+      DiceSign(context, tbs, sizeof(tbs), authority_private_key, signature);
   if (result != kDiceResultOk) {
     goto out;
   }
-  result = DiceVerify(context, tbs, kTbsSize, signature, authority_public_key);
+  result =
+      DiceVerify(context, tbs, sizeof(tbs), signature, authority_public_key);
   if (result != kDiceResultOk) {
     goto out;
   }

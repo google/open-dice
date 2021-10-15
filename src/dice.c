@@ -18,6 +18,11 @@
 
 #include "dice/ops.h"
 
+#define DICE_CODE_SIZE DICE_HASH_SIZE
+#define DICE_CONFIG_SIZE DICE_INLINE_CONFIG_SIZE
+#define DICE_AUTHORITY_SIZE DICE_HASH_SIZE
+#define DICE_MODE_SIZE 1
+
 static const uint8_t kAsymSalt[] = {
     0x63, 0xB6, 0xA0, 0x4D, 0x2C, 0x07, 0x7F, 0xC1, 0x0F, 0x63, 0x9F,
     0x21, 0xDA, 0x79, 0x38, 0x44, 0x35, 0x6C, 0xC2, 0xB0, 0xB4, 0x41,
@@ -77,32 +82,27 @@ DiceResult DiceMainFlow(void* context,
   // ---------------------------------------------------------------------------
   // | Code Input | Config Input | Authority Input | Mode Input | Hidden Input |
   // ---------------------------------------------------------------------------
-  const size_t kCodeSize = DICE_HASH_SIZE;
-  const size_t kConfigSize = DICE_INLINE_CONFIG_SIZE;
-  const size_t kAuthoritySize = DICE_HASH_SIZE;
-  const size_t kModeSize = 1;
-  const size_t kHiddenSize = DICE_HIDDEN_SIZE;
   const size_t kCodeOffset = 0;
-  const size_t kConfigOffset = kCodeOffset + kCodeSize;
-  const size_t kAuthorityOffset = kConfigOffset + kConfigSize;
-  const size_t kModeOffset = kAuthorityOffset + kAuthoritySize;
-  const size_t kHiddenOffset = kModeOffset + kModeSize;
+  const size_t kConfigOffset = kCodeOffset + DICE_CODE_SIZE;
+  const size_t kAuthorityOffset = kConfigOffset + DICE_CONFIG_SIZE;
+  const size_t kModeOffset = kAuthorityOffset + DICE_AUTHORITY_SIZE;
+  const size_t kHiddenOffset = kModeOffset + DICE_MODE_SIZE;
 
   DiceResult result = kDiceResultOk;
 
   // Declare buffers that get cleaned up on 'goto out'.
-  uint8_t input_buffer[kCodeSize + kConfigSize + kAuthoritySize + kModeSize +
-                       kHiddenSize];
+  uint8_t input_buffer[DICE_CODE_SIZE + DICE_CONFIG_SIZE + DICE_AUTHORITY_SIZE +
+                       DICE_MODE_SIZE + DICE_HIDDEN_SIZE];
   uint8_t attest_input_hash[DICE_HASH_SIZE];
   uint8_t seal_input_hash[DICE_HASH_SIZE];
   uint8_t current_cdi_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE];
   uint8_t next_cdi_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE];
 
   // Assemble the input buffer.
-  memcpy(&input_buffer[kCodeOffset], input_values->code_hash, kCodeSize);
+  memcpy(&input_buffer[kCodeOffset], input_values->code_hash, DICE_CODE_SIZE);
   if (input_values->config_type == kDiceConfigTypeInline) {
     memcpy(&input_buffer[kConfigOffset], input_values->config_value,
-           kConfigSize);
+           DICE_CONFIG_SIZE);
   } else if (!input_values->config_descriptor) {
     result = kDiceResultInvalidInput;
     goto out;
@@ -115,9 +115,9 @@ DiceResult DiceMainFlow(void* context,
     }
   }
   memcpy(&input_buffer[kAuthorityOffset], input_values->authority_hash,
-         kAuthoritySize);
+         DICE_AUTHORITY_SIZE);
   input_buffer[kModeOffset] = input_values->mode;
-  memcpy(&input_buffer[kHiddenOffset], input_values->hidden, kHiddenSize);
+  memcpy(&input_buffer[kHiddenOffset], input_values->hidden, DICE_HIDDEN_SIZE);
 
   // Hash the appropriate input values for both attestation and sealing. For
   // attestation all the inputs are used, and for sealing only the authority,
@@ -128,7 +128,8 @@ DiceResult DiceMainFlow(void* context,
     goto out;
   }
   result = DiceHash(context, &input_buffer[kAuthorityOffset],
-                    kAuthoritySize + kModeSize + kHiddenSize, seal_input_hash);
+                    DICE_AUTHORITY_SIZE + DICE_MODE_SIZE + DICE_HIDDEN_SIZE,
+                    seal_input_hash);
   if (result != kDiceResultOk) {
     goto out;
   }

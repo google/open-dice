@@ -35,9 +35,9 @@
 #include "mbedtls/x509.h"
 #include "mbedtls/x509_crt.h"
 
-static const size_t kMaxCertificateSize = 2048;
-static const size_t kMaxExtensionSize = 2048;
-static const size_t kMaxKeyIdSize = 40;
+#define DICE_MAX_CERTIFICATE_SIZE 2048
+#define DICE_MAX_EXTENSION_SIZE 2048
+#define DICE_MAX_KEY_ID_SIZE 40
 
 static DiceResult SetupKeyPair(
     const uint8_t private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
@@ -321,12 +321,6 @@ DiceResult DiceGenerateCertificate(
   mbedtls_mpi serial_number;
   mbedtls_mpi_init(&serial_number);
 
-  // These are 'variably modified' types so need to be declared upfront.
-  uint8_t authority_key_id[kMaxKeyIdSize];
-  uint8_t subject_key_id[kMaxKeyIdSize];
-  uint8_t dice_extension[kMaxExtensionSize];
-  uint8_t tmp_buffer[kMaxCertificateSize];
-
   // Derive key pairs and IDs.
   result = SetupKeyPair(authority_private_key_seed, &authority_key_context);
   if (result != kDiceResultOk) {
@@ -342,6 +336,7 @@ DiceResult DiceGenerateCertificate(
   char authority_name[54];
   GetNameFromId(authority_id, authority_name);
 
+  uint8_t authority_key_id[DICE_MAX_KEY_ID_SIZE];
   size_t authority_key_id_size = 0;
   result = GetAuthorityKeyIdFromId(authority_id, sizeof(authority_key_id),
                                    authority_key_id, &authority_key_id_size);
@@ -362,6 +357,7 @@ DiceResult DiceGenerateCertificate(
   char subject_name[54];
   GetNameFromId(subject_id, subject_name);
 
+  uint8_t subject_key_id[DICE_MAX_KEY_ID_SIZE];
   size_t subject_key_id_size = 0;
   result = GetSubjectKeyIdFromId(subject_id, sizeof(subject_key_id),
                                  subject_key_id, &subject_key_id_size);
@@ -369,6 +365,7 @@ DiceResult DiceGenerateCertificate(
     goto out;
   }
 
+  uint8_t dice_extension[DICE_MAX_EXTENSION_SIZE];
   size_t dice_extension_size = 0;
   result = GetDiceExtensionData(input_values, sizeof(dice_extension),
                                 dice_extension, &dice_extension_size);
@@ -443,6 +440,7 @@ DiceResult DiceGenerateCertificate(
   // This implementation is deterministic and assumes entropy is not available.
   // If this code is run where entropy is available, however, f_rng and p_rng
   // should be set appropriately.
+  uint8_t tmp_buffer[DICE_MAX_CERTIFICATE_SIZE];
   int length_or_error =
       mbedtls_x509write_crt_der(&cert_context, tmp_buffer, sizeof(tmp_buffer),
                                 /*f_rng=*/NULL, /*p_rng=*/NULL);

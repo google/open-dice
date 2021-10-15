@@ -33,11 +33,11 @@
 #endif
 
 // Max size of COSE_Sign1 including payload.
-static const size_t kMaxCertificateSize = 2048;
+#define DICE_MAX_CERTIFICATE_SIZE 2048
 // Max size of COSE_Key encoding.
-static const size_t kMaxPublicKeySize = 64;
+#define DICE_MAX_PUBLIC_KEY_SIZE 64
 // Max size of the COSE_Sign1 protected attributes.
-static const size_t kMaxProtectedAttributesSize = 16;
+#define DICE_MAX_PROTECTED_ATTRIBUTES_SIZE 16
 
 DiceResult DiceCoseEncodePublicKey(
     void* context_not_used, const uint8_t public_key[DICE_PUBLIC_KEY_SIZE],
@@ -161,7 +161,7 @@ DiceResult DiceCoseSignAndEncodeSign1(
 
   // The encoded protected attributes are used in the TBS and the final
   // COSE_Sign1 structure.
-  uint8_t protected_attributes[kMaxProtectedAttributesSize];
+  uint8_t protected_attributes[DICE_MAX_PROTECTED_ATTRIBUTES_SIZE];
   size_t protected_attributes_size = 0;
   result = EncodeProtectedAttributes(sizeof(protected_attributes),
                                      protected_attributes,
@@ -313,10 +313,6 @@ DiceResult DiceGenerateCertificate(
   uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE];
   uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE];
 
-  // These are 'variably modified' types so need to be declared upfront.
-  uint8_t encoded_public_key[kMaxPublicKeySize];
-  uint8_t payload[kMaxCertificateSize];
-
   // Derive keys and IDs from the private key seeds.
   uint8_t subject_public_key[DICE_PUBLIC_KEY_SIZE];
   result = DiceKeypairFromSeed(context, subject_private_key_seed,
@@ -355,6 +351,7 @@ DiceResult DiceGenerateCertificate(
   authority_id_hex[sizeof(authority_id_hex) - 1] = '\0';
 
   // The public key encoded as a COSE_Key structure is embedded in the CWT.
+  uint8_t encoded_public_key[DICE_MAX_PUBLIC_KEY_SIZE];
   size_t encoded_public_key_size = 0;
   result = DiceCoseEncodePublicKey(
       context, subject_public_key, sizeof(encoded_public_key),
@@ -364,6 +361,7 @@ DiceResult DiceGenerateCertificate(
   }
 
   // The CWT is the payload in both the TBS and the final COSE_Sign1 structure.
+  uint8_t payload[DICE_MAX_CERTIFICATE_SIZE];
   size_t payload_size = 0;
   result = EncodeCwt(context, input_values, authority_id_hex, subject_id_hex,
                      encoded_public_key, encoded_public_key_size,

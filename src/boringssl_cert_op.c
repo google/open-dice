@@ -31,6 +31,8 @@
 #include "openssl/x509.h"
 #include "openssl/x509v3.h"
 
+#define DICE_MAX_EXTENSION_SIZE 2048
+
 typedef struct DiceExtensionAsn1 {
   ASN1_OCTET_STRING* code_hash;
   ASN1_OCTET_STRING* code_descriptor;
@@ -440,7 +442,6 @@ out:
 
 static DiceResult AddDiceExtension(const DiceInputValues* input_values,
                                    X509* x509) {
-  const size_t kMaxExtensionSize = 2048;
   const char* kDiceExtensionOid = "1.3.6.1.4.1.11129.2.1.24";
 
   // Initialize variables that are cleaned up on 'goto out'.
@@ -448,7 +449,7 @@ static DiceResult AddDiceExtension(const DiceInputValues* input_values,
   ASN1_OCTET_STRING* octets = NULL;
   X509_EXTENSION* extension = NULL;
 
-  uint8_t extension_buffer[kMaxExtensionSize];
+  uint8_t extension_buffer[DICE_MAX_EXTENSION_SIZE];
   size_t extension_size = 0;
   DiceResult result =
       GetDiceExtensionData(input_values, sizeof(extension_buffer),
