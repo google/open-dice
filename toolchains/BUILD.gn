@@ -16,13 +16,6 @@ import("//build_overrides/pigweed.gni")
 import("$dir_pigweed/targets/host/target_toolchains.gni")
 import("$dir_pw_toolchain/generate_toolchain.gni")
 
-declare_args() {
-  # These aren't used but they are set by the Pigweed toolchain. Declaring them
-  # here silences gn warnings.
-  pw_trace_BACKEND = ""
-  pw_trace_tokenizer_time = ""
-}
-
 config("common_config") {
   include_dirs = [ "//include" ]
 
