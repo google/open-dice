@@ -66,7 +66,8 @@ pw_static_library("dice_with_boringssl_ops") {
   ]
   sources = [
     "src/boringssl_cert_op.c",
-    "src/boringssl_hash_kdf_sign_ops.c",
+    "src/boringssl_hash_kdf_ops.c",
+    "src/boringssl_ed25519_ops.c",
     "src/clear_memory.c",
     "src/dice.c",
     "src/utils.c",
@@ -104,7 +105,8 @@ pw_static_library("dice_with_cbor_cert") {
     "include/dice/utils.h",
   ]
   sources = [
-    "src/boringssl_hash_kdf_sign_ops.c",
+    "src/boringssl_hash_kdf_ops.c",
+    "src/boringssl_ed25519_ops.c",
     "src/cbor_cert_op.c",
     "src/clear_memory.c",
     "src/dice.c",
@@ -123,7 +125,8 @@ pw_static_library("dice_with_cbor_template_cert") {
     "include/dice/utils.h",
   ]
   sources = [
-    "src/boringssl_hash_kdf_sign_ops.c",
+    "src/boringssl_hash_kdf_ops.c",
+    "src/boringssl_ed25519_ops.c",
     "src/clear_memory.c",
     "src/dice.c",
     "src/template_cbor_cert_op.c",
@@ -141,7 +144,8 @@ pw_static_library("dice_with_x509_template_cert") {
     "include/dice/utils.h",
   ]
   sources = [
-    "src/boringssl_hash_kdf_sign_ops.c",
+    "src/boringssl_hash_kdf_ops.c",
+    "src/boringssl_ed25519_ops.c",
     "src/clear_memory.c",
     "src/dice.c",
     "src/template_cert_op.c",

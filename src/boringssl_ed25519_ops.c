@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License. You may obtain a copy of
@@ -12,8 +12,7 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-// This is an implementation of the crypto operations that uses boringssl. The
-// algorithms used are SHA512, HKDF-SHA512, and Ed25519-SHA512.
+// An implementation of the ed25519 signature operations using boringssl.
 
 #include <stdint.h>
 
@@ -21,9 +20,6 @@
 #include "dice/ops.h"
 #include "openssl/curve25519.h"
 #include "openssl/evp.h"
-#include "openssl/hkdf.h"
-#include "openssl/is_boringssl.h"
-#include "openssl/sha.h"
 
 #if DICE_PRIVATE_KEY_SEED_SIZE != 32
 #error "Private key seed is expected to be 32 bytes."
@@ -37,24 +33,6 @@
 #if DICE_SIGNATURE_SIZE != 64
 #error "Ed25519 needs 64 bytes to store the signature."
 #endif
-
-DiceResult DiceHash(void* context_not_used, const uint8_t* input,
-                    size_t input_size, uint8_t output[DICE_HASH_SIZE]) {
-  (void)context_not_used;
-  SHA512(input, input_size, output);
-  return kDiceResultOk;
-}
-
-DiceResult DiceKdf(void* context_not_used, size_t length, const uint8_t* ikm,
-                   size_t ikm_size, const uint8_t* salt, size_t salt_size,
-                   const uint8_t* info, size_t info_size, uint8_t* output) {
-  (void)context_not_used;
-  if (!HKDF(output, length, EVP_sha512(), ikm, ikm_size, salt, salt_size, info,
-            info_size)) {
-    return kDiceResultPlatformError;
-  }
-  return kDiceResultOk;
-}
 
 DiceResult DiceKeypairFromSeed(void* context_not_used,
                                const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
