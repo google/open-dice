@@ -198,4 +198,24 @@ TEST(DiceTest, NoExtraneousOps) {
   EXPECT_LE(ops.generate_certificate_count_, 1);
 }
 
+TEST(DiceTest, NoCertParamsPreservesCDIs) {
+  FakeDiceOps ops;
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceStateForTest next_state_no_cert = {};
+  DiceInputValues input_values = {};
+  DiceResult result = DiceMainFlow(
+      &ops, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  result = DiceMainFlow(
+      &ops, current_state.cdi_attest, current_state.cdi_seal, &input_values, 0,
+      NULL, NULL, next_state_no_cert.cdi_attest, next_state_no_cert.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+  EXPECT_EQ(0, memcmp(next_state.cdi_attest, next_state_no_cert.cdi_attest,
+                      DICE_CDI_SIZE));
+  EXPECT_EQ(0, memcmp(next_state.cdi_seal, next_state_no_cert.cdi_seal,
+                      DICE_CDI_SIZE));
+}
+
 }  // namespace

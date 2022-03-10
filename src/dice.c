@@ -152,6 +152,14 @@ DiceResult DiceMainFlow(void* context,
     goto out;
   }
 
+  // Create the CDI certificate only if it is required (i.e. non-null/non-zero
+  // values are provided for the next CDI certificate parameters).
+  if (next_cdi_certificate == NULL &&
+      next_cdi_certificate_actual_size == NULL &&
+      next_cdi_certificate_buffer_size == 0) {
+    goto out;
+  }
+
   // Derive asymmetric private key seeds from the attestation CDI values.
   result = DiceDeriveCdiPrivateKeySeed(context, current_cdi_attest,
                                        current_cdi_private_key_seed);
@@ -170,9 +178,7 @@ DiceResult DiceMainFlow(void* context,
       context, next_cdi_private_key_seed, current_cdi_private_key_seed,
       input_values, next_cdi_certificate_buffer_size, next_cdi_certificate,
       next_cdi_certificate_actual_size);
-  if (result != kDiceResultOk) {
-    goto out;
-  }
+
 out:
   // Clear sensitive memory.
   DiceClearMemory(context, sizeof(input_buffer), input_buffer);

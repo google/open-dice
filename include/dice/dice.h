@@ -116,6 +116,9 @@ DiceResult DiceDeriveCdiCertificateId(void* context,
 // Given a full set of input values and the current CDI values, computes the
 // next CDI values and a matching certificate. See the Open Profile for DICE
 // specification for a detailed explanation of this flow.
+// In certain cases, the caller may not need to generate the CDI certificate.
+// The caller should signal this by setting the certificate parameters to
+// null/zero values appropriately.
 //
 // Parameters:
 //    context: Context provided by the caller that is opaque to this library
@@ -129,16 +132,19 @@ DiceResult DiceDeriveCdiCertificateId(void* context,
 //    input_values: A set of input values describing the target program or
 //        system.
 //    next_cdi_certificate_buffer_size: The size in bytes of the buffer pointed
-//        to by the |next_cdi_certificate| argument.
+//        to by the |next_cdi_certificate| argument. This should be set to zero
+//        if next CDI certificate should not be computed.
 //    next_cdi_certificate: On success, will be populated with the generated
 //        certificate, up to |next_cdi_certificate_buffer_size| in size. If the
 //        certificate cannot fit in the buffer, |next_cdi_certificate_size| is
 //        populated with the required size and kDiceResultBufferTooSmall is
-//        returned.
+//        returned. This should be set to NULL if next CDI certificate should
+//        not be computed.
 //    next_cdi_certificate_actual_size: On success, will be populated with the
 //        size, in bytes, of the certificate data written to
 //        |next_cdi_certificate|. If kDiceResultBufferTooSmall is returned, will
-//        be populated with the required buffer size.
+//        be populated with the required buffer size. This should be set to NULL
+//        if next CDI certificate should not be computed.
 //    next_cdi_attest: On success, will be populated with the next CDI value for
 //        attestation.
 //    next_cdi_seal: On success, will be populated with the next CDI value for
