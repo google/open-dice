@@ -21,6 +21,7 @@ pw_source_set("bcc") {
   deps = [
     "//:cbor_reader",
     "//:cbor_writer",
+    "//:dice_with_cbor_cert",
   ]
 }
 
@@ -30,7 +31,6 @@ pw_test("bcc_test") {
   ]
   deps = [
     ":bcc",
-    "//:dice_with_cbor_cert",
   ]
 }
 
@@ -40,6 +40,5 @@ pw_executable("bcc_fuzzer") {
   ]
   deps = [
     ":bcc",
-    "//:dice_with_boringssl_ops",
   ]
 }
