@@ -181,7 +181,7 @@ static DiceResult BccMainFlowWithNewBcc(
   if (result != kDiceResultOk) {
     return result;
   }
-  bcc_size += encoded_size_used + encoded_pub_key_size;
+  *bcc_size += encoded_size_used + encoded_pub_key_size;
 
 out:
   DiceClearMemory(context, sizeof(current_cdi_private_key_seed),
