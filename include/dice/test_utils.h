@@ -56,7 +56,13 @@ void CreateFakeUdsCertificate(void* context, const uint8_t uds[32],
 
 // Verifies a chain of CDI certificates given by |states| against
 // |root_certificate|. If |is_partial_chain| is set, then root_certificate does
-// not need to be self signed.
+// not need to be self signed. For X.509 certificate chains, only the standard
+// certificate fields and extensions are checked, other custom extensions are
+// ignored even if marked critical. For this reason, additional tests are needed
+// to fully verify a certificate chain, this is just useful for checking that a
+// chain is correctly constructed in terms of standard fields. Similarly for
+// CBOR certificate chains the chaining construction is verified but the content
+// of other fields is ignored.
 bool VerifyCertificateChain(CertificateType cert_type,
                             const uint8_t* root_certificate,
                             size_t root_certificate_size,

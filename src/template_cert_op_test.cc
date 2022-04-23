@@ -125,7 +125,7 @@ TEST(DiceOpsTest, WithAuthorityDescriptor) {
 }
 
 TEST(DiceOpsTest, NonZeroMode) {
-  constexpr size_t kModeOffsetInCert = 0x230;
+  constexpr size_t kModeOffsetInCert = 0x233;
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};

@@ -475,7 +475,7 @@ static DiceResult AddDiceExtension(const DiceInputValues* input_values,
   }
 
   extension =
-      X509_EXTENSION_create_by_OBJ(/*ex=*/NULL, oid, /*crit=*/0, octets);
+      X509_EXTENSION_create_by_OBJ(/*ex=*/NULL, oid, /*crit=*/1, octets);
   if (!extension) {
     result = kDiceResultPlatformError;
     goto out;

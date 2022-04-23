@@ -9,17 +9,17 @@ v2.3
 The Trusted Computing Group (TCG) specifies
 [Hardware Requirements for a Device Identifier Composition Engine](https://trustedcomputinggroup.org/wp-content/uploads/Hardware-Requirements-for-Device-Identifier-Composition-Engine-r78_For-Publication.pdf)
 (DICE) which provides the context for this document. We'll call this TCG
-document the _TCG DICE specification_. Concepts like a Unique Device Secret
+document the *TCG DICE specification*. Concepts like a Unique Device Secret
 (UDS) and a Compound Device Identifier (CDI) are used as defined in the TCG DICE
 specification.
 
 #### A Note on Nomenclature
 
-This document uses the term _hardware_ to refer to anything that is immutable by
-design after manufacturing. Code in mask ROM, for example, is _hardware_. The
-terms _firmware_, _software_ and _program_ are all interchangeable; they all
-refer to mutable code. Often we say _firmware_ for code that runs early in boot,
-and _program_ for a particular unit of code, but it's really all _software_.
+This document uses the term *hardware* to refer to anything that is immutable by
+design after manufacturing. Code in mask ROM, for example, is *hardware*. The
+terms *firmware*, *software* and *program* are all interchangeable; they all
+refer to mutable code. Often we say *firmware* for code that runs early in boot,
+and *program* for a particular unit of code, but it's really all *software*.
 
 #### DICE Primer
 
@@ -87,17 +87,18 @@ This architecture diagram shows the first DICE transition from hardware to
 software, and uses the UDS in the derivation of both the Attestation CDI and
 Sealing CDI. Subsequent DICE transitions would use the current CDI values in
 place of the UDS to compute the subsequent CDI values. See
-[Layering Details](#layering-details).
+[Layering Details](#layering-details). See the [Cryptography](#cryptography)
+section for details on the primitives referenced in the diagram.
 
 ![Architecture Diagram](../images/architecture.png)
 
 ## Use Cases
 
 This design is motivated by two use cases: **attestation** and **sealing**.
-_Attestation_ allows a computing device or program to provide verifiable
+*Attestation* allows a computing device or program to provide verifiable
 evidence of its identity and operating state, including hardware identity,
 software image, security-relevant configuration, operating environment, etc.
-_Sealing_ allows a computing device or program to encrypt data in such a way
+*Sealing* allows a computing device or program to encrypt data in such a way
 that it can only be decrypted by the same device or program operating in the
 same state as at the time of encryption.
 
@@ -131,7 +132,7 @@ by a fixed length value:
     authority selection, device mode, boot location, chip status information,
     instance identifiers, etc. This value may or may not be a hash of the actual
     configuration data. When it is a hash, the original data must also be
-    included in certificates. It's ok for this input to be _not stable_, it may
+    included in certificates. It's ok for this input to be *not stable*, it may
     change from one boot to the next.
 3.  **Authority Data (64 bytes)** - This input is computed by hashing a
     representation of the verified boot trusted authority. For example, this may
@@ -153,7 +154,7 @@ by a fixed length value:
     device makes at runtime. In the sealing use case, this enables data to be
     sealed separately under each mode. See
     [Mode Value Details](#mode-value-details).
-5.  **Hidden Inputs (64 bytes)** - This optional input value is _hidden_ in the
+5.  **Hidden Inputs (64 bytes)** - This optional input value is *hidden* in the
     sense that it does not appear in any certificate. It is used for both
     attestation and sealing CDI derivation so it is expected to be stable; it
     should not change under normal operation except when that change is an
@@ -178,12 +179,12 @@ for different use cases:
 
 1.  **Attestation CDI** - This CDI is derived from the combination of all input
     values and will change across software updates or configuration changes.
-    This CDI is appropriate for attestation and is _mandatory_ for
+    This CDI is appropriate for attestation and is *mandatory* for
     implementations of this profile.
 2.  **Sealing CDI** - This CDI is derived from only the authority data, mode
     decision, and hidden inputs because these are stable. It will reflect this
     stability and will remain the same across software updates and some
-    configuration changes. This CDI is appropriate for sealing and is _optional_
+    configuration changes. This CDI is appropriate for sealing and is *optional*
     for implementations of this profile.
 
 ### CDI Certificates
@@ -340,13 +341,19 @@ Acceptable hash algorithms are:
 algorithm. The KDF inputs map exactly to HKDF parameters, by design. This is the
 recommended default.
 
+Per the HKDF
+[specification](https://datatracker.ietf.org/doc/html/rfc5869#section-3.3) the
+extract step can be skipped in some cases, and since all KDFs used in this
+specification use cryptographically strong ikm values, doing so is acceptable
+here.
+
 ##### DRBG
 
 A
 [DRBG](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-90Ar1.pdf)
 can be used to implement the KDF operation. Depending on the DRBG implementation
-this may require UDS and CDI values larger than 256 bits to provide both _nonce_
-and _entropy_ inputs when instantiating the DRBG. The DRBG should be
+this may require UDS and CDI values larger than 256 bits to provide both *nonce*
+and *entropy* inputs when instantiating the DRBG. The DRBG should be
 instantiated with a security strength of 256 bits. The sequence of DRBG
 functions {instantiate, generate, uninstantiate}, are used as a KDF operation.
 The mapping of inputs is as shown in the following table.
@@ -363,6 +370,12 @@ The
 [OpenTitan Key Manager](https://docs.opentitan.org/hw/ip/keymgr/doc/index.html)
 can be used as a KDF. See the OpenTitan documentation for details.
 
+##### SP800-108
+
+The KDFs described in NIST's
+[SP800-108](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-108.pdf)
+can be used.
+
 #### Digital Signatures
 
 ##### Ed25519
@@ -370,10 +383,13 @@ can be used as a KDF. See the OpenTitan documentation for details.
 [Ed25519](https://en.wikipedia.org/wiki/EdDSA#Ed25519) is the recommended
 default.
 
+When deriving Ed25519 key pairs, using the output of ASYM_KDF directly as the
+private key is acceptable.
+
 ##### ECDSA
 
 [ECDSA](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm)
-can be used instead of Ed25519. When signing the CDI certificate, the random _k_
+can be used instead of Ed25519. When signing the CDI certificate, the random *k*
 required by ECDSA may be generated deterministically per
 [RFC6979](https://tools.ietf.org/html/rfc6979). One weakness of Ed25519 is that
 implementations may be susceptible to error injection
@@ -386,6 +402,13 @@ curves are acceptable for use with ECDSA:
 
 *   P-256
 *   P-384
+
+When deriving ECDSA key pairs the output of ASYM_KDF cannot be used directly.
+Following the process described in
+[RFC 6979](https://datatracker.ietf.org/doc/html/rfc6979#section-3.3) is
+recommended. In this process the seed, in this case the output of ASYM_KDF, is
+used to seed an HMAC_DRBG instance and then the private key is generated from
+the DRBG. See the RFC for details.
 
 ## Layering Details
 
@@ -477,7 +500,7 @@ provisioning during an SoC or device manufacturing stage. In this scheme, the
 UDS is derived on-chip from internal and external entropy, at least 256 bits
 each. Internal entropy may be generated using a
 [PUF](https://en.wikipedia.org/wiki/Physical_unclonable_function), or generated
-once using an internal hardware RNG and stored, for example, in OTP memory.
+once using an internal hardware TRNG and stored, for example, in OTP memory.
 External entropy is injected once during manufacturing and stored, for example,
 in OTP memory. The UDS is derived at runtime on every boot from the combined
 entropy. The UDS derivation (i.e. conditioning) from internal and external
@@ -534,7 +557,8 @@ certificate may be cached indefinitely by the device or by a verifier.
     inject to multiple devices
 2.  [Manufacturing] Run the DICE flow and read the UDS\_Public key
 3.  [Manufacturing] Retain H(UDS\_Public) in a secure database
-4.  [On-Demand] Send UDS\_Public to the CA (no proof-of-possession necessary)
+4.  [On-Demand] Send UDS\_Public from the device to the CA (no
+    proof-of-possession necessary)
 5.  [CA] Check that H(UDS\_Public) is approved by the manufacturer
 6.  [CA] Issue a certificate for UDS\_Public
 
@@ -574,14 +598,14 @@ certificate chain. Any certificate in the chain may be any type. Attestation
 infrastructure may place additional constraints on certificate type, but this
 profile does not.
 
-Regardless of type, UDS and CDI certificates are always semantically _CA
-certificates_ to enable use cases for certifying subsequent DICE
+Regardless of type, UDS and CDI certificates are always semantically *CA
+certificates* to enable use cases for certifying subsequent DICE
 [layers](#layering-details) or certifying attestation keys of some kind; the
 UDS\_Private and CDI\_Private keys are not intended to be used for any purpose
 other than signing certificates. In particular, this means CDI\_Private should
 not participate directly in attestation protocols, but should rather certify an
 attestation key. If a target software component does not launch additional
-software, the _pathLenConstraint_ field can be set to zero so certification of a
+software, the *pathLenConstraint* field can be set to zero so certification of a
 subsequent CDI\_Public is not possible.
 
 When UDS and CDI certificates are standard X.509 certificates, they follow the
@@ -593,10 +617,11 @@ the [CBOR Object Signing and Encryption](https://tools.ietf.org/html/rfc8152)
 
 ### X.509 UDS Certificates
 
-The following table describes all standard fields of a UDS certificate's
-tbsCertificate field that this profile requires. Fields omitted are
-implementation dependent, but must not break the ability to chain to a CDI
-Certificate.
+X.509 UDS certificates generally follow
+[RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280). The following table
+describes all standard fields of a UDS certificate's tbsCertificate field that
+this profile requires. Fields omitted are implementation dependent, but must not
+break the ability to chain to a CDI Certificate.
 
 Field                | Description
 -------------------- | -----------
@@ -615,20 +640,22 @@ basicConstraints     | critical     | The cA field is set to TRUE. The pathLenCo
 
 ### X.509 CDI Certificates
 
-All standard fields of a CDI certificate and the tbsCertificate field are
-described in the following table. Notably, this certificate can be generated
-deterministically given a CDI\_Public key and the DICE input value details.
+X.509 CDI certificates generally follow
+[RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280). All standard fields
+of a CDI certificate and the tbsCertificate field are described in the following
+table. Notably, this certificate can be generated deterministically given a
+CDI\_Public key and the DICE input value details.
 
 Field                | Description
 -------------------- | -----------
-signatureAlgorithm   | id-Ed25519 per [RFC 8410](https://tools.ietf.org/html/rfc8410)
-signatureValue       | 64 byte Ed25519 signature per [RFC 8032](https://tools.ietf.org/html/rfc8032), using UDS\_Private or a previous CDI\_Private as the signing key
+signatureAlgorithm   | When using Ed25519, id-Ed25519 per [RFC 8410](https://tools.ietf.org/html/rfc8410)
+signatureValue       | When using Ed25519, 64 byte Ed25519 signature per [RFC 8032](https://tools.ietf.org/html/rfc8032), using UDS\_Private or the current CDI\_Private as the signing key
 version              | v3
 serialNumber         | CDI\_ID in ASN.1 INTEGER form
-signature            | id-Ed25519 per [RFC 8410](https://tools.ietf.org/html/rfc8410)
-issuer               | "SERIALNUMBER=\<UDS\_ID\>" where UDS\_ID is hex encoded lower case
-validity             | The DICE is not expected to have a reliable source of time when generating a certificate. The validity values are populated as follows: _notBefore_ can be any time known to be in the past; in the absence of a better value, "180322235959Z" can be used which is the date of publication of the [TCG DICE specification](#background), and _notAfter_ is set to the standard value used to indicate no well-known expiry date, "99991231235959Z".
-subject              | "SERIALNUMBER=\<CDI\_ID\>" where CDI\_ID is hex encoded lower case
+signature            | When using Ed25519, id-Ed25519 per [RFC 8410](https://tools.ietf.org/html/rfc8410)
+issuer               | "SERIALNUMBER=\<UDS\_ID\>" where UDS\_ID is hex encoded lower case. When layering, UDS\_ID becomes CDI\_ID of the current layer.
+validity             | The DICE is not expected to have a reliable source of time when generating a certificate. The validity values are populated as follows: *notBefore* can be any time known to be in the past; in the absence of a better value, "180322235959Z" can be used which is the date of publication of the [TCG DICE specification](#background), and *notAfter* is set to the standard value used to indicate no well-known expiry date, "99991231235959Z".
+subject              | "SERIALNUMBER=\<CDI\_ID\>" where CDI\_ID is hex encoded lower case. When layering this is the CDI\_ID of the next layer.
 subjectPublicKeyInfo | When using Ed25519, the info per [RFC 8410](https://tools.ietf.org/html/rfc8410) and [RFC 8032](https://tools.ietf.org/html/rfc8032)
 issuerUniqueID       | Omitted
 subjectUniqueID      | Omitted
@@ -648,7 +675,7 @@ basicConstraints       | critical     | The cA field is set to TRUE. The pathLen
 Field     | Value
 --------- | -----
 extnID    | 1.3.6.1.4.1.11129.2.1.24 (The 1.3.6.1.4.1 is the [enterprise number](https://www.iana.org/assignments/enterprise-numbers/enterprise-numbers), the 11129.2.1 is google.googleSecurity.certificateExtensions, and 24 is diceAttestationData assigned for this profile).
-critical  | FALSE
+critical  | TRUE
 extnValue | A [OpenDiceInput](#custom-extension-format) sequence
 
 #### Custom Extension Format
@@ -699,13 +726,12 @@ extensibility in the format itself. The actual semantics are as follows:
 
 A CBOR UDS certificate is a standard signed CWT. The following table lists all
 field constraints required by this profile in addition to the standard. The
-certificate is _untagged_, and it must be a _COSE\_Sign1_ message.
+certificate is *untagged*, and it must be a *COSE\_Sign1* message.
 
 Field | Description
 ----- | -----------
 iss   | Required: The value is implementation dependent.
 sub   | Required: The value must be "\<UDS\_ID\>" where UDS\_ID is hex encoded lower case.
-aud   | Omitted
 
 #### Additional Fields
 
@@ -718,10 +744,10 @@ Field            | CBOR Label
 subjectPublicKey | -4670552
 keyUsage         | -4670553
 
-The _subjectPublicKey_ field contains the public key associated with the subject
+The *subjectPublicKey* field contains the public key associated with the subject
 in the form of a COSE\_Key structure encoded to a CBOR byte string.
 
-The _keyUsage_ field contains a CBOR byte string the bits of which correspond to
+The *keyUsage* field contains a CBOR byte string the bits of which correspond to
 the [X.509 KeyUsage bits](https://tools.ietf.org/html/rfc5280#section-4.2.1.3)
 in little-endian byte order (i.e. bit 0 is the low-order bit of the first byte).
 For UDS certificates this should have only the keyCertSign bit set.
@@ -729,18 +755,16 @@ For UDS certificates this should have only the keyCertSign bit set.
 ### CBOR CDI Certificates
 
 A CBOR CDI certificate is a standard signed CWT with additional fields. The
-certificate is _untagged_, and it must be a _COSE\_Sign1_ message. The following
+certificate is *untagged*, and it must be a *COSE\_Sign1* message. The following
 table lists all constraints on standard fields required by this profile.
 
 Field | Description
 ----- | -----------
-iss   | Required: The value must be "\<UDS\_ID\>" where UDS\_ID is hex encoded lower case.
-sub   | Required: The value must be "\<CDI\_ID\>" where CDI\_ID is hex encoded lower case.
-aud   | Omitted
-exp   | Omitted
+iss   | Required: The value must be "\<UDS\_ID\>" where UDS\_ID is hex encoded lower case. When layering, UDS\_ID becomes CDI\_ID of the current layer.
+sub   | Required: The value must be "\<CDI\_ID\>" where CDI\_ID is hex encoded lower case. When layering this is the CDI\_ID of the next layer.
+exp   | Omitted when a reliable time source is not available
 nbf   | Omitted when a reliable time source is not available
 iat   | Omitted when a reliable time source is not available
-cti   | Omitted
 
 #### Additional Fields
 
@@ -760,17 +784,17 @@ mode                    | -4670551
 subjectPublicKey        | -4670552
 keyUsage                | -4670553
 
-The _subjectPublicKey_ field contains the public key associated with the subject
+The *subjectPublicKey* field contains the public key associated with the subject
 in the form of a COSE\_Key structure encoded to a CBOR byte string.
 
-The _keyUsage_ field contains a CBOR byte string the bits of which correspond to
+The *keyUsage* field contains a CBOR byte string the bits of which correspond to
 the [X.509 KeyUsage bits](https://tools.ietf.org/html/rfc5280#section-4.2.1.3)
 in little-endian byte order (i.e. bit 0 is the low-order bit of the first byte).
 For CDI certificates this should have only the keyCertSign bit set.
 
 All other fields have identical semantics to their counterparts in the
 [X.509 custom extension](#custom-extension-format). The encoding for each is a
-CBOR byte string including _mode_ which is a CBOR byte string holding a single
+CBOR byte string including *mode* which is a CBOR byte string holding a single
 byte (the advantage to using a byte string here is a consistent encoding size
 regardless of the value of mode).
 
@@ -789,7 +813,7 @@ CDI from the standard DICE as a UDS. The provisioned certificate would then
 cover both the hardware and the firmware implementing this profile.
 
 However, this only works if the firmware that implements this profile is
-unmodified during normal operation. It becomes a _ROM extension_ in the sense
+unmodified during normal operation. It becomes a *ROM extension* in the sense
 that if it is modified, the firmware CDI changes, and the certificate chain
 provisioned for the device is no longer valid. In an ARM Trusted Firmware
 architecture, it would likely be BL2 firmware that implements this profile.
@@ -826,7 +850,7 @@ With a robust verified boot system, there are many other possible
 implementations as long as (1) A UDS can be made available by some means early
 in boot, and (2) that UDS can be made subsequently unavailable until the next
 boot. These implementations meet the requirements of the TCG DICE specification
-as an _updatable DICE_ per section 6.2.
+as an *updatable DICE* per section 6.2.
 
 # Appendix B: Hardware Implementation Checklist
 
@@ -835,7 +859,7 @@ have. This is intended for the convenience of hardware designers, and is not
 intended to add any additional requirements or constraints.
 
 1.  Provide a UDS capability as required by this profile and the TCG DICE
-    specification. Usually this _cannot_ be implemented in mask ROM but requires
+    specification. Usually this *cannot* be implemented in mask ROM but requires
     additional hardware capabilities. See [UDS Details](#uds-details).
 1.  Reserve on the order of 8KB of mask ROM for DICE, not including crypto
     primitives. The rest of this list can usually be implemented entirely in
@@ -906,8 +930,8 @@ VKDF_SEED = KDF(32, CDI_Seal_or_UDS, H(authority + mode + hidden), "VKDF_SEED")
 *   Destroy any copy of the V-KDF seed, so it's only available to the V-KDF
 *   Run the DICE flow as usual
 
-Note that the V-KDF seed is derived from the _current_ sealing CDI; this value
-is _not_ passed to target code but is locked / destroyed as part of the DICE
+Note that the V-KDF seed is derived from the *current* sealing CDI; this value
+is *not* passed to target code but is locked / destroyed as part of the DICE
 flow. As a result the target code can only generate versioned keys as seeded by
 the previous layer.
 

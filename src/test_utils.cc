@@ -293,6 +293,8 @@ bool VerifyX509CertificateChain(const uint8_t* root_certificate,
   if (is_partial_chain) {
     X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_PARTIAL_CHAIN);
   }
+  // Boringssl doesn't support custom extensions, so ignore them.
+  X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_IGNORE_CRITICAL);
   X509_STORE_CTX_set0_param(x509_store_ctx.get(), param);
   return (1 == X509_verify_cert(x509_store_ctx.get()));
 }

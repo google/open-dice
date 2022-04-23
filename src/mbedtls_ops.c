@@ -433,7 +433,7 @@ DiceResult DiceGenerateCertificate(
   }
   if (0 != mbedtls_x509write_crt_set_extension(
                &cert_context, kDiceExtensionOid, kDiceExtensionOidLength,
-               /*critical=*/0, dice_extension, dice_extension_size)) {
+               /*critical=*/1, dice_extension, dice_extension_size)) {
     result = kDiceResultPlatformError;
     goto out;
   }
