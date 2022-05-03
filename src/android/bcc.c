@@ -215,9 +215,10 @@ DiceResult BccHandoverMainFlow(void* context, const uint8_t* bcc_handover,
   // }
   struct CborIn in;
   int64_t label;
+  size_t num_pairs;
   size_t item_size;
   CborInInit(bcc_handover, bcc_handover_size, &in);
-  if (CborReadMap(&in, &item_size) != CBOR_READ_RESULT_OK || item_size < 2 ||
+  if (CborReadMap(&in, &num_pairs) != CBOR_READ_RESULT_OK || num_pairs < 2 ||
       // Read the attestation CDI.
       CborReadInt(&in, &label) != CBOR_READ_RESULT_OK ||
       label != kCdiAttestLabel ||
@@ -233,17 +234,16 @@ DiceResult BccHandoverMainFlow(void* context, const uint8_t* bcc_handover,
   }
 
   size_t bcc_size = 0;
-  // Calculate the BCC size, if the BCC is present in the BccHandover.
-  if (CborReadInt(&in, &label) == CBOR_READ_RESULT_OK) {
-    if (label != kBccLabel) {
-      return kDiceResultInvalidInput;
+  if (num_pairs >= 3 && CborReadInt(&in, &label) == CBOR_READ_RESULT_OK) {
+    if (label == kBccLabel) {
+      // Calculate the BCC size, if the BCC is present in the BccHandover.
+      size_t bcc_start = CborInOffset(&in);
+      if (CborReadSkip(&in) != CBOR_READ_RESULT_OK) {
+        return kDiceResultInvalidInput;
+      }
+      bcc = bcc_handover + bcc_start;
+      bcc_size = CborInOffset(&in) - bcc_start;
     }
-    size_t bcc_start = CborInOffset(&in);
-    bcc = bcc_handover + bcc_start;
-    if (CborReadSkip(&in) != CBOR_READ_RESULT_OK) {
-      return kDiceResultInvalidInput;
-    }
-    bcc_size = CborInOffset(&in) - bcc_start;
   }
 
   // Write the new handover data.
