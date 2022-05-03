@@ -80,6 +80,17 @@ DiceResult BccHandoverMainFlow(void* context, const uint8_t* bcc_handover,
                                size_t buffer_size, uint8_t* buffer,
                                size_t* actual_size);
 
+// Parses a BCC handover to extract the fields.
+//
+// Given a pointer to a BCC handover, pointers to the CDIs and, optionally, the
+// BCC in the buffer are returned. If the BCC is not included in the handover,
+// the pointer is NULL and the size is 0.
+DiceResult BccHandoverParse(const uint8_t* bcc_handover,
+                            size_t bcc_handover_size,
+                            const uint8_t** cdi_attest,
+                            const uint8_t** cdi_seal, const uint8_t** bcc,
+                            size_t* bcc_size);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

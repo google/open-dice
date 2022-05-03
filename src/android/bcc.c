@@ -192,58 +192,26 @@ out:
   return result;
 }
 
+static const int64_t kCdiAttestLabel = 1;
+static const int64_t kCdiSealLabel = 2;
+static const int64_t kBccLabel = 3;
+
 DiceResult BccHandoverMainFlow(void* context, const uint8_t* bcc_handover,
                                size_t bcc_handover_size,
                                const DiceInputValues* input_values,
                                size_t buffer_size, uint8_t* buffer,
                                size_t* actual_size) {
-  static const int64_t kCdiAttestLabel = 1;
-  static const int64_t kCdiSealLabel = 2;
-  static const int64_t kBccLabel = 3;
-
   DiceResult result;
   const uint8_t* current_cdi_attest;
   const uint8_t* current_cdi_seal;
   const uint8_t* bcc;
+  size_t bcc_size;
 
-  // Extract details from the handover data.
-  //
-  // BccHandover = {
-  //   1 : bstr .size 32,     ; CDI_Attest
-  //   2 : bstr .size 32,     ; CDI_Seal
-  //   ? 3 : Bcc,             ; Certificate chain
-  // }
-  struct CborIn in;
-  int64_t label;
-  size_t num_pairs;
-  size_t item_size;
-  CborInInit(bcc_handover, bcc_handover_size, &in);
-  if (CborReadMap(&in, &num_pairs) != CBOR_READ_RESULT_OK || num_pairs < 2 ||
-      // Read the attestation CDI.
-      CborReadInt(&in, &label) != CBOR_READ_RESULT_OK ||
-      label != kCdiAttestLabel ||
-      CborReadBstr(&in, &item_size, &current_cdi_attest) !=
-          CBOR_READ_RESULT_OK ||
-      item_size != DICE_CDI_SIZE ||
-      // Read the sealing CDI.
-      CborReadInt(&in, &label) != CBOR_READ_RESULT_OK ||
-      label != kCdiSealLabel ||
-      CborReadBstr(&in, &item_size, &current_cdi_seal) != CBOR_READ_RESULT_OK ||
-      item_size != DICE_CDI_SIZE) {
+  result =
+      BccHandoverParse(bcc_handover, bcc_handover_size, &current_cdi_attest,
+                       &current_cdi_seal, &bcc, &bcc_size);
+  if (result != kDiceResultOk) {
     return kDiceResultInvalidInput;
-  }
-
-  size_t bcc_size = 0;
-  if (num_pairs >= 3 && CborReadInt(&in, &label) == CBOR_READ_RESULT_OK) {
-    if (label == kBccLabel) {
-      // Calculate the BCC size, if the BCC is present in the BccHandover.
-      size_t bcc_start = CborInOffset(&in);
-      if (CborReadSkip(&in) != CBOR_READ_RESULT_OK) {
-        return kDiceResultInvalidInput;
-      }
-      bcc = bcc_handover + bcc_start;
-      bcc_size = CborInOffset(&in) - bcc_start;
-    }
   }
 
   // Write the new handover data.
@@ -279,5 +247,53 @@ DiceResult BccHandoverMainFlow(void* context, const uint8_t* bcc_handover,
       return result;
   }
   *actual_size = CborOutSize(&out) + bcc_size;
+  return kDiceResultOk;
+}
+
+DiceResult BccHandoverParse(const uint8_t* bcc_handover,
+                            size_t bcc_handover_size,
+                            const uint8_t** cdi_attest,
+                            const uint8_t** cdi_seal, const uint8_t** bcc,
+                            size_t* bcc_size) {
+  // Extract details from the handover data.
+  //
+  // BccHandover = {
+  //   1 : bstr .size 32,     ; CDI_Attest
+  //   2 : bstr .size 32,     ; CDI_Seal
+  //   ? 3 : Bcc,             ; Certificate chain
+  // }
+  struct CborIn in;
+  int64_t label;
+  size_t num_pairs;
+  size_t item_size;
+  CborInInit(bcc_handover, bcc_handover_size, &in);
+  if (CborReadMap(&in, &num_pairs) != CBOR_READ_RESULT_OK || num_pairs < 2 ||
+      // Read the attestation CDI.
+      CborReadInt(&in, &label) != CBOR_READ_RESULT_OK ||
+      label != kCdiAttestLabel ||
+      CborReadBstr(&in, &item_size, cdi_attest) != CBOR_READ_RESULT_OK ||
+      item_size != DICE_CDI_SIZE ||
+      // Read the sealing CDI.
+      CborReadInt(&in, &label) != CBOR_READ_RESULT_OK ||
+      label != kCdiSealLabel ||
+      CborReadBstr(&in, &item_size, cdi_seal) != CBOR_READ_RESULT_OK ||
+      item_size != DICE_CDI_SIZE) {
+    return kDiceResultInvalidInput;
+  }
+
+  *bcc = NULL;
+  *bcc_size = 0;
+  if (num_pairs >= 3 && CborReadInt(&in, &label) == CBOR_READ_RESULT_OK) {
+    if (label == kBccLabel) {
+      // Calculate the BCC size, if the BCC is present in the BccHandover.
+      size_t bcc_start = CborInOffset(&in);
+      if (CborReadSkip(&in) != CBOR_READ_RESULT_OK) {
+        return kDiceResultInvalidInput;
+      }
+      *bcc = bcc_handover + bcc_start;
+      *bcc_size = CborInOffset(&in) - bcc_start;
+    }
+  }
+
   return kDiceResultOk;
 }
