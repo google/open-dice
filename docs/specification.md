@@ -1,6 +1,6 @@
 # Open Profile for DICE
 
-v2.3
+v2.4
 
 [TOC]
 
