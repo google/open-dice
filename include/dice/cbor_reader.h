@@ -72,11 +72,15 @@ enum CborReadResult CborReadMap(struct CborIn* in, size_t* num_pairs);
 enum CborReadResult CborReadFalse(struct CborIn* in);
 enum CborReadResult CborReadTrue(struct CborIn* in);
 enum CborReadResult CborReadNull(struct CborIn* in);
+// Returns CBOR_READ_RESULT_OK even if the value read does not correspond to
+// a valid tag. See https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml
+// for a registry of reserved and invalid tag values.
+enum CborReadResult CborReadTag(struct CborIn* in, uint64_t* tag);
 
 // Skips over the next CBOR item in the input. The item may contain nested
-// items, in the case of an array or map, and this function will attempt to
-// descend and skip all nested items in order to skip the parent item. There is
-// a limit on the level of nesting, after which this function will fail with
+// items, in the case of an array, map, or tag, and this function will attempt
+// to descend and skip all nested items in order to skip the parent item. There
+// is a limit on the level of nesting, after which this function will fail with
 // CBOR_READ_RESULT_MALFORMED.
 #define CBOR_READ_SKIP_STACK_SIZE 10
 enum CborReadResult CborReadSkip(struct CborIn* in);

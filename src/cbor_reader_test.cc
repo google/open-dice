@@ -249,11 +249,63 @@ TEST(CborReaderTest, NullEncoding) {
   EXPECT_TRUE(CborInAtEnd(&in));
 }
 
+TEST(CborReaderTest, TagEncoding) {
+  const uint8_t buffer[] = {0xcf, 0xd8, 0x18, 0xd9, 0xd9, 0xf8, 0xda, 0x4f,
+                            0x50, 0x53, 0x4e, 0xdb, 0x10, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00};
+  CborIn in;
+  uint64_t tag;
+  CborInInit(buffer, sizeof(buffer), &in);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
+  EXPECT_EQ(/* Unassigned */15u, tag);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
+  EXPECT_EQ(/* COSE_Sign1 */24u, tag);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
+  EXPECT_EQ(/* Byte string */0xd9f8u, tag);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
+  EXPECT_EQ(/* Openswan cfg */0x4f50534eu, tag);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
+  EXPECT_EQ(/* Unassigned */0x1000000000000000u, tag);
+  EXPECT_TRUE(CborInAtEnd(&in));
+}
+
+TEST(CborReaderTest, TagInvalid) {
+  // The following tags are always invalid but are treated as any other tag.
+  // Reference https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml.
+  const uint8_t invalid16[] = {0xd9, 0xff, 0xff};
+  const uint8_t invalid32[] = {0xda, 0xff, 0xff, 0xff, 0xff};
+  const uint8_t invalid64[] = {0xdb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                               0xff};
+  CborIn in;
+  uint64_t tag;
+  CborInInit(invalid16, sizeof(invalid16), &in);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
+  EXPECT_TRUE(CborInAtEnd(&in));
+  CborInInit(invalid32, sizeof(invalid32), &in);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
+  EXPECT_TRUE(CborInAtEnd(&in));
+  CborInInit(invalid64, sizeof(invalid64), &in);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
+  EXPECT_TRUE(CborInAtEnd(&in));
+}
+
 TEST(CborReaderTest, Skip) {
   const uint8_t buffer[] = {0x84, 0x03, 0xa2, 0x82, 0x23, 0x05, 0xf4,
                             0x16, 0xf6, 0x61, 0x44, 0x41, 0xaa};
+  const uint8_t tag[] = {0xc4, 0xf5};
+  const uint8_t tagtag[] = {0xc4, 0xc4, 0xf5};
+  const uint8_t nested_tag[] = {0x82, 0xa1, 0x02, 0xc7, 0x04, 0x09};
   CborIn in;
   CborInInit(buffer, sizeof(buffer), &in);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadSkip(&in));
+  EXPECT_TRUE(CborInAtEnd(&in));
+  CborInInit(tag, sizeof(tag), &in);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadSkip(&in));
+  EXPECT_TRUE(CborInAtEnd(&in));
+  CborInInit(tagtag, sizeof(tagtag), &in);
+  EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadSkip(&in));
+  EXPECT_TRUE(CborInAtEnd(&in));
+  CborInInit(nested_tag, sizeof(nested_tag), &in);
   EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadSkip(&in));
   EXPECT_TRUE(CborInAtEnd(&in));
 }
@@ -269,18 +321,6 @@ TEST(CborReaderTest, SkipTooDeeplyNestedMalformed) {
   EXPECT_EQ(CBOR_READ_RESULT_MALFORMED, CborReadSkip(&in));
   EXPECT_EQ(0u, CborInOffset(&in));
   CborInInit(array, sizeof(array), &in);
-  EXPECT_EQ(CBOR_READ_RESULT_MALFORMED, CborReadSkip(&in));
-  EXPECT_EQ(0u, CborInOffset(&in));
-}
-
-TEST(CborReaderTest, SkipTagMalformed) {
-  const uint8_t tag[] = {0xc4, 0xf5};
-  const uint8_t nested_tag[] = {0x82, 0xa1, 0x02, 0xc7, 0x04, 0x09};
-  CborIn in;
-  CborInInit(tag, sizeof(tag), &in);
-  EXPECT_EQ(CBOR_READ_RESULT_MALFORMED, CborReadSkip(&in));
-  EXPECT_EQ(0u, CborInOffset(&in));
-  CborInInit(nested_tag, sizeof(nested_tag), &in);
   EXPECT_EQ(CBOR_READ_RESULT_MALFORMED, CborReadSkip(&in));
   EXPECT_EQ(0u, CborInOffset(&in));
 }
@@ -303,11 +343,12 @@ TEST(CborReaderTest, EmptyBufferAtEnd) {
   EXPECT_EQ(CBOR_READ_RESULT_END, CborReadFalse(&in));
   EXPECT_EQ(CBOR_READ_RESULT_END, CborReadTrue(&in));
   EXPECT_EQ(CBOR_READ_RESULT_END, CborReadNull(&in));
+  EXPECT_EQ(CBOR_READ_RESULT_END, CborReadTag(&in, &uval));
   EXPECT_EQ(0u, CborInOffset(&in));
 }
 
 TEST(CborReaderTest, NotFound) {
-  const uint8_t buffer[] = {0xc0, 0x08};
+  const uint8_t buffer[] = {0xe0, 0x08};
   int64_t val;
   uint64_t uval;
   size_t size;
@@ -324,6 +365,7 @@ TEST(CborReaderTest, NotFound) {
   EXPECT_EQ(CBOR_READ_RESULT_NOT_FOUND, CborReadFalse(&in));
   EXPECT_EQ(CBOR_READ_RESULT_NOT_FOUND, CborReadTrue(&in));
   EXPECT_EQ(CBOR_READ_RESULT_NOT_FOUND, CborReadNull(&in));
+  EXPECT_EQ(CBOR_READ_RESULT_NOT_FOUND, CborReadTag(&in, &uval));
   EXPECT_EQ(0u, CborInOffset(&in));
 }
 

@@ -26,6 +26,7 @@ enum CborWriterFunction {
   AllocTstr,
   WriteArray,
   WriteMap,
+  WriteTag,
   WriteFalse,
   WriteTrue,
   WriteNull,
@@ -95,6 +96,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
       case WriteMap: {
         auto num_pairs = fdp.ConsumeIntegral<size_t>();
         CborWriteMap(num_pairs, &out);
+        break;
+      }
+      case WriteTag: {
+        auto tag = fdp.ConsumeIntegral<uint64_t>();
+        CborWriteTag(tag, &out);
         break;
       }
       case WriteFalse:

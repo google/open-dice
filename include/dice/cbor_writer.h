@@ -66,6 +66,7 @@ void CborWriteBstr(size_t data_size, const uint8_t* data, struct CborOut* out);
 void CborWriteTstr(const char* str, struct CborOut* out);
 void CborWriteArray(size_t num_elements, struct CborOut* out);
 void CborWriteMap(size_t num_pairs, struct CborOut* out);
+void CborWriteTag(uint64_t tag, struct CborOut* out);
 void CborWriteFalse(struct CborOut* out);
 void CborWriteTrue(struct CborOut* out);
 void CborWriteNull(struct CborOut* out);

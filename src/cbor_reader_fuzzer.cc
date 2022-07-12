@@ -46,6 +46,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     CborReadMap(&peeker, &sz);
 
     peeker = in;
+    CborReadTag(&peeker, &unsigned_int);
+
+    peeker = in;
     CborReadFalse(&peeker);
 
     peeker = in;

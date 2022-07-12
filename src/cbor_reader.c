@@ -21,7 +21,7 @@ enum CborType {
   CBOR_TYPE_TSTR = 3,
   CBOR_TYPE_ARRAY = 4,
   CBOR_TYPE_MAP = 5,
-  CBOR_TYPE_TAG_NOT_SUPPORTED = 6,
+  CBOR_TYPE_TAG = 6,
   CBOR_TYPE_SIMPLE = 7,
 };
 
@@ -188,6 +188,21 @@ enum CborReadResult CborReadMap(struct CborIn* in, size_t* num_pairs) {
   return CborReadSize(in, CBOR_TYPE_MAP, num_pairs);
 }
 
+enum CborReadResult CborReadTag(struct CborIn* in, uint64_t* tag) {
+  uint8_t bytes;
+  enum CborType type;
+  enum CborReadResult res =
+      CborPeekIntialValueAndArgument(in, &bytes, &type, tag);
+  if (res != CBOR_READ_RESULT_OK) {
+    return res;
+  }
+  if (type != CBOR_TYPE_TAG) {
+    return CBOR_READ_RESULT_NOT_FOUND;
+  }
+  in->cursor += bytes;
+  return CBOR_READ_RESULT_OK;
+}
+
 enum CborReadResult CborReadFalse(struct CborIn* in) {
   return CborReadSimple(in, /*val=*/20);
 }
@@ -245,6 +260,9 @@ enum CborReadResult CborReadSkip(struct CborIn* in) {
           return CBOR_READ_RESULT_END;
         }
         val *= 2;
+        break;
+      case CBOR_TYPE_TAG:
+        val = 1;
         break;
       case CBOR_TYPE_ARRAY:
         break;

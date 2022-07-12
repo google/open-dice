@@ -188,6 +188,22 @@ TEST(CborWriterTest, MapEncoding) {
   EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
 }
 
+TEST(CborWriterTest, TagEncoding) {
+  const uint8_t kExpectedEncoding[] = {0xcf, 0xd8, 0x18, 0xd9, 0xd9, 0xf8, 0xda,
+                                       0x4f, 0x50, 0x53, 0x4e, 0xdb, 0x10, 0x00,
+                                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  uint8_t buffer[64];
+  CborOut out;
+  CborOutInit(buffer, sizeof(buffer), &out);
+  CborWriteTag(/*tag=*/15, &out);
+  CborWriteTag(/*tag=*/24, &out);
+  CborWriteTag(/*tag=*/0xd9f8u, &out);
+  CborWriteTag(/*tag=*/0x4f50534eu, &out);
+  CborWriteTag(/*tag=*/0x1000000000000000u, &out);
+  EXPECT_FALSE(CborOutOverflowed(&out));
+  EXPECT_EQ(0, memcmp(buffer, kExpectedEncoding, sizeof(kExpectedEncoding)));
+}
+
 TEST(CborWriterTest, FalseEncoding) {
   const uint8_t kExpectedEncoding[] = {0xf4};
   uint8_t buffer[64];
@@ -230,12 +246,13 @@ TEST(CborWriterTest, CborOutInvariants) {
   EXPECT_NE(nullptr, CborAllocTstr(6, &out));
   CborWriteArray(/*num_elements=*/16, &out);
   CborWriteMap(/*num_pairs=*/35, &out);
+  CborWriteTag(/*tag=*/15, &out);
   CborWriteFalse(&out);
   CborWriteTrue(&out);
   CborWriteNull(&out);
   EXPECT_FALSE(CborOutOverflowed(&out));
   // Offset is the cumulative size.
-  EXPECT_EQ(3 + 6 + 8 + 9 + 7 + 1 + 2 + 1 + 1 + 1u, CborOutSize(&out));
+  EXPECT_EQ(3 + 6 + 8 + 9 + 7 + 1 + 2 + 1 + 1 + 1 + 1u, CborOutSize(&out));
 }
 
 TEST(CborWriterTest, NullBufferForMeasurement) {
@@ -245,6 +262,7 @@ TEST(CborWriterTest, NullBufferForMeasurement) {
   CborWriteNull(&out);
   CborWriteTrue(&out);
   CborWriteFalse(&out);
+  CborWriteTag(/*tag=*/15, &out);
   CborWriteMap(/*num_pairs=*/623, &out);
   CborWriteArray(/*num_elements=*/70000, &out);
   EXPECT_EQ(nullptr, CborAllocTstr(8, &out));
@@ -255,7 +273,7 @@ TEST(CborWriterTest, NullBufferForMeasurement) {
   // Measurement has occurred, but output did not.
   EXPECT_TRUE(CborOutOverflowed(&out));
   // Offset is the cumulative size.
-  EXPECT_EQ(1 + 1 + 1 + 3 + 5 + 9 + 7 + 2 + 8 + 5u, CborOutSize(&out));
+  EXPECT_EQ(1 + 1 + 1 + 1 + 3 + 5 + 9 + 7 + 2 + 8 + 5u, CborOutSize(&out));
 }
 
 TEST(CborWriterTest, BufferTooSmall) {
