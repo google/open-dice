@@ -26,16 +26,12 @@ group("default") {
 }
 
 pw_source_set("cbor_writer") {
-  public = [
-    "include/dice/cbor_writer.h",
-  ]
+  public = [ "include/dice/cbor_writer.h" ]
   sources = [ "src/cbor_writer.c" ]
 }
 
 pw_source_set("cbor_reader") {
-  public = [
-    "include/dice/cbor_reader.h",
-  ]
+  public = [ "include/dice/cbor_reader.h" ]
   sources = [ "src/cbor_reader.c" ]
 }
 
@@ -50,7 +46,7 @@ pw_static_library("dice_standalone") {
   ]
   sources = [
     "src/clear_memory.c",
-    "src/dice.c"
+    "src/dice.c",
   ]
   all_dependent_configs = [ ":standalone_ops_config" ]
 }
@@ -66,15 +62,13 @@ pw_static_library("dice_with_boringssl_ops") {
   ]
   sources = [
     "src/boringssl_cert_op.c",
-    "src/boringssl_hash_kdf_ops.c",
     "src/boringssl_ed25519_ops.c",
+    "src/boringssl_hash_kdf_ops.c",
     "src/clear_memory.c",
     "src/dice.c",
     "src/utils.c",
   ]
-  deps = [
-    "//third_party/boringssl:crypto",
-  ]
+  deps = [ "//third_party/boringssl:crypto" ]
   all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
 }
 
@@ -93,9 +87,7 @@ pw_static_library("dice_with_mbedtls_ops") {
     "src/mbedtls_ops.c",
     "src/utils.c",
   ]
-  deps = [
-    "//third_party/mbedtls:mbedcrypto",
-  ]
+  deps = [ "//third_party/mbedtls:mbedcrypto" ]
   all_dependent_configs = [ ":mbedtls_ops_config" ]
 }
 
@@ -105,8 +97,8 @@ pw_static_library("dice_with_cbor_cert") {
     "include/dice/utils.h",
   ]
   sources = [
-    "src/boringssl_hash_kdf_ops.c",
     "src/boringssl_ed25519_ops.c",
+    "src/boringssl_hash_kdf_ops.c",
     "src/cbor_cert_op.c",
     "src/clear_memory.c",
     "src/dice.c",
@@ -125,16 +117,14 @@ pw_static_library("dice_with_cbor_template_cert") {
     "include/dice/utils.h",
   ]
   sources = [
-    "src/boringssl_hash_kdf_ops.c",
     "src/boringssl_ed25519_ops.c",
+    "src/boringssl_hash_kdf_ops.c",
     "src/clear_memory.c",
     "src/dice.c",
     "src/template_cbor_cert_op.c",
     "src/utils.c",
   ]
-  deps = [
-    "//third_party/boringssl:crypto",
-  ]
+  deps = [ "//third_party/boringssl:crypto" ]
   all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
 }
 
@@ -144,16 +134,14 @@ pw_static_library("dice_with_x509_template_cert") {
     "include/dice/utils.h",
   ]
   sources = [
-    "src/boringssl_hash_kdf_ops.c",
     "src/boringssl_ed25519_ops.c",
+    "src/boringssl_hash_kdf_ops.c",
     "src/clear_memory.c",
     "src/dice.c",
     "src/template_cert_op.c",
     "src/utils.c",
   ]
-  deps = [
-    "//third_party/boringssl:crypto",
-  ]
+  deps = [ "//third_party/boringssl:crypto" ]
   all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
 }
 
@@ -163,30 +151,22 @@ pw_source_set("fuzzer") {
 
 pw_test("cbor_writer_test") {
   sources = [ "src/cbor_writer_test.cc" ]
-  deps = [
-    ":cbor_writer",
-  ]
+  deps = [ ":cbor_writer" ]
 }
 
 pw_test("cbor_reader_test") {
   sources = [ "src/cbor_reader_test.cc" ]
-  deps = [
-    ":cbor_reader",
-  ]
+  deps = [ ":cbor_reader" ]
 }
 
 pw_executable("cbor_writer_fuzzer") {
   sources = [ "src/cbor_writer_fuzzer.cc" ]
-  deps = [
-    ":cbor_writer",
-  ]
+  deps = [ ":cbor_writer" ]
 }
 
 pw_executable("cbor_reader_fuzzer") {
   sources = [ "src/cbor_reader_fuzzer.cc" ]
-  deps = [
-    ":cbor_reader",
-  ]
+  deps = [ ":cbor_reader" ]
 }
 
 pw_test("dice_test") {
@@ -204,9 +184,9 @@ pw_test("boringssl_ops_test") {
   ]
   deps = [
     ":dice_with_boringssl_ops",
+    "$dir_pw_string:pw_string",
     "//third_party/boringssl:crypto",
     "//third_party/cose-c:cose-c",
-    "$dir_pw_string:pw_string",
   ]
 }
 
@@ -224,9 +204,9 @@ pw_test("template_cert_op_test") {
   ]
   deps = [
     ":dice_with_x509_template_cert",
+    "$dir_pw_string:pw_string",
     "//third_party/boringssl:crypto",
     "//third_party/cose-c:cose-c",
-    "$dir_pw_string:pw_string",
   ]
 }
 
@@ -244,9 +224,9 @@ pw_test("cbor_cert_op_test") {
   ]
   deps = [
     ":dice_with_cbor_cert",
+    "$dir_pw_string:pw_string",
     "//third_party/boringssl:crypto",
     "//third_party/cose-c:cose-c",
-    "$dir_pw_string:pw_string",
   ]
 }
 
@@ -264,9 +244,9 @@ pw_test("template_cbor_cert_op_test") {
   ]
   deps = [
     ":dice_with_cbor_template_cert",
+    "$dir_pw_string:pw_string",
     "//third_party/boringssl:crypto",
     "//third_party/cose-c:cose-c",
-    "$dir_pw_string:pw_string",
   ]
 }
 
@@ -284,9 +264,9 @@ pw_test("mbedtls_ops_test") {
   ]
   deps = [
     ":dice_with_mbedtls_ops",
+    "$dir_pw_string:pw_string",
     "//third_party/boringssl:crypto",
     "//third_party/cose-c:cose-c",
-    "$dir_pw_string:pw_string",
   ]
 }
 

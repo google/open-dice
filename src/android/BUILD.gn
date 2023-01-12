@@ -26,19 +26,11 @@ pw_source_set("bcc") {
 }
 
 pw_test("bcc_test") {
-  sources = [
-    "bcc_test.cc",
-  ]
-  deps = [
-    ":bcc",
-  ]
+  sources = [ "bcc_test.cc" ]
+  deps = [ ":bcc" ]
 }
 
 pw_executable("bcc_fuzzer") {
-  sources = [
-    "bcc_fuzzer.cc",
-  ]
-  deps = [
-    ":bcc",
-  ]
+  sources = [ "bcc_fuzzer.cc" ]
+  deps = [ ":bcc" ]
 }
