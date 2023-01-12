@@ -32,6 +32,7 @@
 #define MBEDTLS_MD_C
 #define MBEDTLS_OID_C
 #define MBEDTLS_PK_C
+#define MBEDTLS_PK_PARSE_C
 #define MBEDTLS_PK_WRITE_C
 #define MBEDTLS_SHA512_C
 #define MBEDTLS_X509_CREATE_C

@@ -25,9 +25,6 @@
 # manually.
 git submodule update --init
 
-# Apply local submodule patches.
-git -C third_party/mbedtls/src am ../0001-Mark-basic-constraints-critical-as-appropriate.patch
-
 # Bootstrap the pigweed environment.
 . third_party/pigweed/src/bootstrap.sh
 

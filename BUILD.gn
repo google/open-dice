@@ -74,6 +74,7 @@ pw_static_library("dice_with_boringssl_ops") {
 
 config("mbedtls_ops_config") {
   include_dirs = [ "//include//dice/config/mbedtls_ecdsa_p256" ]
+  defines = [ "MBEDTLS_ALLOW_PRIVATE_ACCESS" ]
 }
 
 pw_static_library("dice_with_mbedtls_ops") {
