@@ -5,5 +5,5 @@ The boringssl repo is configured as a git submodule in
 
 ```
 cd third_party/boringssl
-python2 src/util/generate_build_files.py gn
+python src/util/generate_build_files.py gn
 ```
