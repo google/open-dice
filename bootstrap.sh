@@ -28,5 +28,11 @@ git submodule update --init
 # Bootstrap the pigweed environment.
 . third_party/pigweed/src/bootstrap.sh
 
+# Copy the pigweed environment config with a path fixup.
+sed s/environment/third_party\\\/pigweed\\\/src\\\/environment/g \
+  < third_party/pigweed/src/build_overrides/pigweed_environment.gni \
+  > build_overrides/pigweed_environment.gni
+gn format build_overrides/pigweed_environment.gni
+
 # Setup the build.
 gn gen --export-compile-commands out

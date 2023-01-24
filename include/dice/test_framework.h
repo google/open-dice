@@ -15,10 +15,11 @@
 #ifndef DICE_TEST_FRAMEWORK_H_
 #define DICE_TEST_FRAMEWORK_H_
 
-#ifdef DICE_USE_GTEST
 #include "gtest/gtest.h"
-#else
-#include "pw_unit_test/framework.h"
+
+#ifndef DICE_USE_GTEST
+// Use pigweed's pw_unit_test::light framework instead of upstream gtest.
+#include "pw_unit_test/simple_printing_event_handler.h"
 #endif
 
 #endif  // DICE_TEST_FRAMEWORK_H_

@@ -356,7 +356,7 @@ pw_executable("dice_with_x509_template_cert_main") {
   ]
 }
 
-pw_size_report("executable_size_report") {
+pw_size_diff("executable_size_report") {
   title = "Executable sizes (includes thirdparty deps)"
   base = ":empty_main"
   binaries = [
@@ -392,7 +392,7 @@ pw_size_report("executable_size_report") {
   ]
 }
 
-pw_size_report("library_size_report") {
+pw_size_diff("library_size_report") {
   title = "Library sizes (excludes thirdparty deps)"
   base = ":empty_lib"
   binaries = [
