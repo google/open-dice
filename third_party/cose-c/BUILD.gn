@@ -15,10 +15,10 @@
 import("//build_overrides/pigweed.gni")
 import("$dir_pw_build/target_types.gni")
 
-config("external_config") {
+config("external_config_ed25519") {
   include_dirs = [
     "src/include",
-    "include",
+    "include/ed25519",
   ]
 }
 
@@ -28,16 +28,16 @@ config("internal_config") {
   cflags = [ "-Wno-cast-qual" ]
 }
 
-pw_static_library("cose-c") {
+pw_static_library("cose-c_ed25519") {
   public = [ "src/include/cose/cose.h" ]
   sources = [
-    "cose_deps.cc",
+    "cose_ed25519_deps.cc",
     "src/src/Cose.cpp",
     "src/src/CoseKey.cpp",
     "src/src/Sign1.cpp",
     "src/src/cbor.cpp",
   ]
-  public_configs = [ ":external_config" ]
+  public_configs = [ ":external_config_ed25519" ]
   configs = [ ":internal_config" ]
   public_deps = [
     "//third_party/boringssl:crypto",

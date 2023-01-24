@@ -1,4 +1,5 @@
 #define USE_EDDSA
+#define PUBLIC_KEY_SIZE 32
 
 #define INCLUDE_ENCRYPT 0
 #define INCLUDE_ENCRYPT0 0

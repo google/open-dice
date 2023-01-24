@@ -16,6 +16,8 @@
 #define DICE_CONFIG_H_
 
 // Ed25519
+// COSE Key alg value from Table 2 of RFC9053
+#define DICE_COSE_KEY_ALG_VALUE (-8)
 #define DICE_PUBLIC_KEY_SIZE 32
 #define DICE_PRIVATE_KEY_SIZE 64
 #define DICE_SIGNATURE_SIZE 64

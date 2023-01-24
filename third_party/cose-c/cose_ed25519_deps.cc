@@ -23,7 +23,7 @@
 
 // Gets the public key from a well-formed Ed25519 COSE_Key. On success populates
 // |public_key| and returns true.
-static bool GetPublicKeyFromCbor(const cn_cbor *key, uint8_t public_key[32]) {
+static bool GetPublicKeyFromCbor(const cn_cbor *key, uint8_t public_key[PUBLIC_KEY_SIZE]) {
   const int64_t kCoseKeyAlgLabel = 3;
   const int64_t kCoseKeyOpsLabel = 4;
   const uint64_t kCoseKeyOpsVerify = 2;
@@ -42,7 +42,7 @@ static bool GetPublicKeyFromCbor(const cn_cbor *key, uint8_t public_key[32]) {
   if (curve->type != CN_CBOR_UINT || curve->v.uint != COSE_Curve_Ed25519) {
     return false;
   }
-  if (x->type != CN_CBOR_BYTES || x->length != 32) {
+  if (x->type != CN_CBOR_BYTES || x->length != PUBLIC_KEY_SIZE) {
     return false;
   }
   // Optional attributes.
@@ -72,7 +72,7 @@ static bool GetPublicKeyFromCbor(const cn_cbor *key, uint8_t public_key[32]) {
     }
   }
 
-  memcpy(public_key, x->v.bytes, 32);
+  memcpy(public_key, x->v.bytes, PUBLIC_KEY_SIZE);
   return true;
 }
 
@@ -88,7 +88,7 @@ bool EdDSA_Verify(COSE *cose_signer, int signature_index, COSE_KEY *cose_key,
   if (signature->type != CN_CBOR_BYTES || signature->length != 64) {
     return false;
   }
-  uint8_t public_key[32];
+  uint8_t public_key[PUBLIC_KEY_SIZE];
   if (!GetPublicKeyFromCbor(key, public_key)) {
     return false;
   }

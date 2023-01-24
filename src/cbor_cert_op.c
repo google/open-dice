@@ -13,7 +13,8 @@
 // the License.
 
 // This is a DiceGenerateCertificate implementation that generates a CWT-style
-// CBOR certificate using the ED25519-SHA512 signature scheme.
+// CBOR certificate. The function DiceCoseEncodePublicKey depends on the
+// signature algorithm type, and must be implemented elsewhere.
 
 #include <stddef.h>
 #include <stdint.h>
@@ -25,74 +26,24 @@
 #include "dice/ops/trait/cose.h"
 #include "dice/utils.h"
 
-#if DICE_PUBLIC_KEY_SIZE != 32
-#error "Only Ed25519 is supported; 32 bytes needed to store the public key."
-#endif
-#if DICE_SIGNATURE_SIZE != 64
-#error "Only Ed25519 is supported; 64 bytes needed to store the signature."
-#endif
-
 // Max size of COSE_Sign1 including payload.
 #define DICE_MAX_CERTIFICATE_SIZE 2048
 // Max size of COSE_Key encoding.
-#define DICE_MAX_PUBLIC_KEY_SIZE 64
+#define DICE_MAX_PUBLIC_KEY_SIZE (DICE_PUBLIC_KEY_SIZE + 32)
 // Max size of the COSE_Sign1 protected attributes.
 #define DICE_MAX_PROTECTED_ATTRIBUTES_SIZE 16
-
-DiceResult DiceCoseEncodePublicKey(
-    void* context_not_used, const uint8_t public_key[DICE_PUBLIC_KEY_SIZE],
-    size_t buffer_size, uint8_t* buffer, size_t* encoded_size) {
-  (void)context_not_used;
-
-  // Constants per RFC 8152.
-  const int64_t kCoseKeyKtyLabel = 1;
-  const int64_t kCoseKeyAlgLabel = 3;
-  const int64_t kCoseKeyOpsLabel = 4;
-  const int64_t kCoseOkpCrvLabel = -1;
-  const int64_t kCoseOkpXLabel = -2;
-  const int64_t kCoseKeyTypeOkp = 1;
-  const int64_t kCoseAlgEdDSA = -8;
-  const int64_t kCoseKeyOpsVerify = 2;
-  const int64_t kCoseCrvEd25519 = 6;
-
-  struct CborOut out;
-  CborOutInit(buffer, buffer_size, &out);
-  CborWriteMap(/*num_pairs=*/5, &out);
-  // Add the key type.
-  CborWriteInt(kCoseKeyKtyLabel, &out);
-  CborWriteInt(kCoseKeyTypeOkp, &out);
-  // Add the algorithm.
-  CborWriteInt(kCoseKeyAlgLabel, &out);
-  CborWriteInt(kCoseAlgEdDSA, &out);
-  // Add the KeyOps.
-  CborWriteInt(kCoseKeyOpsLabel, &out);
-  CborWriteArray(/*num_elements=*/1, &out);
-  CborWriteInt(kCoseKeyOpsVerify, &out);
-  // Add the curve.
-  CborWriteInt(kCoseOkpCrvLabel, &out);
-  CborWriteInt(kCoseCrvEd25519, &out);
-  // Add the public key.
-  CborWriteInt(kCoseOkpXLabel, &out);
-  CborWriteBstr(/*data_size=*/DICE_PUBLIC_KEY_SIZE, public_key, &out);
-  if (CborOutOverflowed(&out)) {
-    return kDiceResultBufferTooSmall;
-  }
-  *encoded_size = CborOutSize(&out);
-  return kDiceResultOk;
-}
 
 static DiceResult EncodeProtectedAttributes(size_t buffer_size, uint8_t* buffer,
                                             size_t* encoded_size) {
   // Constants per RFC 8152.
   const int64_t kCoseHeaderAlgLabel = 1;
-  const int64_t kCoseAlgEdDSA = -8;
 
   struct CborOut out;
   CborOutInit(buffer, buffer_size, &out);
   CborWriteMap(/*num_elements=*/1, &out);
   // Add the algorithm.
   CborWriteInt(kCoseHeaderAlgLabel, &out);
-  CborWriteInt(kCoseAlgEdDSA, &out);
+  CborWriteInt(DICE_COSE_KEY_ALG_VALUE, &out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
