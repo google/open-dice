@@ -21,6 +21,7 @@
 #include <memory>
 
 #include "cose/cose.h"
+#include "dice/boringssl_ecdsa_utils.h"
 #include "dice/dice.h"
 #include "dice/utils.h"
 #include "openssl/asn1.h"
@@ -35,6 +36,9 @@
 #include "openssl/x509_vfy.h"
 #include "openssl/x509v3.h"
 #include "pw_string/format.h"
+
+// The largest possible public key size among ECDSA P-384, P-256, and ED25519
+#define MAX_PUBLIC_KEY_SIZE 96
 
 namespace {
 
@@ -60,6 +64,8 @@ const char* GetKeyTypeStr(dice::test::KeyType key_type) {
       return "Ed25519";
     case dice::test::KeyType_P256:
       return "P256";
+    case dice::test::KeyType_P384:
+      return "P384";
   }
   return "";
 }
@@ -161,7 +167,7 @@ class HmacSha512Drbg {
 
 bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(
     const uint8_t raw_key[DICE_PRIVATE_KEY_SEED_SIZE],
-    dice::test::KeyType key_type, uint8_t raw_public_key[33],
+    dice::test::KeyType key_type, uint8_t raw_public_key[MAX_PUBLIC_KEY_SIZE],
     size_t* raw_public_key_size) {
   if (key_type == dice::test::KeyType_Ed25519) {
     bssl::UniquePtr<EVP_PKEY> key(
@@ -197,7 +203,26 @@ bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(
         EC_POINT_point2oct(group, pub.get(), POINT_CONVERSION_COMPRESSED,
                            raw_public_key, 33, /*ctx=*/nullptr);
     return pkey;
+  } else if (key_type == dice::test::KeyType_P384) {
+    const size_t kPublicKeySize = 96;
+    const size_t kPrivateKeySize = 48;
+    uint8_t pk[kPrivateKeySize];
+    P384KeypairFromSeed(raw_public_key, pk, raw_key);
+    *raw_public_key_size = kPublicKeySize;
+
+    bssl::UniquePtr<EC_KEY> key(EC_KEY_new_by_curve_name(NID_secp384r1));
+    BIGNUM* x = BN_new();
+    BN_bin2bn(&raw_public_key[0], kPublicKeySize / 2, x);
+    BIGNUM* y = BN_new();
+    BN_bin2bn(&raw_public_key[kPublicKeySize / 2], kPublicKeySize / 2, y);
+    EC_KEY_set_public_key_affine_coordinates(key.get(), x, y);
+    BN_clear_free(y);
+    BN_clear_free(x);
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
+    EVP_PKEY_set1_EC_KEY(pkey.get(), key.get());
+    return pkey;
   }
+
   printf("ERROR: Unsupported key type.\n");
   return nullptr;
 }
@@ -299,7 +324,7 @@ bool VerifyX509CertificateChain(const uint8_t* root_certificate,
   return (1 == X509_verify_cert(x509_store_ctx.get()));
 }
 
-void CreateCborUdsCertificate(
+void CreateEd25519CborUdsCertificate(
     const uint8_t private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const uint8_t id[DICE_ID_SIZE],
     uint8_t certificate[dice::test::kTestCertSize], size_t* certificate_size) {
@@ -381,6 +406,121 @@ void CreateCborUdsCertificate(
                        &error);
   *certificate_size = cn_cbor_encoder_write(
       certificate, 0, dice::test::kTestCertSize, sign1.get());
+}
+
+void CreateP384CborUdsCertificate(
+    const uint8_t private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    const uint8_t id[DICE_ID_SIZE],
+    uint8_t certificate[dice::test::kTestCertSize], size_t* certificate_size) {
+  const int64_t kCwtIssuerLabel = 1;
+  const int64_t kCwtSubjectLabel = 2;
+  const int64_t kUdsPublicKeyLabel = -4670552;
+  const int64_t kUdsKeyUsageLabel = -4670553;
+  const uint8_t kKeyUsageCertSign = 32;  // Bit 5.
+  const uint8_t kProtectedAttributesCbor[4] = {
+      0xa1 /* map(1) */, 0x01 /* alg(1) */, 0x38, 0x22 /* ES384(-34) */};
+  const size_t kPublicKeySize = 96;
+  const size_t kPrivateKeySize = 48;
+  const size_t kSignatureSize = 96;
+
+  // Public key encoded as a COSE_Key.
+  uint8_t public_key[kPublicKeySize];
+  uint8_t private_key[kPrivateKeySize];
+  P384KeypairFromSeed(public_key, private_key, private_key_seed);
+  cn_cbor_errback error;
+  ScopedCbor public_key_cbor(cn_cbor_map_create(&error));
+  // kty = ec2
+  cn_cbor_mapput_int(public_key_cbor.get(), 1, cn_cbor_int_create(2, &error),
+                     &error);
+  // crv = P-384
+  cn_cbor_mapput_int(public_key_cbor.get(), -1, cn_cbor_int_create(2, &error),
+                     &error);
+  // x = public_key X
+  cn_cbor_mapput_int(
+      public_key_cbor.get(), -2,
+      cn_cbor_data_create(&public_key[0], kPublicKeySize / 2, &error), &error);
+  // y = public_key Y
+  cn_cbor_mapput_int(public_key_cbor.get(), -3,
+                     cn_cbor_data_create(&public_key[kPublicKeySize / 2],
+                                         kPublicKeySize / 2, &error),
+                     &error);
+  uint8_t encoded_public_key[200];
+  size_t encoded_public_key_size =
+      cn_cbor_encoder_write(encoded_public_key, 0, 200, public_key_cbor.get());
+
+  // Simple CWT payload with issuer, subject, and use the same subject public
+  // key field as a CDI certificate to make verification easy.
+  char id_hex[41];
+  DiceHexEncode(id, DICE_ID_SIZE, id_hex, sizeof(id_hex));
+  id_hex[40] = '\0';
+  ScopedCbor cwt(cn_cbor_map_create(&error));
+  cn_cbor_mapput_int(cwt.get(), kCwtIssuerLabel,
+                     cn_cbor_string_create(id_hex, &error), &error);
+  cn_cbor_mapput_int(cwt.get(), kCwtSubjectLabel,
+                     cn_cbor_string_create(id_hex, &error), &error);
+  cn_cbor_mapput_int(
+      cwt.get(), kUdsPublicKeyLabel,
+      cn_cbor_data_create(encoded_public_key, encoded_public_key_size, &error),
+      &error);
+  uint8_t key_usage_byte = kKeyUsageCertSign;
+  cn_cbor_mapput_int(cwt.get(), kUdsKeyUsageLabel,
+                     cn_cbor_data_create(&key_usage_byte, 1, &error), &error);
+  uint8_t payload[dice::test::kTestCertSize];
+  size_t payload_size =
+      cn_cbor_encoder_write(payload, 0, dice::test::kTestCertSize, cwt.get());
+
+  // Signature over COSE Sign1 TBS.
+  ScopedCbor tbs_cbor(cn_cbor_array_create(&error));
+  cn_cbor_array_append(tbs_cbor.get(),
+                       cn_cbor_string_create("Signature1", &error), &error);
+  cn_cbor_array_append(tbs_cbor.get(),
+                       cn_cbor_data_create(kProtectedAttributesCbor, 4, &error),
+                       &error);
+  cn_cbor_array_append(tbs_cbor.get(), cn_cbor_data_create(NULL, 0, &error),
+                       &error);
+  cn_cbor_array_append(tbs_cbor.get(),
+                       cn_cbor_data_create(payload, payload_size, &error),
+                       &error);
+  uint8_t tbs[dice::test::kTestCertSize];
+  size_t tbs_size =
+      cn_cbor_encoder_write(tbs, 0, dice::test::kTestCertSize, tbs_cbor.get());
+  uint8_t signature[kSignatureSize];
+  P384Sign(signature, tbs, tbs_size, private_key);
+
+  // COSE Sign1.
+  ScopedCbor sign1(cn_cbor_array_create(&error));
+  cn_cbor_array_append(sign1.get(),
+                       cn_cbor_data_create(kProtectedAttributesCbor, 4, &error),
+                       &error);
+  cn_cbor_array_append(sign1.get(), cn_cbor_map_create(&error), &error);
+  cn_cbor_array_append(
+      sign1.get(), cn_cbor_data_create(payload, payload_size, &error), &error);
+  cn_cbor_array_append(sign1.get(),
+                       cn_cbor_data_create(signature, kSignatureSize, &error),
+                       &error);
+  *certificate_size = cn_cbor_encoder_write(
+      certificate, 0, dice::test::kTestCertSize, sign1.get());
+}
+
+void CreateCborUdsCertificate(
+    const uint8_t private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    dice::test::KeyType key_type, const uint8_t id[DICE_ID_SIZE],
+    uint8_t certificate[dice::test::kTestCertSize], size_t* certificate_size) {
+  switch (key_type) {
+    case dice::test::KeyType_Ed25519:
+      CreateEd25519CborUdsCertificate(private_key_seed, id, certificate,
+                                      certificate_size);
+      break;
+    case dice::test::KeyType_P256:
+      printf(
+          "Error: encountered unsupported KeyType P256 when creating CBOR UDS "
+          "certificate\n");
+      break;
+    case dice::test::KeyType_P384:
+      CreateP384CborUdsCertificate(private_key_seed, id, certificate,
+                                   certificate_size);
+      break;
+  }
 }
 
 ScopedCbor ExtractCwtFromCborCertificate(const uint8_t* certificate,
@@ -624,7 +764,7 @@ void CreateFakeUdsCertificate(void* context, const uint8_t uds[32],
   uint8_t raw_key[DICE_PRIVATE_KEY_SEED_SIZE];
   DiceDeriveCdiPrivateKeySeed(context, uds, raw_key);
 
-  uint8_t raw_public_key[33];
+  uint8_t raw_public_key[MAX_PUBLIC_KEY_SIZE];
   size_t raw_public_key_size = 0;
   bssl::UniquePtr<EVP_PKEY> key(
       KeyFromRawKey(raw_key, key_type, raw_public_key, &raw_public_key_size));
@@ -635,7 +775,8 @@ void CreateFakeUdsCertificate(void* context, const uint8_t uds[32],
   if (cert_type == CertificateType_X509) {
     CreateX509UdsCertificate(key.get(), id, certificate, certificate_size);
   } else {
-    CreateCborUdsCertificate(raw_key, id, certificate, certificate_size);
+    CreateCborUdsCertificate(raw_key, key_type, id, certificate,
+                             certificate_size);
   }
 
   char filename[100];

@@ -22,6 +22,13 @@ config("external_config_ed25519") {
   ]
 }
 
+config("external_config_p384") {
+  include_dirs = [
+    "src/include",
+    "include/p384",
+  ]
+}
+
 config("internal_config") {
   visibility = [ ":*" ]  # Only targets in this file can depend on this.
   include_dirs = [ "src/src" ]
@@ -38,6 +45,23 @@ pw_static_library("cose-c_ed25519") {
     "src/src/cbor.cpp",
   ]
   public_configs = [ ":external_config_ed25519" ]
+  configs = [ ":internal_config" ]
+  public_deps = [
+    "//third_party/boringssl:crypto",
+    "//third_party/cn-cbor:cn-cbor",
+  ]
+}
+
+pw_static_library("cose-c_p384") {
+  public = [ "src/include/cose/cose.h" ]
+  sources = [
+    "cose_p384_deps.cc",
+    "src/src/Cose.cpp",
+    "src/src/CoseKey.cpp",
+    "src/src/Sign1.cpp",
+    "src/src/cbor.cpp",
+  ]
+  public_configs = [ ":external_config_p384" ]
   configs = [ ":internal_config" ]
   public_deps = [
     "//third_party/boringssl:crypto",

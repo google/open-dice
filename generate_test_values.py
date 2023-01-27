@@ -115,13 +115,13 @@ def _generate_c(name):
     content += _generate_array('kExpectedCdiSeal_%s' % _to_camel_case(name),
                                seal_cdi_data)
     for cert_type in ('X509', 'CBOR'):
-        for key_type in ('Ed25519', 'P256'):
+        for key_type in ('Ed25519', 'P256', 'P384'):
             var_name = 'kExpected%s%sCert_%s' % (_to_camel_case(cert_type),
                                                  _to_camel_case(key_type),
                                                  _to_camel_case(name))
             cert_data = _read_file('_%s_%s_cert_%s.cert' %
                                    (cert_type, key_type, name))
-            if cert_type == 'X509':
+            if cert_type == 'X509' and key_type != 'P384':
                 content += (
                     '// $ openssl x509 -inform DER -noout -text -certopt '
                     'ext_parse\n')

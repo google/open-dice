@@ -30,6 +30,7 @@ enum CertificateType {
 enum KeyType {
   KeyType_Ed25519,
   KeyType_P256,
+  KeyType_P384,
 };
 
 struct DiceStateForTest {
