@@ -1,3 +1,8 @@
+# These paths may transform when this repo is mirrored. For example, the github
+# mirror of this repo should reference the github mirror of submodules.
+#
+# transformation version: 1
+#
 [submodule "boringssl"]
 	path = third_party/boringssl/src
 	url = https://pigweed.googlesource.com/third_party/boringssl/boringssl
