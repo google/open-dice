@@ -40,7 +40,10 @@ typedef struct BccConfigValues_ {
   uint64_t component_version;
 } BccConfigValues;
 
-// Formats a configuration descriptor following the BCC's specification.
+// Formats a configuration descriptor following the BCC's specification. On
+// success, |actual_size| is set to the number of bytes used. If
+// kDiceResultBufferTooSmall is returned |actual_size| will be set to the
+// required size of the buffer.
 DiceResult BccFormatConfigDescriptor(const BccConfigValues* input_values,
                                      size_t buffer_size, uint8_t* buffer,
                                      size_t* actual_size);
@@ -52,7 +55,10 @@ DiceResult BccFormatConfigDescriptor(const BccConfigValues* input_values,
 // the BCC handover format, use BccHandoverMainFlow instead.
 //
 // Given a full set of input values along with the current BCC and CDI values,
-// computes the next CDI values and matching updated BCC.
+// computes the next CDI values and matching updated BCC. On success,
+// |actual_size| is set to the number of bytes used. If
+// kDiceResultBufferTooSmall is returned |actual_size| will be set to the
+// required size of the buffer.
 DiceResult BccMainFlow(void* context,
                        const uint8_t current_cdi_attest[DICE_CDI_SIZE],
                        const uint8_t current_cdi_seal[DICE_CDI_SIZE],
@@ -68,7 +74,9 @@ DiceResult BccMainFlow(void* context,
 // combine the BCC and CDIs in a single CBOR object.
 //
 // Given a full set of input values and the current BCC handover data, computes
-// the next BCC handover data.
+// the next BCC handover data. On success, |actual_size| is set to the number
+// of bytes used. If kDiceResultBufferTooSmall is returned |actual_size| will
+// be set to the required size of the buffer.
 //
 // Using a CBOR object to bundle is one option for passing the values passed
 // between boot stages. This function can take the current boot stage's bundle

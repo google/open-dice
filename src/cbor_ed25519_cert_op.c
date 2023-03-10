@@ -61,9 +61,10 @@ DiceResult DiceCoseEncodePublicKey(
   // Add the public key.
   CborWriteInt(kCoseOkpXLabel, &out);
   CborWriteBstr(/*data_size=*/DICE_PUBLIC_KEY_SIZE, public_key, &out);
+
+  *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
-  *encoded_size = CborOutSize(&out);
   return kDiceResultOk;
 }

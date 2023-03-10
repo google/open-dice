@@ -53,6 +53,22 @@ TEST(DiceOpsTest, KnownAnswerZeroInput) {
                       next_state.certificate, next_state.certificate_size));
 }
 
+TEST(DiceOpsTest, KnownAnswerZeroInputMeasurement) {
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  ASSERT_LE(sizeof(dice::test::kExpectedCborEd25519Cert_ZeroInput) / 2,
+            sizeof(next_state.certificate));
+  DiceResult result = DiceMainFlow(
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(dice::test::kExpectedCborEd25519Cert_ZeroInput) / 2,
+      next_state.certificate, &next_state.certificate_size,
+      next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultBufferTooSmall, result);
+  EXPECT_EQ(sizeof(dice::test::kExpectedCborEd25519Cert_ZeroInput),
+            next_state.certificate_size);
+}
+
 TEST(DiceOpsTest, KnownAnswerHashOnlyInput) {
   DiceStateForTest current_state = {};
   DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);

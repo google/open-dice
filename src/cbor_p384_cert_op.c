@@ -72,9 +72,9 @@ DiceResult DiceCoseEncodePublicKey(
   CborWriteBstr(/*data_size=*/DICE_PUBLIC_KEY_SIZE / 2,
                 &public_key[DICE_PUBLIC_KEY_SIZE / 2], &out);
 
+  *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
-  *encoded_size = CborOutSize(&out);
   return kDiceResultOk;
 }

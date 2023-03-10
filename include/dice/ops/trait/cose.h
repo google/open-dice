@@ -28,8 +28,10 @@
 extern "C" {
 #endif
 
-// Encodes a public key into |buffer| as a COSE_Key structure, setting
-// |encoded_size| to the number of bytes used.
+// Encodes a public key into |buffer| as a COSE_Key structure. On success,
+// |encoded_size| is set to the number of bytes used. If
+// kDiceResultBufferTooSmall is returned |encoded_size| will be set to the
+// required size of the buffer.
 DiceResult DiceCoseEncodePublicKey(
     void* context, const uint8_t public_key[DICE_PUBLIC_KEY_SIZE],
     size_t buffer_size, uint8_t* buffer, size_t* encoded_size);
@@ -39,8 +41,9 @@ DiceResult DiceCoseEncodePublicKey(
 // the result.
 //
 // |buffer| is used to hold the intermediate To-Be-Signed (TBS) structure and
-// then the final result. |encoded_size| is set to the size of the final result
-// in |buffer|.
+// then the final result. On success, |encoded_size| is set to the size of the
+// final result in |buffer|. If kDiceResultBufferTooSmall is returned,
+// |encoded_size| will be set to the required size of the buffer.
 DiceResult DiceCoseSignAndEncodeSign1(
     void* context, const uint8_t* payload, size_t payload_size,
     const uint8_t* aad, size_t aad_size,

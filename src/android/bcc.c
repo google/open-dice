@@ -18,9 +18,9 @@
 
 #include "dice/cbor_reader.h"
 #include "dice/cbor_writer.h"
-#include "dice/ops/trait/cose.h"
 #include "dice/dice.h"
 #include "dice/ops.h"
+#include "dice/ops/trait/cose.h"
 
 // Completely gratuitous bit twiddling.
 static size_t PopulationCount(uint32_t n) {
@@ -57,10 +57,10 @@ DiceResult BccFormatConfigDescriptor(const BccConfigValues* input_values,
     CborWriteInt(kResettableLabel, &out);
     CborWriteNull(&out);
   }
+  *actual_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
   }
-  *actual_size = CborOutSize(&out);
   return kDiceResultOk;
 }
 
@@ -111,22 +111,20 @@ DiceResult BccMainFlow(void* context,
   CborWriteArray(bcc_item_count + 1, &out);
   if (CborOutOverflowed(&out) ||
       bcc_items_size > buffer_size - CborOutSize(&out)) {
-    return kDiceResultBufferTooSmall;
+    // Continue with an empty buffer to measure the required size.
+    buffer_size = 0;
+  } else {
+    memcpy(buffer + CborOutSize(&out), bcc + bcc_items_offset, bcc_items_size);
+    buffer += CborOutSize(&out) + bcc_items_size;
+    buffer_size -= CborOutSize(&out) + bcc_items_size;
   }
-  memcpy(buffer + CborOutSize(&out), bcc + bcc_items_offset, bcc_items_size);
 
   size_t certificate_size;
-  result =
-      DiceMainFlow(context, current_cdi_attest, current_cdi_seal, input_values,
-                   buffer_size - (CborOutSize(&out) + bcc_items_size),
-                   buffer + CborOutSize(&out) + bcc_items_size,
-                   &certificate_size, next_cdi_attest, next_cdi_seal);
-  if (result != kDiceResultOk) {
-    return result;
-  }
-
+  result = DiceMainFlow(context, current_cdi_attest, current_cdi_seal,
+                        input_values, buffer_size, buffer, &certificate_size,
+                        next_cdi_attest, next_cdi_seal);
   *actual_size = CborOutSize(&out) + bcc_items_size + certificate_size;
-  return kDiceResultOk;
+  return result;
 }
 
 static DiceResult BccMainFlowWithNewBcc(
@@ -157,31 +155,35 @@ static DiceResult BccMainFlowWithNewBcc(
   struct CborOut out;
   CborOutInit(buffer, buffer_size, &out);
   CborWriteArray(2, &out);
-  if (CborOutOverflowed(&out)) {
-    result = kDiceResultBufferTooSmall;
-    goto out;
-  }
   size_t encoded_size_used = CborOutSize(&out);
-  buffer += encoded_size_used;
-  buffer_size -= encoded_size_used;
+  if (CborOutOverflowed(&out)) {
+    // Continue with an empty buffer to measure the required size.
+    buffer_size = 0;
+  } else {
+    buffer += encoded_size_used;
+    buffer_size -= encoded_size_used;
+  }
 
   size_t encoded_pub_key_size = 0;
   result = DiceCoseEncodePublicKey(context, attestation_public_key, buffer_size,
                                    buffer, &encoded_pub_key_size);
-  if (result != kDiceResultOk) {
+  if (result == kDiceResultOk) {
+    buffer += encoded_pub_key_size;
+    buffer_size -= encoded_pub_key_size;
+  } else if (result == kDiceResultBufferTooSmall) {
+    // Continue with an empty buffer to measure the required size.
+    buffer_size = 0;
+  } else {
     goto out;
   }
-
-  buffer += encoded_pub_key_size;
-  buffer_size -= encoded_pub_key_size;
 
   result = DiceMainFlow(context, current_cdi_attest, current_cdi_seal,
                         input_values, buffer_size, buffer, bcc_size,
                         next_cdi_attest, next_cdi_seal);
+  *bcc_size += encoded_size_used + encoded_pub_key_size;
   if (result != kDiceResultOk) {
     return result;
   }
-  *bcc_size += encoded_size_used + encoded_pub_key_size;
 
 out:
   DiceClearMemory(context, sizeof(current_cdi_private_key_seed),
@@ -224,30 +226,34 @@ DiceResult BccHandoverMainFlow(void* context, const uint8_t* bcc_handover,
   uint8_t* next_cdi_seal = CborAllocBstr(DICE_CDI_SIZE, &out);
   CborWriteInt(kBccLabel, &out);
 
-  if (CborOutOverflowed(&out) || !next_cdi_attest || !next_cdi_seal) {
-    return kDiceResultBufferTooSmall;
+  uint8_t ignored_cdi_attest[DICE_CDI_SIZE];
+  uint8_t ignored_cdi_seal[DICE_CDI_SIZE];
+  if (CborOutOverflowed(&out)) {
+    // Continue with an empty buffer and placeholders for the output CDIs to
+    // measure the required size.
+    buffer_size = 0;
+    next_cdi_attest = ignored_cdi_attest;
+    next_cdi_seal = ignored_cdi_seal;
+  } else {
+    buffer += CborOutSize(&out);
+    buffer_size -= CborOutSize(&out);
   }
 
   if (bcc_size != 0) {
     // If BCC is present in the bcc_handover, append the next certificate to the
     // existing BCC.
     result = BccMainFlow(context, current_cdi_attest, current_cdi_seal, bcc,
-                         bcc_size, input_values, buffer_size - CborOutSize(&out),
-                         buffer + CborOutSize(&out), &bcc_size, next_cdi_attest,
-                         next_cdi_seal);
+                         bcc_size, input_values, buffer_size, buffer, &bcc_size,
+                         next_cdi_attest, next_cdi_seal);
   } else {
-    // If BCC is not present in the bcc_handover, construct BCC from the public key
-    // derived from the current CDI attest and the next CDI certificate.
+    // If BCC is not present in the bcc_handover, construct BCC from the public
+    // key derived from the current CDI attest and the next CDI certificate.
     result = BccMainFlowWithNewBcc(
         context, current_cdi_attest, current_cdi_seal, input_values,
-        buffer_size - CborOutSize(&out), buffer + CborOutSize(&out), &bcc_size,
-        next_cdi_attest, next_cdi_seal);
-  }
-  if (result != kDiceResultOk) {
-      return result;
+        buffer_size, buffer, &bcc_size, next_cdi_attest, next_cdi_seal);
   }
   *actual_size = CborOutSize(&out) + bcc_size;
-  return kDiceResultOk;
+  return result;
 }
 
 DiceResult BccHandoverParse(const uint8_t* bcc_handover,
