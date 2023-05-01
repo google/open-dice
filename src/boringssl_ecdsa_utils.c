@@ -36,7 +36,7 @@ static int hmac(uint8_t k[64], uint8_t in[64], uint8_t *out,
                 unsigned int out_len) {
   int ret = 0;
 
-  if (out_len > 64 || out_len < 0) {
+  if (out_len != 64) {
     goto out;
   }
   HMAC_CTX ctx;
@@ -82,15 +82,21 @@ out:
   return ret;
 }
 
-// Algorithm from section 3.2 of IETF RFC6979
+// Algorithm from section 3.2 of IETF RFC6979; limited to generating up to 64
+// byte private keys.
 static BIGNUM *derivePrivateKey(const EC_GROUP *group, const uint8_t *seed,
-                                size_t seed_size, uint8_t *private_key,
-                                size_t private_key_len) {
+                                size_t seed_size, size_t private_key_len) {
   BIGNUM *candidate = NULL;
   uint8_t v[64];
   uint8_t k[64];
+  uint8_t temp[64];
   memset(v, 1, 64);
   memset(k, 0, 64);
+  memset(temp, 0, 64);
+
+  if (private_key_len > 64) {
+    goto err;
+  }
 
   if (1 != hmac3(k, v, 0x00, seed, (unsigned int)seed_size, k)) {
     goto err;
@@ -105,13 +111,13 @@ static BIGNUM *derivePrivateKey(const EC_GROUP *group, const uint8_t *seed,
     if (1 != hmac(k, v, v, sizeof(v))) {
       goto err;
     }
-    if (1 != hmac(k, v, private_key, private_key_len)) {
+    if (1 != hmac(k, v, temp, sizeof(temp))) {
       goto err;
     }
     if (1 != hmac3(k, v, 0x00, NULL, 0, k)) {
       goto err;
     }
-    candidate = BN_bin2bn(private_key, private_key_len, NULL);
+    candidate = BN_bin2bn(temp, private_key_len, NULL);
     if (!candidate) {
       goto err;
     }
@@ -148,8 +154,7 @@ int P384KeypairFromSeed(uint8_t public_key[P384_PUBLIC_KEY_SIZE],
     goto out;
   }
 
-  pD = derivePrivateKey(group, seed, DICE_PRIVATE_KEY_SEED_SIZE, private_key,
-                                P384_PRIVATE_KEY_SIZE);
+  pD = derivePrivateKey(group, seed, DICE_PRIVATE_KEY_SEED_SIZE, P384_PRIVATE_KEY_SIZE);
   if (!pD) {
     goto out;
   }
