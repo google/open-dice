@@ -14,12 +14,16 @@
 
 import("//build_overrides/pigweed.gni")
 import("$dir_pw_bloat/bloat.gni")
+import("$dir_pw_build/python.gni")
+import("$dir_pw_build/python_dist.gni")
+import("$dir_pw_build/python_venv.gni")
 import("$dir_pw_build/target_types.gni")
 import("$dir_pw_unit_test/test.gni")
 
 group("default") {
   deps = [
     ":fuzzers(//toolchains:host_fuzz)",
+    ":python.install",
     ":optimized_libs(//toolchains:host_optimized)",
     ":tests.run(//toolchains:host_debug)",
   ]
@@ -534,4 +538,58 @@ group("optimized_libs") {
     ":library_size_report",
     "//src/android:bcc",
   ]
+}
+
+# This group is built during bootstrap to setup the interactive Python
+# environment.
+pw_python_group("python") {
+  python_deps = [
+    ":pip_install_open_dice_tools",
+  ]
+}
+
+# In-tree Python packages
+_open_dice_python_packages = [ "//tools:tools" ]
+
+# Pigweed Python packages to include
+_pigweed_python_packages = [
+  "$dir_pw_env_setup:core_pigweed_python_packages",
+]
+
+_all_python_packages = _open_dice_python_packages + _pigweed_python_packages
+
+# The default venv for Python actions in GN
+# Set this gn arg in a declare_args block in this file 'BUILD.gn' or in '.gn' to
+# use this venv.
+#
+#   pw_build_PYTHON_BUILD_VENV = "//:sample_project_build_venv"
+#
+pw_python_venv("open_dice_build_venv") {
+  path = "$root_build_dir/python-venv"
+  constraints = pw_build_PIP_CONSTRAINTS
+  requirements = pw_build_PIP_REQUIREMENTS
+
+  # Ensure all third party Python dependencies are installed into this venv.
+  # This works by checking the setup.cfg files for all packages listed here and
+  # installing the packages listed in the [options].install_requires field.
+  source_packages = _all_python_packages
+}
+
+# This template collects all python packages and their dependencies into a
+# single super Python package for installation into the bootstrapped virtual
+# environment.
+pw_python_distribution("generate_open_dice_tools_python_distribution") {
+  packages = _all_python_packages
+  generate_setup_cfg = {
+    name = "open-dice-tools"
+    version = "0.0.1"
+    append_date_to_version = true
+    include_default_pyproject_file = true
+  }
+}
+
+# Install the open-dice-tools super Python package into the bootstrapped Python
+# venv.
+pw_internal_pip_install("pip_install_open_dice_tools") {
+  packages = [ ":generate_open_dice_tools_python_distribution" ]
 }
