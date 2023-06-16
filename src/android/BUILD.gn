@@ -17,6 +17,10 @@ import("$dir_pw_build/target_types.gni")
 import("$dir_pw_unit_test/test.gni")
 
 pw_source_set("bcc") {
+  public = [
+    "//include/dice/dice.h",
+    "//include/dice/utils.h",
+  ]
   sources = [ "bcc.c" ]
   deps = [
     "//:cbor_reader",
