@@ -564,7 +564,7 @@ _all_python_packages = _open_dice_python_packages + _pigweed_python_packages
 # Set this gn arg in a declare_args block in this file 'BUILD.gn' or in '.gn' to
 # use this venv.
 #
-#   pw_build_PYTHON_BUILD_VENV = "//:sample_project_build_venv"
+#   pw_build_PYTHON_BUILD_VENV = "//:open_dice_build_venv"
 #
 pw_python_venv("open_dice_build_venv") {
   path = "$root_build_dir/python-venv"
