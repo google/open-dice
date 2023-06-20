@@ -1,0 +1,33 @@
+{
+  "pw": {
+    "pw_cli": {
+      "plugins": {
+        "presubmit": {
+          "module": "open_dice_tools.presubmit",
+          "function": "main"
+        }
+      }
+    },
+    "pw_presubmit": {
+      "format": {
+        "python_formatter": "black",
+	"exclude": [
+	  "third_party/.*/src"
+	]
+      }
+    },
+    "pw_env_setup": {
+      "root_variable": "OPEN_DICE_ROOT",
+      "cipd_package_files": [
+        "third_party/pigweed/src/pw_env_setup/py/pw_env_setup/cipd_setup/default.json"
+      ],
+      "virtualenv": {
+        "gn_root": ".",
+        "gn_targets": [
+          ":python.install"
+        ]
+      },
+      "gni_file": "build_overrides/pigweed_environment.gni"
+    }
+  }
+}
