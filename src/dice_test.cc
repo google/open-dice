@@ -191,7 +191,7 @@ TEST(DiceTest, NoExtraneousOps) {
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
-  // These are brittle, but can act as a good sanity check that we're not
+  // These are brittle, but can act as an effective check that we're not
   // regressing in how many expensive operations we call.
   EXPECT_LE(ops.hash_count_, 2);
   EXPECT_LE(ops.kdf_count_, 4);

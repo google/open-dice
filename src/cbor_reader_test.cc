@@ -250,22 +250,22 @@ TEST(CborReaderTest, NullEncoding) {
 }
 
 TEST(CborReaderTest, TagEncoding) {
-  const uint8_t buffer[] = {0xcf, 0xd8, 0x18, 0xd9, 0xd9, 0xf8, 0xda, 0x4f,
-                            0x50, 0x53, 0x4e, 0xdb, 0x10, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00};
+  const uint8_t buffer[] = {0xcf, 0xd8, 0x18, 0xd9, 0xd9, 0xf8, 0xda,
+                            0x4f, 0x50, 0x53, 0x4e, 0xdb, 0x10, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   CborIn in;
   uint64_t tag;
   CborInInit(buffer, sizeof(buffer), &in);
   EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
-  EXPECT_EQ(/* Unassigned */15u, tag);
+  EXPECT_EQ(/* Unassigned */ 15u, tag);
   EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
-  EXPECT_EQ(/* COSE_Sign1 */24u, tag);
+  EXPECT_EQ(/* COSE_Sign1 */ 24u, tag);
   EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
-  EXPECT_EQ(/* Byte string */0xd9f8u, tag);
+  EXPECT_EQ(/* Byte string */ 0xd9f8u, tag);
   EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
-  EXPECT_EQ(/* Openswan cfg */0x4f50534eu, tag);
+  EXPECT_EQ(/* Openswan cfg */ 0x4f50534eu, tag);
   EXPECT_EQ(CBOR_READ_RESULT_OK, CborReadTag(&in, &tag));
-  EXPECT_EQ(/* Unassigned */0x1000000000000000u, tag);
+  EXPECT_EQ(/* Unassigned */ 0x1000000000000000u, tag);
   EXPECT_TRUE(CborInAtEnd(&in));
 }
 
@@ -274,8 +274,8 @@ TEST(CborReaderTest, TagInvalid) {
   // Reference https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml.
   const uint8_t invalid16[] = {0xd9, 0xff, 0xff};
   const uint8_t invalid32[] = {0xda, 0xff, 0xff, 0xff, 0xff};
-  const uint8_t invalid64[] = {0xdb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                               0xff};
+  const uint8_t invalid64[] = {0xdb, 0xff, 0xff, 0xff, 0xff,
+                               0xff, 0xff, 0xff, 0xff};
   CborIn in;
   uint64_t tag;
   CborInInit(invalid16, sizeof(invalid16), &in);

@@ -55,7 +55,7 @@ out:
 }
 
 static int hmac3(uint8_t k[64], uint8_t in1[64], uint8_t in2,
-                  const uint8_t *in3, unsigned int in3_len, uint8_t out[64]) {
+                 const uint8_t *in3, unsigned int in3_len, uint8_t out[64]) {
   int ret = 0;
 
   HMAC_CTX ctx;
@@ -154,7 +154,8 @@ int P384KeypairFromSeed(uint8_t public_key[P384_PUBLIC_KEY_SIZE],
     goto out;
   }
 
-  pD = derivePrivateKey(group, seed, DICE_PRIVATE_KEY_SEED_SIZE, P384_PRIVATE_KEY_SIZE);
+  pD = derivePrivateKey(group, seed, DICE_PRIVATE_KEY_SEED_SIZE,
+                        P384_PRIVATE_KEY_SIZE);
   if (!pD) {
     goto out;
   }
@@ -269,14 +270,14 @@ int P384Verify(const uint8_t *message, size_t message_size,
   if (!y) {
     goto out;
   }
-  bn_ret = BN_bin2bn(&public_key[P384_PUBLIC_KEY_SIZE / 2], P384_PUBLIC_KEY_SIZE / 2, y);
+  bn_ret = BN_bin2bn(&public_key[P384_PUBLIC_KEY_SIZE / 2],
+                     P384_PUBLIC_KEY_SIZE / 2, y);
   if (!bn_ret) {
     goto out;
   }
   if (1 != EC_KEY_set_public_key_affine_coordinates(key, x, y)) {
     goto out;
   }
-
 
   sig = ECDSA_SIG_new();
   if (!sig) {
@@ -286,8 +287,8 @@ int P384Verify(const uint8_t *message, size_t message_size,
   if (!bn_ret) {
     goto out;
   }
-  bn_ret = BN_bin2bn(&signature[P384_SIGNATURE_SIZE / 2], P384_SIGNATURE_SIZE / 2,
-            sig->s);
+  bn_ret = BN_bin2bn(&signature[P384_SIGNATURE_SIZE / 2],
+                     P384_SIGNATURE_SIZE / 2, sig->s);
   if (!bn_ret) {
     goto out;
   }

@@ -28,8 +28,8 @@
 #include "openssl/sha.h"
 
 // Gets the public key from a well-formed ECDSA P-384 COSE_Key. On
-// success populates |public_key| and returns true; public_key must hold 96 bytes
-// (uncompressed format).
+// success populates |public_key| and returns true; public_key must hold 96
+// bytes (uncompressed format).
 static bool GetPublicKeyFromCbor(const cn_cbor *key, uint8_t *public_key) {
   const int64_t kCoseKeyAlgLabel = 3;
   const int64_t kCoseKeyOpsLabel = 4;
@@ -101,7 +101,8 @@ bool ECDSA_Verify(COSE *cose_signer, int signature_index, COSE_KEY *cose_key,
   if (!signature || !key) {
     return false;
   }
-  if (signature->type != CN_CBOR_BYTES || signature->length != PUBLIC_KEY_SIZE) {
+  if (signature->type != CN_CBOR_BYTES ||
+      signature->length != PUBLIC_KEY_SIZE) {
     return false;
   }
   uint8_t public_key[PUBLIC_KEY_SIZE];

@@ -23,8 +23,8 @@ import("$dir_pw_unit_test/test.gni")
 group("default") {
   deps = [
     ":fuzzers(//toolchains:host_fuzz)",
-    ":python.install",
     ":optimized_libs(//toolchains:host_optimized)",
+    ":python.install",
     ":tests.run(//toolchains:host_debug)",
   ]
 }
@@ -545,18 +545,14 @@ group("optimized_libs") {
 # This group is built during bootstrap to setup the interactive Python
 # environment.
 pw_python_group("python") {
-  python_deps = [
-    ":pip_install_open_dice_tools",
-  ]
+  python_deps = [ ":pip_install_open_dice_tools" ]
 }
 
 # In-tree Python packages
 _open_dice_python_packages = [ "//tools:tools" ]
 
 # Pigweed Python packages to include
-_pigweed_python_packages = [
-  "$dir_pw_env_setup:core_pigweed_python_packages",
-]
+_pigweed_python_packages = [ "$dir_pw_env_setup:core_pigweed_python_packages" ]
 
 _all_python_packages = _open_dice_python_packages + _pigweed_python_packages
 

@@ -17,13 +17,11 @@ import argparse
 import logging
 import os
 from pathlib import Path
-import re
 import sys
 
 import pw_cli.log
 import pw_presubmit
 from pw_presubmit import (
-    PresubmitContext,
     build,
     cli,
     format_code,
@@ -38,25 +36,23 @@ _LOG = logging.getLogger(__name__)
 
 # Set up variables for key project paths.
 try:
-    PROJECT_ROOT = Path(os.environ['PW_PROJECT_ROOT'])
+    PROJECT_ROOT = Path(os.environ["PW_PROJECT_ROOT"])
 except KeyError:
     print(
         "ERROR: The presubmit checks must be run in the Open Dice project's "
-        'root directory',
+        "root directory",
         file=sys.stderr,
     )
     sys.exit(2)
 
-PIGWEED_ROOT = PROJECT_ROOT / 'third_party' / 'pigweed' / 'src'
+PIGWEED_ROOT = PROJECT_ROOT / "third_party" / "pigweed" / "src"
 
 # Rerun the build if files with these extensions change.
 _BUILD_EXTENSIONS = frozenset(
-    ['.rst', '.gn', '.gni', *format_code.C_FORMAT.extensions]
+    [".rst", ".gn", ".gni", *format_code.C_FORMAT.extensions]
 )
 
-
-default_build = build.GnGenNinja(name='default_build')
-
+default_build = build.GnGenNinja(name="default_build")
 
 OTHER_CHECKS = (build.gn_gen_check,)
 
@@ -97,15 +93,15 @@ def run(install: bool, exclude: list, **presubmit_args) -> int:
     # Install the presubmit Git pre-push hook, if requested.
     if install:
         install_hook.install_git_hook(
-            'pre-push',
+            "pre-push",
             [
-                'python',
-                '-m',
-                'sample_project_tools.presubmit_checks',
-                '--base',
-                'origin/main..HEAD',
-                '--program',
-                'quick',
+                "python",
+                "-m",
+                "sample_project_tools.presubmit_checks",
+                "--base",
+                "origin/main..HEAD",
+                "--program",
+                "quick",
             ],
         )
         return 0
@@ -119,18 +115,18 @@ def run(install: bool, exclude: list, **presubmit_args) -> int:
 def main() -> int:
     """Run the presubmit checks for this repository."""
     parser = argparse.ArgumentParser(description=__doc__)
-    cli.add_arguments(parser, PROGRAMS, 'quick')
+    cli.add_arguments(parser, PROGRAMS, "quick")
 
     # Define an option for installing a Git pre-push hook for this script.
     parser.add_argument(
-        '--install',
-        action='store_true',
-        help='Install the presubmit as a Git pre-push hook and exit.',
+        "--install",
+        action="store_true",
+        help="Install the presubmit as a Git pre-push hook and exit.",
     )
 
     return run(**vars(parser.parse_args()))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pw_cli.log.install(logging.INFO)
     sys.exit(main())

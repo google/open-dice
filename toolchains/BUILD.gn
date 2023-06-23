@@ -34,7 +34,7 @@ config("enable_sanitizers") {
   filter_path = rebase_path("sanitize_filter.txt", root_build_dir)
   cflags = [
     "-fsanitize=address,undefined,integer",
-    "-fsanitize-blacklist=$filter_path",
+    "-fsanitize-blacklist=$filter_path",  # inclusive-language: ignore
   ]
   ldflags = cflags
   inputs = [ "sanitize_filter.txt" ]

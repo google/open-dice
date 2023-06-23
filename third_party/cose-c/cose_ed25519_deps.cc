@@ -23,7 +23,8 @@
 
 // Gets the public key from a well-formed Ed25519 COSE_Key. On success populates
 // |public_key| and returns true.
-static bool GetPublicKeyFromCbor(const cn_cbor *key, uint8_t public_key[PUBLIC_KEY_SIZE]) {
+static bool GetPublicKeyFromCbor(const cn_cbor *key,
+                                 uint8_t public_key[PUBLIC_KEY_SIZE]) {
   const int64_t kCoseKeyAlgLabel = 3;
   const int64_t kCoseKeyOpsLabel = 4;
   const uint64_t kCoseKeyOpsVerify = 2;

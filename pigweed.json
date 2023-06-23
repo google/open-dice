@@ -12,7 +12,8 @@
       "format": {
         "python_formatter": "black",
 	"exclude": [
-	  "third_party/.*/src"
+	  "third_party/.*/src",
+	  "third_party/boringssl/err_data.c"
 	]
       }
     },
