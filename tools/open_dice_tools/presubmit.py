@@ -29,6 +29,7 @@ from pw_presubmit import (
     inclusive_language,
     install_hook,
     keep_sorted,
+    presubmit_context,
     python_checks,
 )
 
@@ -54,18 +55,22 @@ _BUILD_EXTENSIONS = frozenset(
 
 default_build = build.GnGenNinja(name="default_build")
 
+EXCLUSIONS = presubmit_context.FormatOptions.load().exclude
+
 OTHER_CHECKS = (build.gn_gen_check,)
+
+_FORMAT = (format_code.presubmit_checks(exclude=EXCLUSIONS),)
 
 QUICK = (
     default_build,
-    format_code.presubmit_checks(),
+    _FORMAT,
 )
 
 LINTFORMAT = (
     # keep-sorted: start
-    format_code.presubmit_checks(),
-    inclusive_language.presubmit_check,
-    keep_sorted.presubmit_check,
+    _FORMAT,
+    inclusive_language.presubmit_check.with_filter(exclude=EXCLUSIONS),
+    keep_sorted.presubmit_check.with_filter(exclude=EXCLUSIONS),
     python_checks.gn_python_lint,
     # keep-sorted: end
 )
