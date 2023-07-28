@@ -17,6 +17,7 @@ import argparse
 import logging
 import os
 from pathlib import Path
+import re
 import sys
 
 import pw_cli.log
@@ -24,6 +25,7 @@ import pw_presubmit
 from pw_presubmit import (
     build,
     cli,
+    cpp_checks,
     format_code,
     git_repo,
     inclusive_language,
@@ -66,13 +68,23 @@ QUICK = (
     _FORMAT,
 )
 
+
+def include_guard(path: Path) -> str:
+    path = path.relative_to(PROJECT_ROOT)
+    exclude = ("include",)
+    transform = {"ulib": "lib"}
+    parts = [transform.get(x, x) for x in path.parts if x not in exclude]
+    return re.sub(r"[.-]", "_", "".join(f"{x}_" for x in parts).upper())
+
+
 LINTFORMAT = (
-    # keep-sorted: start
     _FORMAT,
+    cpp_checks.include_guard_check(include_guard).with_filter(
+        exclude=EXCLUSIONS
+    ),
     inclusive_language.presubmit_check.with_filter(exclude=EXCLUSIONS),
     keep_sorted.presubmit_check.with_filter(exclude=EXCLUSIONS),
     python_checks.gn_python_lint,
-    # keep-sorted: end
 )
 
 FULL = (
