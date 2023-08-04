@@ -12,6 +12,9 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
+#ifndef DICE_FUZZ_UTILS_H_
+#define DICE_FUZZ_UTILS_H_
+
 #include <cstdint>
 #include <vector>
 
@@ -70,3 +73,5 @@ struct FuzzedInputValues {
 
 }  // namespace fuzz
 }  // namespace dice
+
+#endif  // DICE_FUZZ_UTILS_H_

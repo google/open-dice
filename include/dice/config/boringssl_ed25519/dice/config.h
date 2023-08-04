@@ -12,8 +12,8 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#ifndef DICE_CONFIG_H_
-#define DICE_CONFIG_H_
+#ifndef DICE_CONFIG_BORINGSSL_ED25519_DICE_CONFIG_H_
+#define DICE_CONFIG_BORINGSSL_ED25519_DICE_CONFIG_H_
 
 // Ed25519
 // COSE Key alg value from Table 2 of RFC9053
@@ -22,4 +22,4 @@
 #define DICE_PRIVATE_KEY_SIZE 64
 #define DICE_SIGNATURE_SIZE 64
 
-#endif  // DICE_DICE_CONFIG_H_
+#endif  // DICE_CONFIG_BORINGSSL_ED25519_DICE_DICE_CONFIG_H_

@@ -12,6 +12,9 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
+#ifndef DICE_TEST_UTILS_H_
+#define DICE_TEST_UTILS_H_
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -72,3 +75,5 @@ bool VerifyCertificateChain(CertificateType cert_type,
 
 }  // namespace test
 }  // namespace dice
+
+#endif  // DICE_TEST_UTILS_

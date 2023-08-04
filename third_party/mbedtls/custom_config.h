@@ -12,8 +12,8 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#ifndef MBEDTLS_CONFIG_H
-#define MBEDTLS_CONFIG_H
+#ifndef THIRD_PARTY_MBEDTLS_CUSTOM_CONFIG_H_
+#define THIRD_PARTY_MBEDTLS_CUSTOM_CONFIG_H_
 
 /* mbed TLS feature support */
 #define MBEDTLS_DEPRECATED_REMOVED
@@ -40,4 +40,4 @@
 
 #include "mbedtls/check_config.h"
 
-#endif /* MBEDTLS_CONFIG_H */
+#endif /* THIRD_PARTY_MBEDTLS_CUSTOM_CONFIG_H_ */

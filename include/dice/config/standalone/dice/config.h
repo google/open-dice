@@ -12,8 +12,8 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#ifndef DICE_CONFIG_H_
-#define DICE_CONFIG_H_
+#ifndef DICE_CONFIG_STANDALONE_DICE_CONFIG_H_
+#define DICE_CONFIG_STANDALONE_DICE_CONFIG_H_
 
 // The standalone config is only used for testing. In particular, it is used
 // for tests that focus on the core aspects of the library and not the ops.
@@ -23,4 +23,4 @@
 #define DICE_PRIVATE_KEY_SIZE 1
 #define DICE_SIGNATURE_SIZE 1
 
-#endif  // DICE_DICE_CONFIG_H_
+#endif  // DICE_CONFIG_STANDALONE_DICE_CONFIG_H_

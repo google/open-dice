@@ -12,8 +12,8 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#ifndef BORINGSSL_ECDSA_UTILS_H_
-#define BORINGSSL_ECDSA_UTILS_H_
+#ifndef DICE_BORINGSSL_ECDSA_UTILS_H_
+#define DICE_BORINGSSL_ECDSA_UTILS_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -54,4 +54,4 @@ int P384Verify(const uint8_t* message, size_t message_size,
 }  // extern "C"
 #endif
 
-#endif  // BORINGSSL_ECDSA_UTILS_H_
+#endif  // DICE_BORINGSSL_ECDSA_UTILS_H_

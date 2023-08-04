@@ -12,12 +12,12 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#ifndef DICE_CONFIG_H_
-#define DICE_CONFIG_H_
+#ifndef DICE_CONFIG_MBEDTLS_ECDSA_P256_DICE_CONFIG_H_
+#define DICE_CONFIG_MBEDTLS_ECDSA_P256_DICE_CONFIG_H_
 
 // ECDSA-P256
 #define DICE_PUBLIC_KEY_SIZE 33
 #define DICE_PRIVATE_KEY_SIZE 32
 #define DICE_SIGNATURE_SIZE 64
 
-#endif  // DICE_DICE_CONFIG_H_
+#endif  // DICE_CONFIG_MBEDTLS_ECDSA_P256_DICE_DICE_CONFIG_H_
