@@ -179,14 +179,13 @@ int P384KeypairFromSeed(uint8_t public_key[P384_PUBLIC_KEY_SIZE],
   if (1 != EC_POINT_get_affine_coordinates_GFp(group, publicKey, x, y, NULL)) {
     goto out;
   }
-  if (BN_num_bytes(x) > P384_PRIVATE_KEY_SIZE) {
+  if (1 != BN_bn2bin_padded(&public_key[0], P384_PUBLIC_KEY_SIZE / 2, x)) {
     goto out;
   }
-  BN_bn2bin(x, &public_key[0]);
-  if (BN_num_bytes(y) > P384_PRIVATE_KEY_SIZE) {
+  if (1 != BN_bn2bin_padded(&public_key[P384_PUBLIC_KEY_SIZE / 2],
+                            P384_PUBLIC_KEY_SIZE / 2, y)) {
     goto out;
   }
-  BN_bn2bin(y, &public_key[P384_PRIVATE_KEY_SIZE]);
   ret = 1;
 
 out:
@@ -224,15 +223,13 @@ int P384Sign(uint8_t signature[P384_SIGNATURE_SIZE], const uint8_t *message,
   if (!sig) {
     goto out;
   }
-
-  if (BN_num_bytes(sig->r) > P384_PRIVATE_KEY_SIZE) {
+  if (1 != BN_bn2bin_padded(&signature[0], P384_SIGNATURE_SIZE / 2, sig->r)) {
     goto out;
   }
-  BN_bn2bin(sig->r, &signature[0]);
-  if (BN_num_bytes(sig->s) > P384_PRIVATE_KEY_SIZE) {
+  if (1 != BN_bn2bin_padded(&signature[P384_SIGNATURE_SIZE / 2],
+                            P384_SIGNATURE_SIZE / 2, sig->s)) {
     goto out;
   }
-  BN_bn2bin(sig->s, &signature[P384_PRIVATE_KEY_SIZE]);
   ret = 1;
 
 out:
