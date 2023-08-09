@@ -1,6 +1,6 @@
 # Open Profile for DICE
 
-v2.4
+v2.5
 
 [TOC]
 
@@ -692,6 +692,7 @@ OpenDiceInput ::= SEQUENCE {
   authorityHash           [4] EXPLICIT OCTET STRING OPTIONAL,
   authorityDescriptor     [5] EXPLICIT OCTET STRING OPTIONAL,
   mode                    [6] EXPLICIT Mode OPTIONAL,
+  profileName             [7] EXPLICIT UTF8String OPTIONAL,
 }
 ```
 
@@ -721,6 +722,8 @@ extensibility in the format itself. The actual semantics are as follows:
     here must have been used to compute authorityHash; i.e. a change in this
     value implies a change in authorityHash.
 *   **mode** - Required. This is the mode input value.
+*   **profileName** - Optional. This is the name of the DICE profile that
+    defines the contents of this certificate.
 
 ### CBOR UDS Certificates
 
@@ -772,17 +775,18 @@ The following table lists additional entries in the CWT. By convention, the
 private fields in the map are labeled using negative integers starting at
 -4670545.
 
-Field                   | CBOR Label
------------------------ | ----------
-codeHash                | -4670545
-codeDescriptor          | -4670546
-configurationHash       | -4670547
-configurationDescriptor | -4670548
-authorityHash           | -4670549
-authorityDescriptor     | -4670550
-mode                    | -4670551
-subjectPublicKey        | -4670552
-keyUsage                | -4670553
+Field                   | CBOR Label | Major Type
+----------------------- | ---------- | ----------
+codeHash                | -4670545   | 2 (bstr)
+codeDescriptor          | -4670546   | 2 (bstr)
+configurationHash       | -4670547   | 2 (bstr)
+configurationDescriptor | -4670548   | 2 (bstr)
+authorityHash           | -4670549   | 2 (bstr)
+authorityDescriptor     | -4670550   | 2 (bstr)
+mode                    | -4670551   | 2 (bstr)
+subjectPublicKey        | -4670552   | 2 (bstr)
+keyUsage                | -4670553   | 2 (bstr)
+profileName             | -4670554   | 3 (tstr)
 
 The *subjectPublicKey* field contains the public key associated with the subject
 in the form of a COSE\_Key structure encoded to a CBOR byte string.
@@ -793,10 +797,10 @@ in little-endian byte order (i.e. bit 0 is the low-order bit of the first byte).
 For CDI certificates this should have only the keyCertSign bit set.
 
 All other fields have identical semantics to their counterparts in the
-[X.509 custom extension](#custom-extension-format). The encoding for each is a
-CBOR byte string including *mode* which is a CBOR byte string holding a single
-byte (the advantage to using a byte string here is a consistent encoding size
-regardless of the value of mode).
+[X.509 custom extension](#custom-extension-format). The *mode* field is encoded
+as a byte string holding a single byte. The advantage of using a byte string as
+opposed to an integer type is a consistent encoding size for all possible
+values.
 
 # Appendix A: Implementing on Existing Hardware
 
