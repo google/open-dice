@@ -151,6 +151,45 @@ static uint8_t GetFieldTag(uint8_t tag) {
 }
 
 // Can be used with MBEDTLS_ASN1_CHK_ADD.
+static int WriteExplicitModeField(uint8_t tag, int value, uint8_t** pos,
+                                  uint8_t* start) {
+  // ASN.1 constants not defined by mbedtls.
+  const uint8_t kEnumTypeTag = 10;
+
+  int ret = 0;  // Used by MBEDTLS_ASN1_CHK_ADD.
+  int field_length = 0;
+  MBEDTLS_ASN1_CHK_ADD(field_length, mbedtls_asn1_write_int(pos, start, value));
+  // Overwrite the 'int' type.
+  ++(*pos);
+  --field_length;
+  MBEDTLS_ASN1_CHK_ADD(field_length,
+                       mbedtls_asn1_write_tag(pos, start, kEnumTypeTag));
+
+  // Explicitly tagged, so add the field tag too.
+  MBEDTLS_ASN1_CHK_ADD(field_length,
+                       mbedtls_asn1_write_len(pos, start, field_length));
+  MBEDTLS_ASN1_CHK_ADD(field_length,
+                       mbedtls_asn1_write_tag(pos, start, GetFieldTag(tag)));
+  return field_length;
+}
+
+// Can be used with MBEDTLS_ASN1_CHK_ADD.
+static int WriteExplicitUtf8StringField(uint8_t tag, const void* value,
+                                        size_t value_size, uint8_t** pos,
+                                        uint8_t* start) {
+  int ret = 0;  // Used by MBEDTLS_ASN1_CHK_ADD.
+  int field_length = 0;
+  MBEDTLS_ASN1_CHK_ADD(field_length, mbedtls_asn1_write_utf8_string(
+                                         pos, start, value, value_size));
+  // Explicitly tagged, so add the field tag too.
+  MBEDTLS_ASN1_CHK_ADD(field_length,
+                       mbedtls_asn1_write_len(pos, start, field_length));
+  MBEDTLS_ASN1_CHK_ADD(field_length,
+                       mbedtls_asn1_write_tag(pos, start, GetFieldTag(tag)));
+  return field_length;
+}
+
+// Can be used with MBEDTLS_ASN1_CHK_ADD.
 static int WriteExplicitOctetStringField(uint8_t tag, const uint8_t* value,
                                          size_t value_size, uint8_t** pos,
                                          uint8_t* start) {
@@ -168,8 +207,6 @@ static int WriteExplicitOctetStringField(uint8_t tag, const uint8_t* value,
 
 static int GetDiceExtensionDataHelper(const DiceInputValues* input_values,
                                       uint8_t** pos, uint8_t* start) {
-  // ASN.1 constants not defined by mbedtls.
-  const uint8_t kEnumTypeTag = 10;
   // ASN.1 tags for extension fields.
   const uint8_t kDiceFieldCodeHash = 0;
   const uint8_t kDiceFieldCodeDescriptor = 1;
@@ -178,24 +215,23 @@ static int GetDiceExtensionDataHelper(const DiceInputValues* input_values,
   const uint8_t kDiceFieldAuthorityHash = 4;
   const uint8_t kDiceFieldAuthorityDescriptor = 5;
   const uint8_t kDiceFieldMode = 6;
+  const uint8_t kDiceFieldProfileName = 7;
 
   // Build up the extension ASN.1 in reverse order.
   int ret = 0;  // Used by MBEDTLS_ASN1_CHK_ADD.
   int length = 0;
 
-  // Add the mode field.
-  MBEDTLS_ASN1_CHK_ADD(length,
-                       mbedtls_asn1_write_int(pos, start, input_values->mode));
-  // Overwrite the 'int' type.
-  ++(*pos);
-  --length;
-  MBEDTLS_ASN1_CHK_ADD(length,
-                       mbedtls_asn1_write_tag(pos, start, kEnumTypeTag));
+  // Add the profile name field.
+  if (DICE_PROFILE_NAME) {
+    MBEDTLS_ASN1_CHK_ADD(length, WriteExplicitUtf8StringField(
+                                     kDiceFieldProfileName, DICE_PROFILE_NAME,
+                                     strlen(DICE_PROFILE_NAME), pos, start));
+  }
 
-  // Explicitly tagged, so add the field tag too.
-  MBEDTLS_ASN1_CHK_ADD(length, mbedtls_asn1_write_len(pos, start, length));
+  // Add the mode field.
   MBEDTLS_ASN1_CHK_ADD(
-      length, mbedtls_asn1_write_tag(pos, start, GetFieldTag(kDiceFieldMode)));
+      length,
+      WriteExplicitModeField(kDiceFieldMode, input_values->mode, pos, start));
 
   // Add the authorityDescriptor field, if applicable.
   if (input_values->authority_descriptor_size > 0) {

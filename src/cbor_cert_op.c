@@ -172,6 +172,7 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   const int64_t kModeLabel = -4670551;
   const int64_t kSubjectPublicKeyLabel = -4670552;
   const int64_t kKeyUsageLabel = -4670553;
+  const int64_t kProfileNameLabel = -4670554;
   // Key usage constant per RFC 5280.
   const uint8_t kKeyUsageCertSign = 32;
 
@@ -186,6 +187,9 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
     map_pairs += 1;
   }
   if (input_values->authority_descriptor_size > 0) {
+    map_pairs += 1;
+  }
+  if (DICE_PROFILE_NAME) {
     map_pairs += 1;
   }
 
@@ -247,6 +251,11 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   // Add the key usage.
   CborWriteInt(kKeyUsageLabel, &out);
   CborWriteBstr(/*data_size=*/1, &key_usage, &out);
+  // Add the profile name
+  if (DICE_PROFILE_NAME) {
+    CborWriteInt(kProfileNameLabel, &out);
+    CborWriteTstr(DICE_PROFILE_NAME, &out);
+  }
   *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;

@@ -17,6 +17,7 @@
 // HKDF-SHA512, and Ed25519-SHA512.
 
 #include <stdint.h>
+#include <string.h>
 
 #include "dice/dice.h"
 #include "dice/ops.h"
@@ -41,6 +42,7 @@ typedef struct DiceExtensionAsn1 {
   ASN1_OCTET_STRING* authority_hash;
   ASN1_OCTET_STRING* authority_descriptor;
   ASN1_ENUMERATED* mode;
+  ASN1_UTF8STRING* profile_name;
 } DiceExtensionAsn1;
 
 // clang-format off
@@ -52,6 +54,7 @@ ASN1_SEQUENCE(DiceExtensionAsn1) = {
     ASN1_EXP_OPT(DiceExtensionAsn1, authority_hash, ASN1_OCTET_STRING, 4),
     ASN1_EXP_OPT(DiceExtensionAsn1, authority_descriptor, ASN1_OCTET_STRING, 5),
     ASN1_EXP_OPT(DiceExtensionAsn1, mode, ASN1_ENUMERATED, 6),
+    ASN1_EXP_OPT(DiceExtensionAsn1, profile_name, ASN1_UTF8STRING, 7),
 } ASN1_SEQUENCE_END(DiceExtensionAsn1)
 DECLARE_ASN1_FUNCTIONS(DiceExtensionAsn1)
 IMPLEMENT_ASN1_FUNCTIONS(DiceExtensionAsn1)
@@ -424,6 +427,20 @@ static DiceResult GetDiceExtensionData(const DiceInputValues* input_values,
   if (!ASN1_ENUMERATED_set(asn1->mode, input_values->mode)) {
     result = kDiceResultPlatformError;
     goto out;
+  }
+
+  // Encode profile name.
+  if (DICE_PROFILE_NAME) {
+    asn1->profile_name = ASN1_UTF8STRING_new();
+    if (!asn1->profile_name) {
+      result = kDiceResultPlatformError;
+      goto out;
+    }
+    if (!ASN1_STRING_set(asn1->profile_name, DICE_PROFILE_NAME,
+                         strlen(DICE_PROFILE_NAME))) {
+      result = kDiceResultPlatformError;
+      goto out;
+    }
   }
 
   *actual_size = i2d_DiceExtensionAsn1(asn1, NULL);

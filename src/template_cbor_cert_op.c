@@ -167,7 +167,7 @@ DiceResult DiceGenerateCertificate(
   // Variable length descriptors are not supported.
   if (input_values->code_descriptor_size > 0 ||
       input_values->config_type != kDiceConfigTypeInline ||
-      input_values->authority_descriptor_size > 0) {
+      input_values->authority_descriptor_size > 0 || DICE_PROFILE_NAME) {
     return kDiceResultInvalidInput;
   }
 

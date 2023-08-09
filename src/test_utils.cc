@@ -535,7 +535,7 @@ ScopedCbor ExtractCwtFromCborCertificate(const uint8_t* certificate,
     return nullptr;
   }
   ScopedCbor cwt(cn_cbor_decode(payload->v.bytes, payload->length, &error));
-  if (cwt && cwt->type != CN_CBOR_MAP) {
+  if (!cwt || cwt->type != CN_CBOR_MAP) {
     return nullptr;
   }
   return cwt;
