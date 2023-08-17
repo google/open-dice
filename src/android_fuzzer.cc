@@ -12,7 +12,7 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#include "dice/android/bcc.h"
+#include "dice/android.h"
 #include "dice/fuzz_utils.h"
 #include "dice/utils.h"
 #include "fuzzer/FuzzedDataProvider.h"
@@ -30,21 +30,20 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   // Prepare the fuzzed inputs.
   auto input_values = FuzzedInputValues::ConsumeFrom(fdp);
-  auto bcc_handover = ConsumeRandomLengthStringAsBytesFrom(fdp);
+  auto handover = ConsumeRandomLengthStringAsBytesFrom(fdp);
 
   // Initialize output parameters with fuzz data in case they are wrongly being
   // read from.
-  constexpr size_t kNextBccHandoverBufferSize = 1024;
-  auto next_bcc_handover_actual_size = fdp.ConsumeIntegral<size_t>();
-  uint8_t next_bcc_handover[kNextBccHandoverBufferSize] = {};
+  constexpr size_t kNextHandoverBufferSize = 1024;
+  auto next_handover_actual_size = fdp.ConsumeIntegral<size_t>();
+  uint8_t next_handover[kNextHandoverBufferSize] = {};
 
-  fdp.ConsumeData(&next_bcc_handover, kNextBccHandoverBufferSize);
+  fdp.ConsumeData(&next_handover, kNextHandoverBufferSize);
 
   // Fuzz the main flow.
-  BccHandoverMainFlow(/*context=*/NULL, bcc_handover.data(),
-                      bcc_handover.size(), input_values,
-                      kNextBccHandoverBufferSize, next_bcc_handover,
-                      &next_bcc_handover_actual_size);
+  DiceAndroidHandoverMainFlow(
+      /*context=*/NULL, handover.data(), handover.size(), input_values,
+      kNextHandoverBufferSize, next_handover, &next_handover_actual_size);
 
   return 0;
 }

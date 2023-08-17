@@ -366,8 +366,32 @@ pw_executable("mbedtls_ops_fuzzer") {
   ]
 }
 
+pw_static_library("dice_android") {
+  public = [
+    "//include/dice/dice.h",
+    "//include/dice/utils.h",
+  ]
+  sources = [ "src/android.c" ]
+  deps = [
+    ":cbor_reader",
+    ":cbor_writer",
+    ":dice_with_cbor_ed25519_cert",
+  ]
+}
+
+pw_test("android_test") {
+  sources = [ "src/android_test.cc" ]
+  deps = [ ":dice_android" ]
+}
+
+pw_executable("android_fuzzer") {
+  sources = [ "src/android_fuzzer.cc" ]
+  deps = [ ":dice_android" ]
+}
+
 pw_test_group("tests") {
   tests = [
+    ":android_test",
     ":boringssl_ed25519_ops_test",
     ":cbor_ed25519_cert_op_test",
     ":cbor_p384_cert_op_test",
@@ -377,12 +401,12 @@ pw_test_group("tests") {
     ":mbedtls_ops_test",
     ":template_cbor_ed25519_cert_op_test",
     ":template_cert_op_test",
-    "//src/android:bcc_test",
   ]
 }
 
 group("fuzzers") {
   deps = [
+    ":android_fuzzer",
     ":boringssl_ed25519_ops_fuzzer",
     ":boringssl_p384_ops_fuzzer",
     ":cbor_ed25519_cert_op_fuzzer",
@@ -391,7 +415,6 @@ group("fuzzers") {
     ":mbedtls_ops_fuzzer",
     ":template_cbor_ed25519_cert_op_fuzzer",
     ":template_cert_op_fuzzer",
-    "//src/android:bcc_fuzzer",
   ]
 }
 
@@ -529,6 +552,7 @@ pw_size_diff("library_size_report") {
 
 group("optimized_libs") {
   deps = [
+    ":dice_android",
     ":dice_standalone",
     ":dice_with_boringssl_ed25519_ops",
     ":dice_with_cbor_ed25519_cert",
@@ -538,7 +562,6 @@ group("optimized_libs") {
     ":dice_with_x509_template_cert",
     ":executable_size_report",
     ":library_size_report",
-    "//src/android:bcc",
   ]
 }
 
