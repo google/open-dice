@@ -43,14 +43,29 @@ Disclaimer: This is not an officially supported Google product.
 
 Different implementations use different third party libraries. The third\_party
 directory contains build files and git submodules for each of these. The
-[bootstrap](bootstrap.sh) script will automatically initialize all submodules.
+submodules must be initialized once after cloning the repo, using `git submodule
+update --init`, and updated after pulling commits that roll the submodules using
+`git submodule update`.
 
 ### Building and Running Tests
 
+#### Quick setup
+
+To setup the build environment the first time:
+
 ```bash
+$ git submodule update --init
 $ source bootstrap.sh
+$ gn gen out
+```
+
+To build and run tests:
+
+```bash
 $ ninja -C out
 ```
+
+#### More details
 
 The easiest way, and currently the only supported way, to build and run tests is
 from a [Pigweed](https://pigweed.googlesource.com/pigweed/pigweed/) environment

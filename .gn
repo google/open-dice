@@ -13,3 +13,4 @@
 # the License.
 
 buildconfig = "//BUILDCONFIG.gn"
+export_compile_commands = [ "//*" ]
