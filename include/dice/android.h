@@ -26,6 +26,7 @@ extern "C" {
 #define DICE_ANDROID_CONFIG_COMPONENT_NAME (1 << 0)
 #define DICE_ANDROID_CONFIG_COMPONENT_VERSION (1 << 1)
 #define DICE_ANDROID_CONFIG_RESETTABLE (1 << 2)
+#define DICE_ANDROID_CONFIG_SECURITY_VERSION (1 << 3)
 
 // Contains the input values used to construct the Android Profile for DICE
 // configuration descriptor. Optional fields are selected in the |inputs|
@@ -35,10 +36,12 @@ extern "C" {
 //    configs: A bitfield selecting the config fields to include.
 //    component_name: Name of the component.
 //    component_version: Version of the component.
+//    security_version: Monotonically increasing version of the component.
 typedef struct DiceAndroidConfigValues_ {
   uint32_t configs;
   const char* component_name;
   uint64_t component_version;
+  uint64_t security_version;
 } DiceAndroidConfigValues;
 
 // Formats a configuration descriptor following the Android Profile for DICE
