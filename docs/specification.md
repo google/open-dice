@@ -62,6 +62,10 @@ specification considers out of scope. In particular, this document specifies:
 *   Additional requirements, including asymmetric key derivation and
     certification
 
+Known specializations of this profile include:
+
+*   [Android Profile for DICE](android.md)
+
 #### Goals
 
 The main goals of this document are:

@@ -12,11 +12,7 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-// The Android Profile for DICE is a specialization of the Open Profile for DICE
-// that is used by Android. More details can be found in the remote key
-// provisioning (RKP) documentation linked below.
-//
-// https://cs.android.com/android/platform/superproject/+/main:hardware/interfaces/security/rkp/README.md
+// For more information on the Android Profile for DICE, see docs/android.md.
 
 #include "dice/android.h"
 
