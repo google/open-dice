@@ -29,8 +29,8 @@ extern "C" {
 #define DICE_ANDROID_CONFIG_SECURITY_VERSION (1 << 3)
 
 // Contains the input values used to construct the Android Profile for DICE
-// configuration descriptor. Optional fields are selected in the |inputs|
-// bitfield.
+// configuration descriptor. The fields to include in the configuration
+// descriptor are selected in the |configs| bitfield.
 //
 // Fields:
 //    configs: A bitfield selecting the config fields to include.
