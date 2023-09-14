@@ -76,7 +76,6 @@ of the reserved range.
 Unless explicitly stated as required in the [versions](#versions) section, each
 field is optional. If no fields are relevant, an empty map should be encoded.
 
-```
 | Name              | Key    | Value type | Meaning                            |
 | ----------------- | ------ | ---------- | -----------------------------------|
 | Component name    | -70002 | tstr       | Name of the component              |
@@ -88,7 +87,6 @@ field is optional. If no fields are relevant, an empty map should be encoded.
 :                   :        :            : where a greater value indicates a  :
 :                   :        :            : newer version, for example, the    :
 :                   :        :            : anti-rollback counter              :
-```
 
 ### Versions
 
@@ -99,15 +97,16 @@ updates and lower-level software (such as ROM) that might not update.
 
 Versions of this profile are identified by their profile name which is composed
 of the prefix `"android."` followed by the Android version number it aligns
-with.  If no profile name is included in the certificate, `"android.14"` is
-assumed.
+with. Certificates declare which profile they are following in the `profileName`
+field defined by the [Open Profile for DICE](specification.md). If no profile
+name is included in the certificate, `"android.14"` is assumed.
 
 Within a DICE chain, the version of the profile used in each certificate must
 be the same or greater than the version used in the previous certificate. This
 ensures the all certificates are aware of, and can maintain, any chain
 invariants that can be added in any version of the profile.
 
-Android provides the [`hwtrust`](hwtrust-tool) tool which can validate that
+Android provides the [`hwtrust`][hwtrust-tool] tool which can validate that
 certificate chains conform to this profile and can assist in diagnosing
 problems.
 
@@ -132,7 +131,8 @@ The profile named `"android.14"` aligns with Android 14.
 
 #### `"android.15"`
 
-The profile named `"android.15"` aligns with Android 15.
+The profile named `"android.15"` aligns with Android 15. It is backwards
+compatible with the previous versions of the Andorid Profile for DICE.
 
 *   Based on the [Open Profile for DICE v2.5][open-dice-v2.5].
 *   The `configurationHash` field is permitted to be missing rather than being
@@ -141,7 +141,8 @@ The profile named `"android.15"` aligns with Android 15.
 #### `"android.16"`
 
 The profile named `"android.16"` aligns with Android 16 and is still subject to
-change.
+change. It is backwards compatible with the previous versions of the Android
+Profile for DICE.
 
 *   Based on the [Open Profile for DICE v2.5][open-dice-v2.5].
 *   The security version field of the [configuration
