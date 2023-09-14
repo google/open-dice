@@ -76,17 +76,12 @@ of the reserved range.
 Unless explicitly stated as required in the [versions](#versions) section, each
 field is optional. If no fields are relevant, an empty map should be encoded.
 
-| Name              | Key    | Value type | Meaning                            |
-| ----------------- | ------ | ---------- | -----------------------------------|
-| Component name    | -70002 | tstr       | Name of the component              |
-| Component version | -70003 | int / tstr | Version of the component           |
-| Resettable        | -70004 | null       | If present, key changes on factory |
-:                   :        :            : reset                              :
-| Security version  | -70005 | uint       | Machine-comparable, monotonically  |
-:                   :        :            : increasing version of the component:
-:                   :        :            : where a greater value indicates a  :
-:                   :        :            : newer version, for example, the    :
-:                   :        :            : anti-rollback counter              :
+Name                   | Key    | Value type           | Meaning
+---                    | ---    | ---                  | ---
+Component&nbsp;name    | -70002 | tstr                 | Name of the component
+Component&sbsp;version | -70003 | int&nbsp;/&nbsp;tstr | Version of the component
+Resettable             | -70004 | null                 | If present, key changes on factory reset
+Security&nbsp;version  | -70005 | uint                 | Machine-comparable, monotonically increasing version of the component where a greater value indicates a newer version, for example, the anti-rollback counter
 
 ### Versions
 
