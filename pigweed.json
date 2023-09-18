@@ -19,6 +19,7 @@
     },
     "pw_env_setup": {
       "root_variable": "OPEN_DICE_ROOT",
+      "relative_pigweed_root": "third_party/pigweed/src",
       "cipd_package_files": [
         "third_party/pigweed/src/pw_env_setup/py/pw_env_setup/cipd_setup/default.json"
       ],
