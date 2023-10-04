@@ -13,7 +13,8 @@
         "python_formatter": "black",
         "exclude": [
           "third_party/.*/src",
-          "third_party/boringssl/err_data.c"
+          "third_party/boringssl/err_data.c",
+          "^patches\\.json$"
         ]
       }
     },
