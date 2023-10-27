@@ -114,7 +114,7 @@ def run(install: bool, exclude: list, **presubmit_args) -> int:
             [
                 "python",
                 "-m",
-                "sample_project_tools.presubmit_checks",
+                "open_dice_tools.presubmit",
                 "--base",
                 "origin/main..HEAD",
                 "--program",
