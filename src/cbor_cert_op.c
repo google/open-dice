@@ -26,8 +26,6 @@
 #include "dice/ops/trait/cose.h"
 #include "dice/utils.h"
 
-// Max size of COSE_Sign1 including payload.
-#define DICE_MAX_CERTIFICATE_SIZE 2048
 // Max size of COSE_Key encoding.
 #define DICE_MAX_PUBLIC_KEY_SIZE (DICE_PUBLIC_KEY_SIZE + 32)
 // Max size of the COSE_Sign1 protected attributes.
@@ -53,9 +51,9 @@ static DiceResult EncodeProtectedAttributes(size_t buffer_size, uint8_t* buffer,
 
 static DiceResult EncodeCoseTbs(const uint8_t* protected_attributes,
                                 size_t protected_attributes_size,
-                                const uint8_t* payload, size_t payload_size,
-                                const uint8_t* aad, size_t aad_size,
-                                size_t buffer_size, uint8_t* buffer,
+                                size_t payload_size, const uint8_t* aad,
+                                size_t aad_size, size_t buffer_size,
+                                uint8_t* buffer, uint8_t** payload,
                                 size_t* encoded_size) {
   struct CborOut out;
   CborOutInit(buffer, buffer_size, &out);
@@ -67,8 +65,8 @@ static DiceResult EncodeCoseTbs(const uint8_t* protected_attributes,
   CborWriteBstr(protected_attributes_size, protected_attributes, &out);
   // Additional authenticated data.
   CborWriteBstr(aad_size, aad, &out);
-  // Payload from COSE_Sign1.
-  CborWriteBstr(payload_size, payload, &out);
+  // Space for the payload, to be filled in by the caller.
+  *payload = CborAllocBstr(payload_size, &out);
   *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
@@ -79,6 +77,7 @@ static DiceResult EncodeCoseTbs(const uint8_t* protected_attributes,
 static DiceResult EncodeCoseSign1(const uint8_t* protected_attributes,
                                   size_t protected_attributes_size,
                                   const uint8_t* payload, size_t payload_size,
+                                  bool move_payload,
                                   const uint8_t signature[DICE_SIGNATURE_SIZE],
                                   size_t buffer_size, uint8_t* buffer,
                                   size_t* encoded_size) {
@@ -91,7 +90,21 @@ static DiceResult EncodeCoseSign1(const uint8_t* protected_attributes,
   // Empty map for unprotected attributes.
   CborWriteMap(/*num_pairs=*/0, &out);
   // Payload.
-  CborWriteBstr(payload_size, payload, &out);
+  if (move_payload) {
+    // The payload is already present in the buffer, so we can move it into
+    // place.
+    uint8_t* payload_alloc = CborAllocBstr(payload_size, &out);
+    if (payload_alloc) {
+      // We're assuming what we've written above is small enough that it doesn't
+      // overwrite the payload. Check in case that stops being true.
+      if (payload < payload_alloc) {
+        return kDiceResultPlatformError;
+      }
+      memmove(payload_alloc, payload, payload_size);
+    }
+  } else {
+    CborWriteBstr(payload_size, payload, &out);
+  }
   // Signature.
   CborWriteBstr(/*num_elements=*/DICE_SIGNATURE_SIZE, signature, &out);
   *encoded_size = CborOutSize(&out);
@@ -123,20 +136,22 @@ DiceResult DiceCoseSignAndEncodeSign1(
 
   // Construct a To-Be-Signed (TBS) structure based on the relevant fields of
   // the COSE_Sign1.
+  uint8_t* payload_buffer;
   result = EncodeCoseTbs(protected_attributes, protected_attributes_size,
-                         payload, payload_size, aad, aad_size, buffer_size,
-                         buffer, encoded_size);
+                         payload_size, aad, aad_size, buffer_size, buffer,
+                         &payload_buffer, encoded_size);
   if (result != kDiceResultOk) {
     // Check how big the buffer needs to be in total.
     size_t final_encoded_size = 0;
     EncodeCoseSign1(protected_attributes, protected_attributes_size, payload,
-                    payload_size, /*signature=*/NULL, /*buffer_size=*/0,
-                    /*buffer=*/NULL, &final_encoded_size);
+                    payload_size, /*move_payload=*/false, /*signature=*/NULL,
+                    /*buffer_size=*/0, /*buffer=*/NULL, &final_encoded_size);
     if (*encoded_size < final_encoded_size) {
       *encoded_size = final_encoded_size;
     }
     return result;
   }
+  memcpy(payload_buffer, payload, payload_size);
 
   // Sign the TBS with the authority key.
   uint8_t signature[DICE_SIGNATURE_SIZE];
@@ -147,8 +162,8 @@ DiceResult DiceCoseSignAndEncodeSign1(
 
   // The final certificate is an untagged COSE_Sign1 structure.
   return EncodeCoseSign1(protected_attributes, protected_attributes_size,
-                         payload, payload_size, signature, buffer_size, buffer,
-                         encoded_size);
+                         payload, payload_size, /*move_payload=*/false,
+                         signature, buffer_size, buffer, encoded_size);
 }
 
 // Encodes a CBOR Web Token (CWT) with an issuer, subject, and additional
@@ -214,11 +229,14 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   // Add the config inputs.
   if (input_values->config_type == kDiceConfigTypeDescriptor) {
     uint8_t config_descriptor_hash[DICE_HASH_SIZE];
-    DiceResult result =
-        DiceHash(context, input_values->config_descriptor,
-                 input_values->config_descriptor_size, config_descriptor_hash);
-    if (result != kDiceResultOk) {
-      return result;
+    // Skip hashing if we're not going to use the answer.
+    if (!CborOutOverflowed(&out)) {
+      DiceResult result = DiceHash(context, input_values->config_descriptor,
+                                   input_values->config_descriptor_size,
+                                   config_descriptor_hash);
+      if (result != kDiceResultOk) {
+        return result;
+      }
     }
     // Add the config descriptor.
     CborWriteInt(kConfigDescriptorLabel, &out);
@@ -329,20 +347,77 @@ DiceResult DiceGenerateCertificate(
     goto out;
   }
 
-  // The CWT is the payload in both the TBS and the final COSE_Sign1 structure.
-  uint8_t payload[DICE_MAX_CERTIFICATE_SIZE];
-  size_t payload_size = 0;
+  // The encoded protected attributes are used in the TBS and the final
+  // COSE_Sign1 structure.
+  uint8_t protected_attributes[DICE_MAX_PROTECTED_ATTRIBUTES_SIZE];
+  size_t protected_attributes_size = 0;
+  result = EncodeProtectedAttributes(sizeof(protected_attributes),
+                                     protected_attributes,
+                                     &protected_attributes_size);
+  if (result != kDiceResultOk) {
+    result = kDiceResultPlatformError;
+    goto out;
+  }
+
+  // Find out how big the CWT will be.
+  size_t cwt_size;
+  EncodeCwt(context, input_values, authority_id_hex, subject_id_hex,
+            encoded_public_key, encoded_public_key_size, /*buffer_size=*/0,
+            /*buffer=*/NULL, &cwt_size);
+
+  // We need space to assemble the TBS. The size of the buffer needed depends on
+  // the size of the CWT, which is outside our control (e.g. it might have a
+  // very large config descriptor). So we use the certificate buffer as
+  // temporary storage; if we run out of space we will make sure the caller
+  // knows the size we actually need for this.
+  // Encode the TBS, leaving space for the final payload (the CWT).
+  uint8_t* cwt_ptr;
+  size_t tbs_size;
+  result =
+      EncodeCoseTbs(protected_attributes, protected_attributes_size, cwt_size,
+                    /*aad=*/NULL, /*aad_size=*/0, certificate_buffer_size,
+                    certificate, &cwt_ptr, &tbs_size);
+
+  if (result != kDiceResultOk) {
+    // There wasn't enough space to put together the TBS. The total buffer size
+    // we need is either the amount needed for the TBS, or the amount needed for
+    // encoded payload and signature.
+    size_t final_encoded_size = 0;
+    EncodeCoseSign1(protected_attributes, protected_attributes_size, cwt_ptr,
+                    cwt_size, /*move_payload=*/false, /*signature=*/NULL,
+                    /*buffer_size=*/0, /*buffer=*/NULL, &final_encoded_size);
+    *certificate_actual_size =
+        final_encoded_size > tbs_size ? final_encoded_size : tbs_size;
+    result = kDiceResultBufferTooSmall;
+    goto out;
+  }
+
+  // Now we can encode the payload directly into the allocated BSTR in the TBS.
+  size_t final_cwt_size;
   result = EncodeCwt(context, input_values, authority_id_hex, subject_id_hex,
-                     encoded_public_key, encoded_public_key_size,
-                     sizeof(payload), payload, &payload_size);
+                     encoded_public_key, encoded_public_key_size, cwt_size,
+                     cwt_ptr, &final_cwt_size);
+  if (result == kDiceResultBufferTooSmall || final_cwt_size != cwt_size) {
+    result = kDiceResultPlatformError;
+  }
   if (result != kDiceResultOk) {
     goto out;
   }
 
-  result = DiceCoseSignAndEncodeSign1(
-      context, payload, payload_size, /*aad=*/NULL, /*aad_size=*/0,
-      authority_private_key, certificate_buffer_size, certificate,
-      certificate_actual_size);
+  // Sign the now-complete TBS.
+  uint8_t signature[DICE_SIGNATURE_SIZE];
+  result = DiceSign(context, certificate, tbs_size, authority_private_key,
+                    signature);
+  if (result != kDiceResultOk) {
+    goto out;
+  }
+
+  // And now we can produce the complete CoseSign1, including the signature, and
+  // moving the payload into place as we do it.
+  result = EncodeCoseSign1(protected_attributes, protected_attributes_size,
+                           cwt_ptr, cwt_size, /*move_payload=*/true, signature,
+                           certificate_buffer_size, certificate,
+                           certificate_actual_size);
 
 out:
   DiceClearMemory(context, sizeof(subject_private_key), subject_private_key);

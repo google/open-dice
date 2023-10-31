@@ -179,6 +179,47 @@ TEST(DiceOpsTest, LargeInputs) {
   EXPECT_EQ(kDiceResultBufferTooSmall, result);
 }
 
+TEST(DiceOpsTest, LargeDescriptor) {
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+
+  uint8_t config_descriptor[10 * 1000];
+  DeriveFakeInputValue("config_desc", sizeof(config_descriptor),
+                       config_descriptor);
+  input_values.config_descriptor = config_descriptor;
+  input_values.config_descriptor_size = sizeof(config_descriptor);
+  input_values.config_type = kDiceConfigTypeDescriptor;
+
+  uint8_t next_certificate[20 * 1000];
+  size_t next_certificate_size = 0;
+  size_t buffer_size = 0;
+
+  DiceResult result = DiceMainFlow(
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      buffer_size, next_certificate, &next_certificate_size,
+      next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultBufferTooSmall, result);
+
+  // If this fails, the test is wrong, and we need to make next_certificate
+  // bigger.
+  ASSERT_LE(next_certificate_size, sizeof(next_certificate));
+
+  buffer_size = next_certificate_size - 1;
+  result = DiceMainFlow(NULL, current_state.cdi_attest, current_state.cdi_seal,
+                        &input_values, buffer_size, next_certificate,
+                        &next_certificate_size, next_state.cdi_attest,
+                        next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultBufferTooSmall, result);
+
+  buffer_size = next_certificate_size;
+  result = DiceMainFlow(NULL, current_state.cdi_attest, current_state.cdi_seal,
+                        &input_values, buffer_size, next_certificate,
+                        &next_certificate_size, next_state.cdi_attest,
+                        next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+}
+
 TEST(DiceOpsTest, InvalidConfigType) {
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
