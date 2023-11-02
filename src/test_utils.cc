@@ -628,13 +628,11 @@ bool ValidateCborCertificateCdiFields(const cn_cbor* cwt,
   return true;
 }
 
-bool VerifySingleCborCertificate(const uint8_t* certificate,
-                                 size_t certificate_size,
-                                 const cn_cbor* authority_public_key,
-                                 const char authority_id_hex[40],
-                                 bool expect_cdi_certificate,
-                                 ScopedCbor* subject_public_key,
-                                 char subject_id_hex[40]) {
+bool VerifyCoseSign1Signature(const uint8_t* certificate,
+                              size_t certificate_size,
+                              const uint8_t* external_aad,
+                              size_t external_aad_size,
+                              const cn_cbor* authority_public_key) {
   // Use the COSE-C library to decode and validate.
   cose_errback error;
   int struct_type = 0;
@@ -643,10 +641,24 @@ bool VerifySingleCborCertificate(const uint8_t* certificate,
   if (!sign1) {
     return false;
   }
-  (void)authority_public_key;
+  COSE_Sign1_SetExternal(sign1, external_aad, external_aad_size, &error);
   bool result = COSE_Sign1_validate(sign1, authority_public_key, &error);
   COSE_Sign1_Free(sign1);
   if (!result) {
+    return false;
+  }
+  return true;
+}
+
+bool VerifySingleCborCertificate(const uint8_t* certificate,
+                                 size_t certificate_size,
+                                 const cn_cbor* authority_public_key,
+                                 const char authority_id_hex[40],
+                                 bool expect_cdi_certificate,
+                                 ScopedCbor* subject_public_key,
+                                 char subject_id_hex[40]) {
+  if (!VerifyCoseSign1Signature(certificate, certificate_size, /*aad=*/NULL,
+                                /*aad_size=*/0, authority_public_key)) {
     return false;
   }
 
@@ -783,6 +795,42 @@ void CreateFakeUdsCertificate(void* context, const uint8_t uds[32],
   pw::string::Format(filename, "_%s_%s_uds_cert.cert",
                      GetCertTypeStr(cert_type), GetKeyTypeStr(key_type));
   DumpToFile(filename, certificate, *certificate_size);
+}
+
+[[maybe_unused]] bool VerifyCoseSign1(
+    const uint8_t* certificate, size_t certificate_size,
+    const uint8_t* external_aad, size_t external_aad_size,
+    const uint8_t* encoded_public_key, size_t encoded_public_key_size,
+    const uint8_t* expected_cwt, size_t expected_cwt_size) {
+  cn_cbor_errback error;
+  ScopedCbor public_key(
+      cn_cbor_decode(encoded_public_key, encoded_public_key_size, &error));
+  if (!public_key) {
+    return false;
+  }
+
+  if (!VerifyCoseSign1Signature(certificate, certificate_size, external_aad,
+                                external_aad_size, public_key.get())) {
+    return false;
+  }
+
+  ScopedCbor sign1(cn_cbor_decode(certificate, certificate_size, &error));
+  if (!sign1 || sign1->type != CN_CBOR_ARRAY || sign1->length != 4) {
+    return false;
+  }
+  cn_cbor* payload = cn_cbor_index(sign1.get(), 2);
+  if (!payload || payload->type != CN_CBOR_BYTES) {
+    return false;
+  }
+
+  if (payload->length != expected_cwt_size) {
+    return false;
+  }
+
+  if (memcmp(payload->v.bytes, expected_cwt, expected_cwt_size) != 0) {
+    return false;
+  }
+  return true;
 }
 
 bool VerifyCertificateChain(CertificateType cert_type,
