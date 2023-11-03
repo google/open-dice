@@ -117,22 +117,23 @@ DiceResult DiceAndroidMainFlow(void* context,
   struct CborOut out;
   CborOutInit(buffer, buffer_size, &out);
   CborWriteArray(chain_item_count + 1, &out);
+  size_t new_chain_prefix_size = CborOutSize(&out);
   if (CborOutOverflowed(&out) ||
-      chain_items_size > buffer_size - CborOutSize(&out)) {
+      chain_items_size > buffer_size - new_chain_prefix_size) {
     // Continue with an empty buffer to measure the required size.
     buffer_size = 0;
   } else {
-    memcpy(buffer + CborOutSize(&out), chain + chain_items_offset,
+    memcpy(buffer + new_chain_prefix_size, chain + chain_items_offset,
            chain_items_size);
-    buffer += CborOutSize(&out) + chain_items_size;
-    buffer_size -= CborOutSize(&out) + chain_items_size;
+    buffer += new_chain_prefix_size + chain_items_size;
+    buffer_size -= new_chain_prefix_size + chain_items_size;
   }
 
   size_t certificate_size;
   result = DiceMainFlow(context, current_cdi_attest, current_cdi_seal,
                         input_values, buffer_size, buffer, &certificate_size,
                         next_cdi_attest, next_cdi_seal);
-  *actual_size = CborOutSize(&out) + chain_items_size + certificate_size;
+  *actual_size = new_chain_prefix_size + chain_items_size + certificate_size;
   return result;
 }
 
