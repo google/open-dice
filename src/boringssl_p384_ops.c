@@ -12,8 +12,7 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-// This is an implementation of the crypto operations that uses boringssl. The
-// algorithms used are SHA512, HKDF-SHA512, and Ed25519-SHA512.
+// This is an implementation of P-384 signature operations using boringssl.
 
 #include <stdint.h>
 #include <stdio.h>
