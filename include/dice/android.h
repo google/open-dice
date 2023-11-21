@@ -27,6 +27,7 @@ extern "C" {
 #define DICE_ANDROID_CONFIG_COMPONENT_VERSION (1 << 1)
 #define DICE_ANDROID_CONFIG_RESETTABLE (1 << 2)
 #define DICE_ANDROID_CONFIG_SECURITY_VERSION (1 << 3)
+#define DICE_ANDROID_CONFIG_RKP_VM_MARKER (1 << 4)
 
 // Contains the input values used to construct the Android Profile for DICE
 // configuration descriptor. The fields to include in the configuration

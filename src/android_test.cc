@@ -45,7 +45,8 @@ TEST(DiceAndroidConfigTest, AllConfigFields) {
       .configs = DICE_ANDROID_CONFIG_COMPONENT_NAME |
                  DICE_ANDROID_CONFIG_COMPONENT_VERSION |
                  DICE_ANDROID_CONFIG_RESETTABLE |
-                 DICE_ANDROID_CONFIG_SECURITY_VERSION,
+                 DICE_ANDROID_CONFIG_SECURITY_VERSION |
+                 DICE_ANDROID_CONFIG_RKP_VM_MARKER,
       .component_name = "Test Component Name",
       .component_version = 0x232a13dec90f42b5,
       .security_version = 0xfab777c1,
@@ -56,16 +57,17 @@ TEST(DiceAndroidConfigTest, AllConfigFields) {
   EXPECT_EQ(kDiceResultBufferTooSmall, result);
   std::vector<uint8_t> buffer(buffer_size);
   const uint8_t expected[] = {
-      0xa4, 0x3a, 0x00, 0x01, 0x11, 0x71, 0x73, 'T',  'e',  's',  't',  ' ',
-      'C',  'o',  'm',  'p',  'o',  'n',  'e',  'n',  't',  ' ',  'N',  'a',
-      'm',  'e',  0x3a, 0x00, 0x01, 0x11, 0x72, 0x1b, 0x23, 0x2a, 0x13, 0xde,
-      0xc9, 0x0f, 0x42, 0xb5, 0x3a, 0x00, 0x01, 0x11, 0x73, 0xf6, 0x3a, 0x00,
-      0x01, 0x11, 0x74, 0x1a, 0xfa, 0xb7, 0x77, 0xc1};
+      0xa5, 0x3a, 0x00, 0x01, 0x11, 0x71, 0x73, 'T',  'e',  's',  't',
+      ' ',  'C',  'o',  'm',  'p',  'o',  'n',  'e',  'n',  't',  ' ',
+      'N',  'a',  'm',  'e',  0x3a, 0x00, 0x01, 0x11, 0x72, 0x1b, 0x23,
+      0x2a, 0x13, 0xde, 0xc9, 0x0f, 0x42, 0xb5, 0x3a, 0x00, 0x01, 0x11,
+      0x73, 0xf6, 0x3a, 0x00, 0x01, 0x11, 0x74, 0x1a, 0xfa, 0xb7, 0x77,
+      0xc1, 0x3a, 0x00, 0x01, 0x11, 0x75, 0xf6};
   EXPECT_EQ(sizeof(expected), buffer.size());
   result = DiceAndroidFormatConfigDescriptor(&config_values, buffer.size(),
                                              buffer.data(), &buffer_size);
   EXPECT_EQ(sizeof(expected), buffer_size);
-  EXPECT_EQ(0, memcmp(expected, buffer.data(), buffer.size()));
+  EXPECT_EQ(0, memcmp(expected, buffer.data(), sizeof(expected)));
 }
 
 TEST(DiceAndroidTest, PreservesPreviousEntries) {

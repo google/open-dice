@@ -37,7 +37,8 @@ DiceResult DiceAndroidFormatConfigDescriptor(
   static const int64_t kComponentNameLabel = -70002;
   static const int64_t kComponentVersionLabel = -70003;
   static const int64_t kResettableLabel = -70004;
-  static const int64_t kSecurityVersion = -70005;
+  static const int64_t kSecurityVersionLabel = -70005;
+  static const int64_t kRkpVmMarkerLabel = -70006;
 
   // AndroidConfigDescriptor = {
   //   ? -70002 : tstr,     ; Component name
@@ -61,8 +62,12 @@ DiceResult DiceAndroidFormatConfigDescriptor(
     CborWriteNull(&out);
   }
   if (config_values->configs & DICE_ANDROID_CONFIG_SECURITY_VERSION) {
-    CborWriteInt(kSecurityVersion, &out);
+    CborWriteInt(kSecurityVersionLabel, &out);
     CborWriteUint(config_values->security_version, &out);
+  }
+  if (config_values->configs & DICE_ANDROID_CONFIG_RKP_VM_MARKER) {
+    CborWriteInt(kRkpVmMarkerLabel, &out);
+    CborWriteNull(&out);
   }
   *actual_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
