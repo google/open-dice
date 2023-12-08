@@ -29,10 +29,10 @@ static bool CborReadWouldOverflow(size_t size, struct CborIn* in) {
   return size > SIZE_MAX - in->cursor || in->cursor + size > in->buffer_size;
 }
 
-static enum CborReadResult CborPeekIntialValueAndArgument(struct CborIn* in,
-                                                          uint8_t* size,
-                                                          enum CborType* type,
-                                                          uint64_t* val) {
+static enum CborReadResult CborPeekInitialValueAndArgument(struct CborIn* in,
+                                                           uint8_t* size,
+                                                           enum CborType* type,
+                                                           uint64_t* val) {
   uint8_t initial_byte;
   uint8_t additional_information;
   uint64_t value;
@@ -86,7 +86,7 @@ static enum CborReadResult CborReadSize(struct CborIn* in, enum CborType type,
   enum CborType in_type;
   uint64_t raw;
   enum CborReadResult res =
-      CborPeekIntialValueAndArgument(in, &bytes, &in_type, &raw);
+      CborPeekInitialValueAndArgument(in, &bytes, &in_type, &raw);
   if (res != CBOR_READ_RESULT_OK) {
     return res;
   }
@@ -124,7 +124,7 @@ static enum CborReadResult CborReadSimple(struct CborIn* in, uint8_t val) {
   enum CborType type;
   uint64_t raw;
   enum CborReadResult res =
-      CborPeekIntialValueAndArgument(in, &bytes, &type, &raw);
+      CborPeekInitialValueAndArgument(in, &bytes, &type, &raw);
   if (res != CBOR_READ_RESULT_OK) {
     return res;
   }
@@ -140,7 +140,7 @@ enum CborReadResult CborReadInt(struct CborIn* in, int64_t* val) {
   enum CborType type;
   uint64_t raw;
   enum CborReadResult res =
-      CborPeekIntialValueAndArgument(in, &bytes, &type, &raw);
+      CborPeekInitialValueAndArgument(in, &bytes, &type, &raw);
   if (res != CBOR_READ_RESULT_OK) {
     return res;
   }
@@ -159,7 +159,7 @@ enum CborReadResult CborReadUint(struct CborIn* in, uint64_t* val) {
   uint8_t bytes;
   enum CborType type;
   enum CborReadResult res =
-      CborPeekIntialValueAndArgument(in, &bytes, &type, val);
+      CborPeekInitialValueAndArgument(in, &bytes, &type, val);
   if (res != CBOR_READ_RESULT_OK) {
     return res;
   }
@@ -192,7 +192,7 @@ enum CborReadResult CborReadTag(struct CborIn* in, uint64_t* tag) {
   uint8_t bytes;
   enum CborType type;
   enum CborReadResult res =
-      CborPeekIntialValueAndArgument(in, &bytes, &type, tag);
+      CborPeekInitialValueAndArgument(in, &bytes, &type, tag);
   if (res != CBOR_READ_RESULT_OK) {
     return res;
   }
@@ -229,7 +229,7 @@ enum CborReadResult CborReadSkip(struct CborIn* in) {
     uint64_t val;
     enum CborReadResult res;
 
-    res = CborPeekIntialValueAndArgument(&peeker, &bytes, &type, &val);
+    res = CborPeekInitialValueAndArgument(&peeker, &bytes, &type, &val);
     if (res != CBOR_READ_RESULT_OK) {
       return res;
     }
