@@ -83,6 +83,7 @@ Component&nbsp;version | -70003 | int&nbsp;/&nbsp;tstr | Version of the componen
 Resettable             | -70004 | null                 | If present, key changes on factory reset
 Security&nbsp;version  | -70005 | uint                 | Machine-comparable, monotonically increasing version of the component where a greater value indicates a newer version. This value must increment for every update that changes the code hash, for example by using the timestamp of the version's release.
 [RKP&nbsp;VM][rkp-vm]&nbsp;marker | -70006 | null      | See the [Android HAL documentation][rkp-hal-readme] for precise semantics, as they vary by Android version.
+Component&nbsp;instance&nbsp;name | -70007 | tstr      | When component is meant as a type, class or category, one can further specify the particular instance of that component.
 
 [rkp-vm]: https://android.googlesource.com/platform/packages/modules/Virtualization/+/main/service_vm/README.md#rkp-vm-remote-key-provisioning-virtual-machine
 [rkp-hal-readme]: https://android.googlesource.com/platform/hardware/interfaces/+/main/security/rkp/README.md
