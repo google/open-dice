@@ -38,9 +38,23 @@ config("internal_config") {
   ]
 }
 
+config("no_cast_function_type_warnings") {
+  cflags = [
+    # Disable "-Wcast-fuction-type-strict"
+    # and "-Wcast-function-type-mismatch"  which enforce an exact type match
+    # between a function pointer and the target function.
+    "-Wno-cast-function-type-strict",
+    "-Wno-cast-function-type-mismatch",
+    "-Wno-unknown-warning-option",
+  ]
+}
+
 pw_static_library("crypto") {
   sources = crypto_sources
   public = crypto_headers
   public_configs = [ ":external_config" ]
-  configs = [ ":internal_config" ]
+  configs = [
+    ":internal_config",
+    ":no_cast_function_type_warnings",
+  ]
 }
