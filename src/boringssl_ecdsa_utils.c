@@ -89,10 +89,8 @@ static BIGNUM *derivePrivateKey(const EC_GROUP *group, const uint8_t *seed,
   BIGNUM *candidate = NULL;
   uint8_t v[64];
   uint8_t k[64];
-  uint8_t temp[64];
   memset(v, 1, 64);
   memset(k, 0, 64);
-  memset(temp, 0, 64);
 
   if (private_key_len > 64) {
     goto err;
@@ -111,14 +109,14 @@ static BIGNUM *derivePrivateKey(const EC_GROUP *group, const uint8_t *seed,
     if (1 != hmac(k, v, v, sizeof(v))) {
       goto err;
     }
-    if (1 != hmac(k, v, temp, sizeof(temp))) {
+    if (1 != hmac(k, v, v, sizeof(v))) {
+      goto err;
+    }
+    candidate = BN_bin2bn(v, private_key_len, candidate);
+    if (!candidate) {
       goto err;
     }
     if (1 != hmac3(k, v, 0x00, NULL, 0, k)) {
-      goto err;
-    }
-    candidate = BN_bin2bn(temp, private_key_len, NULL);
-    if (!candidate) {
       goto err;
     }
   } while (BN_cmp(candidate, EC_GROUP_get0_order(group)) >= 0 ||
