@@ -24,6 +24,18 @@
 extern "C" {
 #endif
 
+#define P256_PRIVATE_KEY_SIZE 32
+#define P256_PUBLIC_KEY_SIZE 64
+#define P256_SIGNATURE_SIZE 64
+
+// Deterministically generates a public and private key pair from |seed|.
+// Since this is deterministic, |seed| is as sensitive as a private key and can
+// be used directly as the private key. The |private_key| may use an
+// implementation defined format so may only be passed to the |sign| operation.
+int P256KeypairFromSeed(uint8_t public_key[P256_PUBLIC_KEY_SIZE],
+                        uint8_t private_key[P256_PRIVATE_KEY_SIZE],
+                        const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE]);
+
 #define P384_PRIVATE_KEY_SIZE 48
 #define P384_PUBLIC_KEY_SIZE 96
 #define P384_SIGNATURE_SIZE 96

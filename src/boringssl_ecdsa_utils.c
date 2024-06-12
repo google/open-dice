@@ -130,16 +130,16 @@ out:
   return candidate;
 }
 
-int P384KeypairFromSeed(uint8_t public_key[P384_PUBLIC_KEY_SIZE],
-                        uint8_t private_key[P384_PRIVATE_KEY_SIZE],
-                        const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE]) {
+static int KeypairFromSeed(int nid, uint8_t *public_key, size_t public_key_size,
+                           uint8_t *private_key, size_t private_key_size,
+                           const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE]) {
   int ret = 0;
   EC_POINT *publicKey = NULL;
   BIGNUM *pD = NULL;
   BIGNUM *x = NULL;
   BIGNUM *y = NULL;
 
-  EC_KEY *key = EC_KEY_new_by_curve_name(NID_secp384r1);
+  EC_KEY *key = EC_KEY_new_by_curve_name(nid);
   if (!key) {
     goto out;
   }
@@ -153,11 +153,11 @@ int P384KeypairFromSeed(uint8_t public_key[P384_PUBLIC_KEY_SIZE],
   }
 
   pD = derivePrivateKey(group, seed, DICE_PRIVATE_KEY_SEED_SIZE,
-                        P384_PRIVATE_KEY_SIZE);
+                        private_key_size);
   if (!pD) {
     goto out;
   }
-  if (1 != BN_bn2bin_padded(private_key, P384_PRIVATE_KEY_SIZE, pD)) {
+  if (1 != BN_bn2bin_padded(private_key, private_key_size, pD)) {
     goto out;
   }
   if (1 != EC_KEY_set_private_key(key, pD)) {
@@ -177,11 +177,11 @@ int P384KeypairFromSeed(uint8_t public_key[P384_PUBLIC_KEY_SIZE],
   if (1 != EC_POINT_get_affine_coordinates_GFp(group, publicKey, x, y, NULL)) {
     goto out;
   }
-  if (1 != BN_bn2bin_padded(&public_key[0], P384_PUBLIC_KEY_SIZE / 2, x)) {
+  size_t coord_size = public_key_size / 2;
+  if (1 != BN_bn2bin_padded(&public_key[0], coord_size, x)) {
     goto out;
   }
-  if (1 != BN_bn2bin_padded(&public_key[P384_PUBLIC_KEY_SIZE / 2],
-                            P384_PUBLIC_KEY_SIZE / 2, y)) {
+  if (1 != BN_bn2bin_padded(&public_key[coord_size], coord_size, y)) {
     goto out;
   }
   ret = 1;
@@ -194,6 +194,20 @@ out:
   BN_clear_free(pD);
 
   return ret;
+}
+
+int P256KeypairFromSeed(uint8_t public_key[P256_PUBLIC_KEY_SIZE],
+                        uint8_t private_key[P256_PRIVATE_KEY_SIZE],
+                        const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE]) {
+  return KeypairFromSeed(NID_X9_62_prime256v1, public_key, P256_PUBLIC_KEY_SIZE,
+                         private_key, P256_PRIVATE_KEY_SIZE, seed);
+}
+
+int P384KeypairFromSeed(uint8_t public_key[P384_PUBLIC_KEY_SIZE],
+                        uint8_t private_key[P384_PRIVATE_KEY_SIZE],
+                        const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE]) {
+  return KeypairFromSeed(NID_secp384r1, public_key, P384_PUBLIC_KEY_SIZE,
+                         private_key, P384_PRIVATE_KEY_SIZE, seed);
 }
 
 int P384Sign(uint8_t signature[P384_SIGNATURE_SIZE], const uint8_t *message,

@@ -28,7 +28,6 @@
 #include "openssl/bn.h"
 #include "openssl/curve25519.h"
 #include "openssl/evp.h"
-#include "openssl/hmac.h"
 #include "openssl/is_boringssl.h"
 #include "openssl/mem.h"
 #include "openssl/sha.h"
@@ -87,83 +86,21 @@ void DumpToFile(const char* filename, const uint8_t* data, size_t size) {
   }
 }
 
-// A simple hmac-drbg to help with deterministic ecdsa.
-class HmacSha512Drbg {
- public:
-  HmacSha512Drbg(const uint8_t seed[32]) {
-    Init();
-    Update(seed, 32);
-  }
-  ~HmacSha512Drbg() { HMAC_CTX_cleanup(&ctx_); }
-
-  // Populates |num_bytes| random bytes into |buffer|.
-  void GetBytes(size_t num_bytes, uint8_t* buffer) {
-    size_t bytes_written = 0;
-    while (bytes_written < num_bytes) {
-      size_t bytes_to_copy = num_bytes - bytes_written;
-      if (bytes_to_copy > 64) {
-        bytes_to_copy = 64;
-      }
-      Hmac(v_, v_);
-      memcpy(&buffer[bytes_written], v_, bytes_to_copy);
-      bytes_written += bytes_to_copy;
-    }
-    Update0();
-  }
-
- private:
-  void Init() {
-    memset(k_, 0, 64);
-    memset(v_, 1, 64);
-    HMAC_CTX_init(&ctx_);
-  }
-
-  void Hmac(uint8_t in[64], uint8_t out[64]) {
-    HmacStart();
-    HmacUpdate(in, 64);
-    HmacFinish(out);
-  }
-
-  void HmacStart() {
-    HMAC_Init_ex(&ctx_, k_, 64, EVP_sha512(), nullptr /* impl */);
-  }
-
-  void HmacUpdate(const uint8_t* data, size_t data_size) {
-    HMAC_Update(&ctx_, data, data_size);
-  }
-
-  void HmacUpdateByte(uint8_t byte) { HmacUpdate(&byte, 1); }
-
-  void HmacFinish(uint8_t out[64]) {
-    unsigned int out_len = 64;
-    HMAC_Final(&ctx_, out, &out_len);
-  }
-
-  void Update(const uint8_t* data, size_t data_size) {
-    HmacStart();
-    HmacUpdate(v_, 64);
-    HmacUpdateByte(0x00);
-    if (data_size > 0) {
-      HmacUpdate(data, data_size);
-    }
-    HmacFinish(k_);
-    Hmac(v_, v_);
-    if (data_size > 0) {
-      HmacStart();
-      HmacUpdate(v_, 64);
-      HmacUpdateByte(0x01);
-      HmacUpdate(data, data_size);
-      HmacFinish(k_);
-      Hmac(v_, v_);
-    }
-  }
-
-  void Update0() { Update(nullptr, 0); }
-
-  uint8_t k_[64];
-  uint8_t v_[64];
-  HMAC_CTX ctx_;
-};
+bssl::UniquePtr<EVP_PKEY> EcKeyFromCoords(
+    int nid, uint8_t raw_public_key[MAX_PUBLIC_KEY_SIZE],
+    size_t public_key_size) {
+  bssl::UniquePtr<EC_KEY> key(EC_KEY_new_by_curve_name(nid));
+  BIGNUM* x = BN_new();
+  BN_bin2bn(&raw_public_key[0], public_key_size / 2, x);
+  BIGNUM* y = BN_new();
+  BN_bin2bn(&raw_public_key[public_key_size / 2], public_key_size / 2, y);
+  EC_KEY_set_public_key_affine_coordinates(key.get(), x, y);
+  BN_clear_free(y);
+  BN_clear_free(x);
+  bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
+  EVP_PKEY_set1_EC_KEY(pkey.get(), key.get());
+  return pkey;
+}
 
 bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(
     const uint8_t raw_key[DICE_PRIVATE_KEY_SEED_SIZE],
@@ -177,30 +114,17 @@ bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(
     EVP_PKEY_get_raw_public_key(key.get(), raw_public_key, raw_public_key_size);
     return key;
   } else if (key_type == dice::test::KeyType_P256) {
-    bssl::UniquePtr<EC_KEY> key(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
-    const EC_GROUP* group = EC_KEY_get0_group(key.get());
-    bssl::UniquePtr<EC_POINT> pub(EC_POINT_new(group));
-    // Match the algorithm described in RFC6979 and seed with the raw key.
-    HmacSha512Drbg drbg(raw_key);
-    while (true) {
-      uint8_t tmp[32];
-      drbg.GetBytes(32, tmp);
-      bssl::UniquePtr<BIGNUM> candidate(BN_bin2bn(tmp, 32, /*ret=*/nullptr));
-      if (BN_cmp(candidate.get(), EC_GROUP_get0_order(group)) < 0 &&
-          !BN_is_zero(candidate.get())) {
-        // Candidate is suitable.
-        EC_POINT_mul(group, pub.get(), candidate.get(), /*q=*/nullptr,
-                     /*m=*/nullptr,
-                     /*ctx=*/nullptr);
-        EC_KEY_set_public_key(key.get(), pub.get());
-        EC_KEY_set_private_key(key.get(), candidate.get());
-        break;
-      }
-    }
-    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
-    EVP_PKEY_set1_EC_KEY(pkey.get(), key.get());
+    const size_t kPublicKeySize = 64;
+    const size_t kPrivateKeySize = 32;
+    uint8_t pk[kPrivateKeySize];
+    P256KeypairFromSeed(raw_public_key, pk, raw_key);
+    bssl::UniquePtr<EVP_PKEY> pkey =
+        EcKeyFromCoords(NID_X9_62_prime256v1, raw_public_key, kPublicKeySize);
+    const EC_KEY* key = EVP_PKEY_get0_EC_KEY(pkey.get());
+    const EC_GROUP* group = EC_KEY_get0_group(key);
+    const EC_POINT* pub = EC_KEY_get0_public_key(key);
     *raw_public_key_size =
-        EC_POINT_point2oct(group, pub.get(), POINT_CONVERSION_COMPRESSED,
+        EC_POINT_point2oct(group, pub, POINT_CONVERSION_COMPRESSED,
                            raw_public_key, 33, /*ctx=*/nullptr);
     return pkey;
   } else if (key_type == dice::test::KeyType_P384) {
@@ -209,18 +133,7 @@ bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(
     uint8_t pk[kPrivateKeySize];
     P384KeypairFromSeed(raw_public_key, pk, raw_key);
     *raw_public_key_size = kPublicKeySize;
-
-    bssl::UniquePtr<EC_KEY> key(EC_KEY_new_by_curve_name(NID_secp384r1));
-    BIGNUM* x = BN_new();
-    BN_bin2bn(&raw_public_key[0], kPublicKeySize / 2, x);
-    BIGNUM* y = BN_new();
-    BN_bin2bn(&raw_public_key[kPublicKeySize / 2], kPublicKeySize / 2, y);
-    EC_KEY_set_public_key_affine_coordinates(key.get(), x, y);
-    BN_clear_free(y);
-    BN_clear_free(x);
-    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
-    EVP_PKEY_set1_EC_KEY(pkey.get(), key.get());
-    return pkey;
+    return EcKeyFromCoords(NID_secp384r1, raw_public_key, kPublicKeySize);
   }
 
   printf("ERROR: Unsupported key type.\n");
