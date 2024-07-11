@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License. You may obtain a copy of
@@ -18,6 +18,7 @@
 
 #include <memory>
 
+#include "dice/config.h"
 #include "dice/dice.h"
 #include "dice/known_test_values.h"
 #include "dice/test_framework.h"
@@ -27,11 +28,10 @@
 
 namespace {
 
-using dice::test::CertificateType_X509;
+using dice::test::CertificateType_Cbor;
 using dice::test::DeriveFakeInputValue;
 using dice::test::DiceStateForTest;
-using dice::test::DumpState;
-using dice::test::KeyType_P256_COMPRESSED;
+using dice::test::KeyType_P256;
 
 TEST(DiceOpsTest, KnownAnswerZeroInput) {
   DiceStateForTest current_state = {};
@@ -42,17 +42,23 @@ TEST(DiceOpsTest, KnownAnswerZeroInput) {
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
-  DumpState(CertificateType_X509, KeyType_P256_COMPRESSED, "zero_input",
-            next_state);
-  // Both CDI values and the certificate should be deterministic.
+  DumpState(CertificateType_Cbor, KeyType_P256, "zero_input", next_state);
+  // The CDI values should be deterministic.
+  ASSERT_EQ(sizeof(next_state.cdi_attest),
+            sizeof(dice::test::kExpectedCdiAttest_ZeroInput));
   EXPECT_EQ(0, memcmp(next_state.cdi_attest,
                       dice::test::kExpectedCdiAttest_ZeroInput, DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(next_state.cdi_seal),
+            sizeof(dice::test::kExpectedCdiSeal_ZeroInput));
   EXPECT_EQ(0, memcmp(next_state.cdi_seal,
                       dice::test::kExpectedCdiSeal_ZeroInput, DICE_CDI_SIZE));
-  ASSERT_EQ(sizeof(dice::test::kExpectedX509P256Cert_ZeroInput),
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborP256Cert_ZeroInput),
             next_state.certificate_size);
-  EXPECT_EQ(0, memcmp(dice::test::kExpectedX509P256Cert_ZeroInput,
-                      next_state.certificate, next_state.certificate_size));
+  // Comparing everything except for the signature, since ECDSA signatures are
+  // not deterministic
+  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborP256Cert_ZeroInput,
+                      next_state.certificate,
+                      next_state.certificate_size - DICE_SIGNATURE_SIZE));
 }
 
 TEST(DiceOpsTest, KnownAnswerHashOnlyInput) {
@@ -73,19 +79,22 @@ TEST(DiceOpsTest, KnownAnswerHashOnlyInput) {
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
-  DumpState(CertificateType_X509, KeyType_P256_COMPRESSED, "hash_only_input",
-            next_state);
-  // Both CDI values and the certificate should be deterministic.
+  DumpState(CertificateType_Cbor, KeyType_P256, "hash_only_input", next_state);
+  ASSERT_EQ(sizeof(next_state.cdi_attest),
+            sizeof(dice::test::kExpectedCdiAttest_HashOnlyInput));
   EXPECT_EQ(
       0, memcmp(next_state.cdi_attest,
                 dice::test::kExpectedCdiAttest_HashOnlyInput, DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(next_state.cdi_seal),
+            sizeof(dice::test::kExpectedCdiSeal_HashOnlyInput));
   EXPECT_EQ(
       0, memcmp(next_state.cdi_seal, dice::test::kExpectedCdiSeal_HashOnlyInput,
                 DICE_CDI_SIZE));
-  ASSERT_EQ(sizeof(dice::test::kExpectedX509P256Cert_HashOnlyInput),
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborP256Cert_HashOnlyInput),
             next_state.certificate_size);
-  EXPECT_EQ(0, memcmp(dice::test::kExpectedX509P256Cert_HashOnlyInput,
-                      next_state.certificate, next_state.certificate_size));
+  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborP256Cert_HashOnlyInput,
+                      next_state.certificate,
+                      next_state.certificate_size - DICE_SIGNATURE_SIZE));
 }
 
 TEST(DiceOpsTest, KnownAnswerDescriptorInput) {
@@ -122,8 +131,7 @@ TEST(DiceOpsTest, KnownAnswerDescriptorInput) {
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
-  DumpState(CertificateType_X509, KeyType_P256_COMPRESSED, "descriptor_input",
-            next_state);
+  DumpState(CertificateType_Cbor, KeyType_P256, "descriptor_input", next_state);
   // Both CDI values and the certificate should be deterministic.
   EXPECT_EQ(
       0, memcmp(next_state.cdi_attest,
@@ -131,14 +139,15 @@ TEST(DiceOpsTest, KnownAnswerDescriptorInput) {
   EXPECT_EQ(
       0, memcmp(next_state.cdi_seal,
                 dice::test::kExpectedCdiSeal_DescriptorInput, DICE_CDI_SIZE));
-  ASSERT_EQ(sizeof(dice::test::kExpectedX509P256Cert_DescriptorInput),
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborP256Cert_DescriptorInput),
             next_state.certificate_size);
-  EXPECT_EQ(0, memcmp(dice::test::kExpectedX509P256Cert_DescriptorInput,
-                      next_state.certificate, next_state.certificate_size));
+  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborP256Cert_DescriptorInput,
+                      next_state.certificate,
+                      next_state.certificate_size - DICE_SIGNATURE_SIZE));
 }
 
 TEST(DiceOpsTest, NonZeroMode) {
-  constexpr size_t kModeOffsetInCert = 0x26a;
+  constexpr size_t kModeOffsetInCert = 315;
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
@@ -199,12 +208,11 @@ TEST(DiceOpsTest, PartialCertChain) {
                      states[i + 1].cdi_attest, states[i + 1].cdi_seal));
     char suffix[40];
     pw::string::Format(suffix, "part_cert_chain_%zu", i);
-    DumpState(CertificateType_X509, KeyType_P256_COMPRESSED, suffix,
-              states[i + 1]);
+    DumpState(CertificateType_Cbor, KeyType_P256, suffix, states[i + 1]);
   }
   // Use the first derived CDI cert as the 'root' of partial chain.
   EXPECT_TRUE(dice::test::VerifyCertificateChain(
-      CertificateType_X509, states[1].certificate, states[1].certificate_size,
+      CertificateType_Cbor, states[1].certificate, states[1].certificate_size,
       &states[2], kNumLayers - 1, /*is_partial_chain=*/true));
 }
 
@@ -230,19 +238,17 @@ TEST(DiceOpsTest, FullCertChain) {
                      states[i + 1].cdi_attest, states[i + 1].cdi_seal));
     char suffix[40];
     pw::string::Format(suffix, "full_cert_chain_%zu", i);
-    DumpState(CertificateType_X509, KeyType_P256_COMPRESSED, suffix,
-              states[i + 1]);
+    DumpState(CertificateType_Cbor, KeyType_P256, suffix, states[i + 1]);
   }
   // Use a fake self-signed UDS cert as the 'root'.
   uint8_t root_certificate[dice::test::kTestCertSize];
   size_t root_certificate_size = 0;
   dice::test::CreateFakeUdsCertificate(
-      NULL, states[0].cdi_attest, dice::test::CertificateType_X509,
-      dice::test::KeyType_P256_COMPRESSED, root_certificate,
-      &root_certificate_size);
+      NULL, states[0].cdi_attest, CertificateType_Cbor, KeyType_P256,
+      root_certificate, &root_certificate_size);
   EXPECT_TRUE(dice::test::VerifyCertificateChain(
-      CertificateType_X509, root_certificate, root_certificate_size, &states[1],
-      kNumLayers,
-      /*is_partial_chain=*/false));
+      CertificateType_Cbor, root_certificate, root_certificate_size, &states[1],
+      kNumLayers, /*is_partial_chain=*/false));
 }
+
 }  // namespace

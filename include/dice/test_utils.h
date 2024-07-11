@@ -33,6 +33,7 @@ enum CertificateType {
 enum KeyType {
   KeyType_Ed25519,
   KeyType_P256,
+  KeyType_P256_COMPRESSED,
   KeyType_P384,
 };
 

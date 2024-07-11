@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License. You may obtain a copy of
@@ -27,14 +27,14 @@
 #include "openssl/is_boringssl.h"
 #include "openssl/sha.h"
 
-// Gets the public key from a well-formed ECDSA P-384 COSE_Key. On
-// success populates |public_key| and returns true; public_key must hold 96
+// Gets the public key from a well-formed ECDSA P-256 COSE_Key. On
+// success populates |public_key| and returns true; public_key must hold 64
 // bytes (uncompressed format).
 static bool GetPublicKeyFromCbor(const cn_cbor *key, uint8_t *public_key) {
   const int64_t kCoseKeyAlgLabel = 3;
   const int64_t kCoseKeyOpsLabel = 4;
   const uint64_t kCoseKeyOpsVerify = 2;
-  const int64_t kCoseAlgEs384 = -35;
+  const int64_t kCoseAlgEs256 = -7;
 
   // Mandatory attributes.
   cn_cbor *type = cn_cbor_mapget_int(key, COSE_Key_Type);
@@ -46,7 +46,7 @@ static bool GetPublicKeyFromCbor(const cn_cbor *key, uint8_t *public_key) {
     return false;
   }
 
-  if (type->v.uint != COSE_Key_Type_EC2 || curve->v.uint != COSE_Curve_P384) {
+  if (type->v.uint != COSE_Key_Type_EC2 || curve->v.uint != COSE_Curve_P256) {
     return false;
   }
 
@@ -62,7 +62,7 @@ static bool GetPublicKeyFromCbor(const cn_cbor *key, uint8_t *public_key) {
 
   cn_cbor *alg = cn_cbor_mapget_int(key, kCoseKeyAlgLabel);
   if (alg) {
-    if (alg->type != CN_CBOR_INT || alg->v.sint != kCoseAlgEs384) {
+    if (alg->type != CN_CBOR_INT || alg->v.sint != kCoseAlgEs256) {
       return false;
     }
   }
@@ -113,13 +113,13 @@ bool ECDSA_Verify(COSE *cose_signer, int signature_index, COSE_KEY *cose_key,
   }
 
   // Implementation of ECDSA verification starts here
-  uint8_t output[48];
-  SHA384(message, message_size, output);
-  EC_KEY *eckey = EC_KEY_new_by_curve_name(NID_secp384r1);
+  uint8_t output[32];
+  SHA256(message, message_size, output);
+  EC_KEY *eckey = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
   BIGNUM *x = BN_new();
-  BN_bin2bn(&public_key[0], 48, x);
+  BN_bin2bn(&public_key[0], 32, x);
   BIGNUM *y = BN_new();
-  BN_bin2bn(&public_key[48], 48, y);
+  BN_bin2bn(&public_key[32], 32, y);
   int result = EC_KEY_set_public_key_affine_coordinates(eckey, x, y);
 
   BN_clear_free(y);
@@ -131,9 +131,9 @@ bool ECDSA_Verify(COSE *cose_signer, int signature_index, COSE_KEY *cose_key,
   }
 
   ECDSA_SIG *sig = ECDSA_SIG_new();
-  BN_bin2bn(&(signature->v.bytes[0]), 48, sig->r);
-  BN_bin2bn(&(signature->v.bytes[48]), 48, sig->s);
-  result = ECDSA_do_verify(output, 48, sig, eckey);
+  BN_bin2bn(&(signature->v.bytes[0]), 32, sig->r);
+  BN_bin2bn(&(signature->v.bytes[32]), 32, sig->s);
+  result = ECDSA_do_verify(output, 32, sig, eckey);
 
   EC_KEY_free(eckey);
   ECDSA_SIG_free(sig);

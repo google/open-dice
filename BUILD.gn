@@ -59,6 +59,10 @@ config("boringssl_ed25519_ops_config") {
   include_dirs = [ "//include/dice/config/boringssl_ed25519" ]
 }
 
+config("boringssl_ecdsa_p256_ops_config") {
+  include_dirs = [ "//include/dice/config/boringssl_ecdsa_p256" ]
+}
+
 config("boringssl_ecdsa_p384_ops_config") {
   include_dirs = [ "//include/dice/config/boringssl_ecdsa_p384" ]
 }
@@ -78,6 +82,23 @@ pw_static_library("dice_with_boringssl_ed25519_ops") {
   ]
   deps = [ "//third_party/boringssl:crypto" ]
   all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
+}
+
+pw_static_library("dice_with_boringssl_p256_ops") {
+  public = [
+    "include/dice/dice.h",
+    "include/dice/utils.h",
+  ]
+  sources = [
+    "src/boringssl_cert_op.c",
+    "src/boringssl_hash_kdf_ops.c",
+    "src/boringssl_p256_ops.c",
+    "src/clear_memory.c",
+    "src/dice.c",
+    "src/utils.c",
+  ]
+  deps = [ "//third_party/boringssl:crypto" ]
+  all_dependent_configs = [ ":boringssl_ecdsa_p256_ops_config" ]
 }
 
 pw_static_library("dice_with_boringssl_p384_ops") {
@@ -146,6 +167,28 @@ pw_static_library("boringssl_ecdsa_utils") {
   ]
   sources = [ "src/boringssl_ecdsa_utils.c" ]
   deps = [ "//third_party/boringssl:crypto" ]
+}
+
+pw_static_library("dice_with_cbor_p256_cert") {
+  public = [
+    "include/dice/dice.h",
+    "include/dice/utils.h",
+  ]
+  sources = [
+    "src/boringssl_hash_kdf_ops.c",
+    "src/boringssl_p256_ops.c",
+    "src/cbor_cert_op.c",
+    "src/cbor_p256_cert_op.c",
+    "src/clear_memory.c",
+    "src/dice.c",
+    "src/utils.c",
+  ]
+  deps = [
+    ":boringssl_ecdsa_utils",
+    ":cbor_writer",
+    "//third_party/boringssl:crypto",
+  ]
+  all_dependent_configs = [ ":boringssl_ecdsa_p256_ops_config" ]
 }
 
 pw_static_library("dice_with_cbor_p384_cert") {
@@ -261,6 +304,13 @@ pw_executable("boringssl_ed25519_ops_fuzzer") {
   ]
 }
 
+pw_executable("boringssl_p256_ops_fuzzer") {
+  deps = [
+    ":dice_with_boringssl_p256_ops",
+    ":fuzzer",
+  ]
+}
+
 pw_executable("boringssl_p384_ops_fuzzer") {
   deps = [
     ":dice_with_boringssl_p384_ops",
@@ -300,6 +350,20 @@ pw_test("cbor_ed25519_cert_op_test") {
     "$dir_pw_string:pw_string",
     "//third_party/boringssl:crypto",
     "//third_party/cose-c:cose-c_ed25519",
+  ]
+}
+
+pw_test("cbor_p256_cert_op_test") {
+  sources = [
+    "src/cbor_p256_cert_op_test.cc",
+    "src/test_utils.cc",
+  ]
+  deps = [
+    ":boringssl_ecdsa_utils",
+    ":dice_with_cbor_p256_cert",
+    "$dir_pw_string:pw_string",
+    "//third_party/boringssl:crypto",
+    "//third_party/cose-c:cose-c_p256",
   ]
 }
 
@@ -394,6 +458,7 @@ pw_test_group("tests") {
     ":android_test",
     ":boringssl_ed25519_ops_test",
     ":cbor_ed25519_cert_op_test",
+    ":cbor_p256_cert_op_test",
     ":cbor_p384_cert_op_test",
     ":cbor_reader_test",
     ":cbor_writer_test",
@@ -408,6 +473,7 @@ group("fuzzers") {
   deps = [
     ":android_fuzzer",
     ":boringssl_ed25519_ops_fuzzer",
+    ":boringssl_p256_ops_fuzzer",
     ":boringssl_p384_ops_fuzzer",
     ":cbor_ed25519_cert_op_fuzzer",
     ":cbor_reader_fuzzer",
@@ -533,6 +599,11 @@ pw_size_diff("library_size_report") {
       base = ":dice_standalone"
     },
     {
+      target = ":dice_with_cbor_p256_cert"
+      label = "CBOR P256 Cert"
+      base = ":dice_standalone"
+    },
+    {
       target = ":dice_with_cbor_p384_cert"
       label = "CBOR P384 Cert"
       base = ":dice_standalone"
@@ -556,6 +627,7 @@ group("optimized_libs") {
     ":dice_standalone",
     ":dice_with_boringssl_ed25519_ops",
     ":dice_with_cbor_ed25519_cert",
+    ":dice_with_cbor_p256_cert",
     ":dice_with_cbor_p384_cert",
     ":dice_with_cbor_template_ed25519_cert",
     ":dice_with_mbedtls_ops",
