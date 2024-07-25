@@ -42,15 +42,17 @@ config("internal_config") {
   cflags = [ "-Wno-cast-qual" ]
 }
 
+cose_c_sources = [
+  "cose_deps.cc",
+  "src/src/Cose.cpp",
+  "src/src/CoseKey.cpp",
+  "src/src/Sign1.cpp",
+  "src/src/cbor.cpp",
+]
+
 pw_static_library("cose-c_ed25519") {
   public = [ "src/include/cose/cose.h" ]
-  sources = [
-    "cose_ed25519_deps.cc",
-    "src/src/Cose.cpp",
-    "src/src/CoseKey.cpp",
-    "src/src/Sign1.cpp",
-    "src/src/cbor.cpp",
-  ]
+  sources = cose_c_sources
   public_configs = [ ":external_config_ed25519" ]
   configs = [ ":internal_config" ]
   public_deps = [
@@ -61,13 +63,7 @@ pw_static_library("cose-c_ed25519") {
 
 pw_static_library("cose-c_p256") {
   public = [ "src/include/cose/cose.h" ]
-  sources = [
-    "cose_p256_deps.cc",
-    "src/src/Cose.cpp",
-    "src/src/CoseKey.cpp",
-    "src/src/Sign1.cpp",
-    "src/src/cbor.cpp",
-  ]
+  sources = cose_c_sources
   public_configs = [ ":external_config_p256" ]
   configs = [ ":internal_config" ]
   public_deps = [
@@ -78,13 +74,7 @@ pw_static_library("cose-c_p256") {
 
 pw_static_library("cose-c_p384") {
   public = [ "src/include/cose/cose.h" ]
-  sources = [
-    "cose_p384_deps.cc",
-    "src/src/Cose.cpp",
-    "src/src/CoseKey.cpp",
-    "src/src/Sign1.cpp",
-    "src/src/cbor.cpp",
-  ]
+  sources = cose_c_sources
   public_configs = [ ":external_config_p384" ]
   configs = [ ":internal_config" ]
   public_deps = [
