@@ -59,22 +59,22 @@ static void CborWriteType(enum CborType type, uint64_t val,
   }
   if (CborWriteFitsInBuffer(size, out)) {
     if (size == 1) {
-      out->buffer[out->cursor] = (type << 5) | val;
+      out->buffer[out->cursor] = (uint8_t)((type << 5) | val);
     } else if (size == 2) {
-      out->buffer[out->cursor] = (type << 5) | 24;
+      out->buffer[out->cursor] = (uint8_t)((type << 5) | 24);
       out->buffer[out->cursor + 1] = val & 0xff;
     } else if (size == 3) {
-      out->buffer[out->cursor] = (type << 5) | 25;
+      out->buffer[out->cursor] = (uint8_t)((type << 5) | 25);
       out->buffer[out->cursor + 1] = (val >> 8) & 0xff;
       out->buffer[out->cursor + 2] = val & 0xff;
     } else if (size == 5) {
-      out->buffer[out->cursor] = (type << 5) | 26;
+      out->buffer[out->cursor] = (uint8_t)((type << 5) | 26);
       out->buffer[out->cursor + 1] = (val >> 24) & 0xff;
       out->buffer[out->cursor + 2] = (val >> 16) & 0xff;
       out->buffer[out->cursor + 3] = (val >> 8) & 0xff;
       out->buffer[out->cursor + 4] = val & 0xff;
     } else if (size == 9) {
-      out->buffer[out->cursor] = (type << 5) | 27;
+      out->buffer[out->cursor] = (uint8_t)((type << 5) | 27);
       out->buffer[out->cursor + 1] = (val >> 56) & 0xff;
       out->buffer[out->cursor + 2] = (val >> 48) & 0xff;
       out->buffer[out->cursor + 3] = (val >> 40) & 0xff;
@@ -108,9 +108,9 @@ static void CborWriteStr(enum CborType type, size_t data_size, const void* data,
 
 void CborWriteInt(int64_t val, struct CborOut* out) {
   if (val < 0) {
-    CborWriteType(CBOR_TYPE_NINT, (-1 - val), out);
+    CborWriteType(CBOR_TYPE_NINT, (uint64_t)(-1 - val), out);
   } else {
-    CborWriteType(CBOR_TYPE_UINT, val, out);
+    CborWriteType(CBOR_TYPE_UINT, (uint64_t)val, out);
   }
 }
 

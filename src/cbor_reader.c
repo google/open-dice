@@ -54,13 +54,13 @@ static enum CborReadResult CborPeekInitialValueAndArgument(struct CborIn* in,
     if (bytes == 2) {
       value |= in->buffer[in->cursor + 1];
     } else if (bytes == 3) {
-      value |= (uint16_t)in->buffer[in->cursor + 1] << 8;
-      value |= (uint16_t)in->buffer[in->cursor + 2];
+      value |= (uint64_t)in->buffer[in->cursor + 1] << 8;
+      value |= (uint64_t)in->buffer[in->cursor + 2];
     } else if (bytes == 5) {
-      value |= (uint32_t)in->buffer[in->cursor + 1] << 24;
-      value |= (uint32_t)in->buffer[in->cursor + 2] << 16;
-      value |= (uint32_t)in->buffer[in->cursor + 3] << 8;
-      value |= (uint32_t)in->buffer[in->cursor + 4];
+      value |= (uint64_t)in->buffer[in->cursor + 1] << 24;
+      value |= (uint64_t)in->buffer[in->cursor + 2] << 16;
+      value |= (uint64_t)in->buffer[in->cursor + 3] << 8;
+      value |= (uint64_t)in->buffer[in->cursor + 4];
     } else if (bytes == 9) {
       value |= (uint64_t)in->buffer[in->cursor + 1] << 56;
       value |= (uint64_t)in->buffer[in->cursor + 2] << 48;
@@ -96,7 +96,7 @@ static enum CborReadResult CborReadSize(struct CborIn* in, enum CborType type,
   if (raw > SIZE_MAX) {
     return CBOR_READ_RESULT_MALFORMED;
   }
-  *size = raw;
+  *size = (size_t)raw;
   in->cursor += bytes;
   return CBOR_READ_RESULT_OK;
 }
@@ -250,7 +250,7 @@ enum CborReadResult CborReadSkip(struct CborIn* in) {
         continue;
       case CBOR_TYPE_BSTR:
       case CBOR_TYPE_TSTR:
-        if (CborReadWouldOverflow(val, &peeker)) {
+        if (val > SIZE_MAX || CborReadWouldOverflow((size_t)val, &peeker)) {
           return CBOR_READ_RESULT_END;
         }
         peeker.cursor += val;
@@ -277,7 +277,10 @@ enum CborReadResult CborReadSkip(struct CborIn* in) {
     if (stack_size == CBOR_READ_SKIP_STACK_SIZE) {
       return CBOR_READ_RESULT_MALFORMED;
     }
-    size_stack[stack_size++] = val;
+    if (val > SIZE_MAX) {
+      return CBOR_READ_RESULT_END;
+    }
+    size_stack[stack_size++] = (size_t)val;
   }
 
   in->cursor = peeker.cursor;
