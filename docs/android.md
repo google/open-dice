@@ -85,7 +85,7 @@ Security&nbsp;version  | -70005 | uint                 | Machine-comparable, mon
 [RKP&nbsp;VM][rkp-vm]&nbsp;marker | -70006 | null      | See the [Android HAL documentation][rkp-hal-readme] for precise semantics, as they vary by Android version.
 Component&nbsp;instance&nbsp;name | -70007 | tstr      | When component is meant as a type, class or category, one can further specify the particular instance of that component.
 
-[rkp-vm]: https://android.googlesource.com/platform/packages/modules/Virtualization/+/main/service_vm/README.md#rkp-vm-remote-key-provisioning-virtual-machine
+[rkp-vm]: https://android.googlesource.com/platform/packages/modules/Virtualization/+/main/docs/service_vm.md#rkp-vm-remote-key-provisioning-virtual-machine
 [rkp-hal-readme]: https://android.googlesource.com/platform/hardware/interfaces/+/main/security/rkp/README.md
 
 ### Versions
