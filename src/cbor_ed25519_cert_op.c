@@ -22,7 +22,7 @@
 #if DICE_PUBLIC_KEY_BUFFER_SIZE != 32
 #error "Only Ed25519 is supported; 32 bytes needed to store the public key."
 #endif
-#if DICE_SIGNATURE_SIZE != 64
+#if DICE_SIGNATURE_BUFFER_SIZE != 64
 #error "Only Ed25519 is supported; 64 bytes needed to store the signature."
 #endif
 

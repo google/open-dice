@@ -56,9 +56,10 @@ TEST(DiceOpsTest, KnownAnswerZeroInput) {
             next_state.certificate_size);
   // Comparing everything except for the signature, since ECDSA signatures are
   // not deterministic
-  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborP384Cert_ZeroInput,
-                      next_state.certificate,
-                      next_state.certificate_size - DICE_SIGNATURE_SIZE));
+  EXPECT_EQ(0,
+            memcmp(dice::test::kExpectedCborP384Cert_ZeroInput,
+                   next_state.certificate,
+                   next_state.certificate_size - DICE_SIGNATURE_BUFFER_SIZE));
 }
 
 TEST(DiceOpsTest, KnownAnswerHashOnlyInput) {
@@ -92,9 +93,10 @@ TEST(DiceOpsTest, KnownAnswerHashOnlyInput) {
                 DICE_CDI_SIZE));
   ASSERT_EQ(sizeof(dice::test::kExpectedCborP384Cert_HashOnlyInput),
             next_state.certificate_size);
-  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborP384Cert_HashOnlyInput,
-                      next_state.certificate,
-                      next_state.certificate_size - DICE_SIGNATURE_SIZE));
+  EXPECT_EQ(0,
+            memcmp(dice::test::kExpectedCborP384Cert_HashOnlyInput,
+                   next_state.certificate,
+                   next_state.certificate_size - DICE_SIGNATURE_BUFFER_SIZE));
 }
 
 TEST(DiceOpsTest, KnownAnswerDescriptorInput) {
@@ -141,9 +143,10 @@ TEST(DiceOpsTest, KnownAnswerDescriptorInput) {
                 dice::test::kExpectedCdiSeal_DescriptorInput, DICE_CDI_SIZE));
   ASSERT_EQ(sizeof(dice::test::kExpectedCborP384Cert_DescriptorInput),
             next_state.certificate_size);
-  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborP384Cert_DescriptorInput,
-                      next_state.certificate,
-                      next_state.certificate_size - DICE_SIGNATURE_SIZE));
+  EXPECT_EQ(0,
+            memcmp(dice::test::kExpectedCborP384Cert_DescriptorInput,
+                   next_state.certificate,
+                   next_state.certificate_size - DICE_SIGNATURE_BUFFER_SIZE));
 }
 
 TEST(DiceOpsTest, NonZeroMode) {

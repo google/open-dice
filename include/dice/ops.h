@@ -53,13 +53,13 @@ DiceResult DiceKeypairFromSeed(void* context,
 // the buffer where the calculated signature is written.
 DiceResult DiceSign(void* context, const uint8_t* message, size_t message_size,
                     const uint8_t private_key[DICE_PRIVATE_KEY_SIZE],
-                    uint8_t signature[DICE_SIGNATURE_SIZE]);
+                    uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE]);
 
 // Verifies, using |public_key|, that |signature| covers |message_size| bytes
 // from |message|.
 DiceResult DiceVerify(void* context, const uint8_t* message,
                       size_t message_size,
-                      const uint8_t signature[DICE_SIGNATURE_SIZE],
+                      const uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE],
                       const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE]);
 
 // Generates an X.509 certificate, or an alternative certificate format, from

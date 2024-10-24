@@ -30,7 +30,7 @@
 #if DICE_PRIVATE_KEY_SIZE != 32
 #error "P-256 needs 32 bytes for the private key."
 #endif
-#if DICE_SIGNATURE_SIZE != 64
+#if DICE_SIGNATURE_BUFFER_SIZE != 64
 #error "P-256 needs 64 bytes to store the signature."
 #endif
 
@@ -48,7 +48,7 @@ DiceResult DiceKeypairFromSeed(void* context_not_used,
 DiceResult DiceSign(void* context_not_used, const uint8_t* message,
                     size_t message_size,
                     const uint8_t private_key[DICE_PRIVATE_KEY_SIZE],
-                    uint8_t signature[DICE_SIGNATURE_SIZE]) {
+                    uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE]) {
   (void)context_not_used;
   if (1 == P256Sign(signature, message, message_size, private_key)) {
     return kDiceResultOk;
@@ -58,7 +58,7 @@ DiceResult DiceSign(void* context_not_used, const uint8_t* message,
 
 DiceResult DiceVerify(void* context_not_used, const uint8_t* message,
                       size_t message_size,
-                      const uint8_t signature[DICE_SIGNATURE_SIZE],
+                      const uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE],
                       const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE]) {
   (void)context_not_used;
   if (1 == P256Verify(message, message_size, signature, public_key)) {

@@ -74,13 +74,11 @@ static DiceResult EncodeCoseTbs(const uint8_t* protected_attributes,
   return kDiceResultOk;
 }
 
-static DiceResult EncodeCoseSign1(const uint8_t* protected_attributes,
-                                  size_t protected_attributes_size,
-                                  const uint8_t* payload, size_t payload_size,
-                                  bool move_payload,
-                                  const uint8_t signature[DICE_SIGNATURE_SIZE],
-                                  size_t buffer_size, uint8_t* buffer,
-                                  size_t* encoded_size) {
+static DiceResult EncodeCoseSign1(
+    const uint8_t* protected_attributes, size_t protected_attributes_size,
+    const uint8_t* payload, size_t payload_size, bool move_payload,
+    const uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE], size_t buffer_size,
+    uint8_t* buffer, size_t* encoded_size) {
   struct CborOut out;
   CborOutInit(buffer, buffer_size, &out);
   // COSE_Sign1 is an array of four elements.
@@ -106,7 +104,7 @@ static DiceResult EncodeCoseSign1(const uint8_t* protected_attributes,
     CborWriteBstr(payload_size, payload, &out);
   }
   // Signature.
-  CborWriteBstr(/*num_elements=*/DICE_SIGNATURE_SIZE, signature, &out);
+  CborWriteBstr(/*num_elements=*/DICE_SIGNATURE_BUFFER_SIZE, signature, &out);
   *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
@@ -154,7 +152,7 @@ DiceResult DiceCoseSignAndEncodeSign1(
   memcpy(payload_buffer, payload, payload_size);
 
   // Sign the TBS with the authority key.
-  uint8_t signature[DICE_SIGNATURE_SIZE];
+  uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE];
   result = DiceSign(context, buffer, *encoded_size, private_key, signature);
   if (result != kDiceResultOk) {
     return result;
@@ -405,7 +403,7 @@ DiceResult DiceGenerateCertificate(
   }
 
   // Sign the now-complete TBS.
-  uint8_t signature[DICE_SIGNATURE_SIZE];
+  uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE];
   result = DiceSign(context, certificate, tbs_size, authority_private_key,
                     signature);
   if (result != kDiceResultOk) {

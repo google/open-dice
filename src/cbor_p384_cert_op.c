@@ -28,7 +28,7 @@
 #if DICE_PUBLIC_KEY_BUFFER_SIZE != 96
 #error "96 bytes needed to store the public key."
 #endif
-#if DICE_SIGNATURE_SIZE != 96
+#if DICE_SIGNATURE_BUFFER_SIZE != 96
 #error "96 bytes needed to store the signature."
 #endif
 
