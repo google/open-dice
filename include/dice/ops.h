@@ -44,7 +44,7 @@ DiceResult DiceKdf(void* context, size_t length, const uint8_t* ikm,
 // implementation defined format so may only be passed to the |sign| operation.
 DiceResult DiceKeypairFromSeed(void* context,
                                const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
-                               uint8_t public_key[DICE_PUBLIC_KEY_SIZE],
+                               uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
                                uint8_t private_key[DICE_PRIVATE_KEY_SIZE]);
 
 // Calculates a signature of |message_size| bytes from |message| using
@@ -60,7 +60,7 @@ DiceResult DiceSign(void* context, const uint8_t* message, size_t message_size,
 DiceResult DiceVerify(void* context, const uint8_t* message,
                       size_t message_size,
                       const uint8_t signature[DICE_SIGNATURE_SIZE],
-                      const uint8_t public_key[DICE_PUBLIC_KEY_SIZE]);
+                      const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE]);
 
 // Generates an X.509 certificate, or an alternative certificate format, from
 // the given |subject_private_key_seed| and |input_values|, and signed by

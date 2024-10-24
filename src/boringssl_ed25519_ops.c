@@ -24,7 +24,7 @@
 #if DICE_PRIVATE_KEY_SEED_SIZE != 32
 #error "Private key seed is expected to be 32 bytes."
 #endif
-#if DICE_PUBLIC_KEY_SIZE != 32
+#if DICE_PUBLIC_KEY_BUFFER_SIZE != 32
 #error "Ed25519 needs 32 bytes to store the public key."
 #endif
 #if DICE_PRIVATE_KEY_SIZE != 64
@@ -36,7 +36,7 @@
 
 DiceResult DiceKeypairFromSeed(void* context_not_used,
                                const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
-                               uint8_t public_key[DICE_PUBLIC_KEY_SIZE],
+                               uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
                                uint8_t private_key[DICE_PRIVATE_KEY_SIZE]) {
   (void)context_not_used;
   ED25519_keypair_from_seed(public_key, private_key, seed);
@@ -57,7 +57,7 @@ DiceResult DiceSign(void* context_not_used, const uint8_t* message,
 DiceResult DiceVerify(void* context_not_used, const uint8_t* message,
                       size_t message_size,
                       const uint8_t signature[DICE_SIGNATURE_SIZE],
-                      const uint8_t public_key[DICE_PUBLIC_KEY_SIZE]) {
+                      const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE]) {
   (void)context_not_used;
   if (1 != ED25519_verify(message, message_size, signature, public_key)) {
     return kDiceResultPlatformError;

@@ -251,11 +251,11 @@ TEST(DiceOpsTest, CoseSignAndEncodeSign1) {
   ASSERT_EQ(kDiceResultOk, result);
 
   uint8_t private_key[DICE_PRIVATE_KEY_SIZE];
-  uint8_t public_key[DICE_PUBLIC_KEY_SIZE];
+  uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
   result = DiceKeypairFromSeed(NULL, private_key_seed, public_key, private_key);
   ASSERT_EQ(kDiceResultOk, result);
 
-  uint8_t encoded_public_key[DICE_PUBLIC_KEY_SIZE + 32];
+  uint8_t encoded_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE + 32];
   size_t encoded_public_key_size = 0;
   result =
       DiceCoseEncodePublicKey(NULL, public_key, sizeof(encoded_public_key),

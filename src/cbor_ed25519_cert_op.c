@@ -19,7 +19,7 @@
 #include "dice/cbor_writer.h"
 #include "dice/ops/trait/cose.h"
 
-#if DICE_PUBLIC_KEY_SIZE != 32
+#if DICE_PUBLIC_KEY_BUFFER_SIZE != 32
 #error "Only Ed25519 is supported; 32 bytes needed to store the public key."
 #endif
 #if DICE_SIGNATURE_SIZE != 64
@@ -27,8 +27,9 @@
 #endif
 
 DiceResult DiceCoseEncodePublicKey(
-    void* context_not_used, const uint8_t public_key[DICE_PUBLIC_KEY_SIZE],
-    size_t buffer_size, uint8_t* buffer, size_t* encoded_size) {
+    void* context_not_used,
+    const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE], size_t buffer_size,
+    uint8_t* buffer, size_t* encoded_size) {
   (void)context_not_used;
 
   // Constants per RFC 8152.
@@ -60,7 +61,7 @@ DiceResult DiceCoseEncodePublicKey(
   CborWriteInt(kCoseCrvEd25519, &out);
   // Add the public key.
   CborWriteInt(kCoseOkpXLabel, &out);
-  CborWriteBstr(/*data_size=*/DICE_PUBLIC_KEY_SIZE, public_key, &out);
+  CborWriteBstr(/*data_size=*/DICE_PUBLIC_KEY_BUFFER_SIZE, public_key, &out);
 
   *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {

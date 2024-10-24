@@ -27,7 +27,7 @@
 #include "dice/utils.h"
 
 // Max size of COSE_Key encoding.
-#define DICE_MAX_PUBLIC_KEY_SIZE (DICE_PUBLIC_KEY_SIZE + 32)
+#define DICE_MAX_PUBLIC_KEY_SIZE (DICE_PUBLIC_KEY_BUFFER_SIZE + 32)
 // Max size of the COSE_Sign1 protected attributes.
 #define DICE_MAX_PROTECTED_ATTRIBUTES_SIZE 16
 
@@ -300,7 +300,7 @@ DiceResult DiceGenerateCertificate(
   uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE];
 
   // Derive keys and IDs from the private key seeds.
-  uint8_t subject_public_key[DICE_PUBLIC_KEY_SIZE];
+  uint8_t subject_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
   result = DiceKeypairFromSeed(context, subject_private_key_seed,
                                subject_public_key, subject_private_key);
   if (result != kDiceResultOk) {
@@ -309,7 +309,7 @@ DiceResult DiceGenerateCertificate(
 
   uint8_t subject_id[DICE_ID_SIZE];
   result = DiceDeriveCdiCertificateId(context, subject_public_key,
-                                      DICE_PUBLIC_KEY_SIZE, subject_id);
+                                      DICE_PUBLIC_KEY_BUFFER_SIZE, subject_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -318,7 +318,7 @@ DiceResult DiceGenerateCertificate(
                 sizeof(subject_id_hex));
   subject_id_hex[sizeof(subject_id_hex) - 1] = '\0';
 
-  uint8_t authority_public_key[DICE_PUBLIC_KEY_SIZE];
+  uint8_t authority_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
   result = DiceKeypairFromSeed(context, authority_private_key_seed,
                                authority_public_key, authority_private_key);
   if (result != kDiceResultOk) {
@@ -326,8 +326,8 @@ DiceResult DiceGenerateCertificate(
   }
 
   uint8_t authority_id[DICE_ID_SIZE];
-  result = DiceDeriveCdiCertificateId(context, authority_public_key,
-                                      DICE_PUBLIC_KEY_SIZE, authority_id);
+  result = DiceDeriveCdiCertificateId(
+      context, authority_public_key, DICE_PUBLIC_KEY_BUFFER_SIZE, authority_id);
   if (result != kDiceResultOk) {
     goto out;
   }

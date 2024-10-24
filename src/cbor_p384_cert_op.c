@@ -25,7 +25,7 @@
 #include "dice/ops/trait/cose.h"
 #include "dice/utils.h"
 
-#if DICE_PUBLIC_KEY_SIZE != 96
+#if DICE_PUBLIC_KEY_BUFFER_SIZE != 96
 #error "96 bytes needed to store the public key."
 #endif
 #if DICE_SIGNATURE_SIZE != 96
@@ -33,8 +33,9 @@
 #endif
 
 DiceResult DiceCoseEncodePublicKey(
-    void* context_not_used, const uint8_t public_key[DICE_PUBLIC_KEY_SIZE],
-    size_t buffer_size, uint8_t* buffer, size_t* encoded_size) {
+    void* context_not_used,
+    const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE], size_t buffer_size,
+    uint8_t* buffer, size_t* encoded_size) {
   (void)context_not_used;
 
   // Constants per RFC 8152.
@@ -67,10 +68,11 @@ DiceResult DiceCoseEncodePublicKey(
   CborWriteInt(kCoseEc2CrvValue, &out);
   // Add the subject public key x and y coordinates
   CborWriteInt(kCoseEc2XLabel, &out);
-  CborWriteBstr(/*data_size=*/DICE_PUBLIC_KEY_SIZE / 2, &public_key[0], &out);
+  CborWriteBstr(/*data_size=*/DICE_PUBLIC_KEY_BUFFER_SIZE / 2, &public_key[0],
+                &out);
   CborWriteInt(kCoseEc2YLabel, &out);
-  CborWriteBstr(/*data_size=*/DICE_PUBLIC_KEY_SIZE / 2,
-                &public_key[DICE_PUBLIC_KEY_SIZE / 2], &out);
+  CborWriteBstr(/*data_size=*/DICE_PUBLIC_KEY_BUFFER_SIZE / 2,
+                &public_key[DICE_PUBLIC_KEY_BUFFER_SIZE / 2], &out);
 
   *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {

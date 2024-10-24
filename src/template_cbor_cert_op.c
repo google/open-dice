@@ -42,7 +42,7 @@
 #include "dice/ops.h"
 #include "dice/utils.h"
 
-#if DICE_PUBLIC_KEY_SIZE != 32
+#if DICE_PUBLIC_KEY_BUFFER_SIZE != 32
 #error "Only Ed25519 is supported; 32 bytes needed to store the public key."
 #endif
 #if DICE_SIGNATURE_SIZE != 64
@@ -182,7 +182,7 @@ DiceResult DiceGenerateCertificate(
   uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE];
 
   // Derive keys and IDs from the private key seeds.
-  uint8_t subject_public_key[DICE_PUBLIC_KEY_SIZE];
+  uint8_t subject_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
   result = DiceKeypairFromSeed(context, subject_private_key_seed,
                                subject_public_key, subject_private_key);
   if (result != kDiceResultOk) {
@@ -191,7 +191,7 @@ DiceResult DiceGenerateCertificate(
 
   uint8_t subject_id[DICE_ID_SIZE];
   result = DiceDeriveCdiCertificateId(context, subject_public_key,
-                                      DICE_PUBLIC_KEY_SIZE, subject_id);
+                                      DICE_PUBLIC_KEY_BUFFER_SIZE, subject_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -199,7 +199,7 @@ DiceResult DiceGenerateCertificate(
   DiceHexEncode(subject_id, sizeof(subject_id), subject_id_hex,
                 sizeof(subject_id_hex));
 
-  uint8_t authority_public_key[DICE_PUBLIC_KEY_SIZE];
+  uint8_t authority_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
   result = DiceKeypairFromSeed(context, authority_private_key_seed,
                                authority_public_key, authority_private_key);
   if (result != kDiceResultOk) {
@@ -207,8 +207,8 @@ DiceResult DiceGenerateCertificate(
   }
 
   uint8_t authority_id[DICE_ID_SIZE];
-  result = DiceDeriveCdiCertificateId(context, authority_public_key,
-                                      DICE_PUBLIC_KEY_SIZE, authority_id);
+  result = DiceDeriveCdiCertificateId(
+      context, authority_public_key, DICE_PUBLIC_KEY_BUFFER_SIZE, authority_id);
   if (result != kDiceResultOk) {
     goto out;
   }

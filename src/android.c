@@ -149,7 +149,7 @@ static DiceResult DiceAndroidMainFlowWithNewDiceChain(
     size_t* chain_size, uint8_t next_cdi_attest[DICE_CDI_SIZE],
     uint8_t next_cdi_seal[DICE_CDI_SIZE]) {
   uint8_t current_cdi_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE];
-  uint8_t attestation_public_key[DICE_PUBLIC_KEY_SIZE];
+  uint8_t attestation_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
   uint8_t attestation_private_key[DICE_PRIVATE_KEY_SIZE];
   // Derive an asymmetric private key seed from the current attestation CDI
   // value.

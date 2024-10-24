@@ -19,7 +19,7 @@
 // for tests that focus on the core aspects of the library and not the ops.
 // These value aren't yet used meaningfully in such tests so are given
 // placeholder values.
-#define DICE_PUBLIC_KEY_SIZE 1
+#define DICE_PUBLIC_KEY_BUFFER_SIZE 1
 #define DICE_PRIVATE_KEY_SIZE 1
 #define DICE_SIGNATURE_SIZE 1
 #define DICE_PROFILE_NAME NULL
