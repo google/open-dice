@@ -19,7 +19,6 @@
 #include "dice/dice.h"
 #include "dice/ops.h"
 #include "openssl/curve25519.h"
-#include "openssl/evp.h"
 
 #if DICE_PRIVATE_KEY_SEED_SIZE != 32
 #error "Private key seed is expected to be 32 bytes."
