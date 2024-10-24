@@ -18,6 +18,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "dice/types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,25 +30,6 @@ extern "C" {
 #define DICE_INLINE_CONFIG_SIZE 64
 #define DICE_PRIVATE_KEY_SEED_SIZE 32
 #define DICE_ID_SIZE 20
-
-typedef enum {
-  kDiceResultOk,
-  kDiceResultInvalidInput,
-  kDiceResultBufferTooSmall,
-  kDiceResultPlatformError,
-} DiceResult;
-
-typedef enum {
-  kDiceModeNotInitialized,
-  kDiceModeNormal,
-  kDiceModeDebug,
-  kDiceModeMaintenance,
-} DiceMode;
-
-typedef enum {
-  kDiceConfigTypeInline,
-  kDiceConfigTypeDescriptor,
-} DiceConfigType;
 
 // Contains a full set of input values describing the target program or system.
 // See the Open Profile for DICE specification for a detailed explanation of
