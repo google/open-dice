@@ -15,6 +15,9 @@
 #ifndef DICE_TYPES_H_
 #define DICE_TYPES_H_
 
+#include <stddef.h>
+#include <stdint.h>
+
 typedef enum {
   kDiceResultOk,
   kDiceResultInvalidInput,
@@ -33,5 +36,25 @@ typedef enum {
   kDiceConfigTypeInline,
   kDiceConfigTypeDescriptor,
 } DiceConfigType;
+
+// Parameters related to the DICE key operations.
+//
+// Fields:
+//   profile_name: Name of the profile. NULL if not specified. The pointer
+//   should point to a valid static string or NULL.
+//   public_key_size: Actual size of the public key.
+//   signature_size: Actual size of the signature.
+//   cose_key_type: Key type that is represented as the 'kty' member of the
+//    COSE_Key object as per RFC 8152.
+//   cose_key_algorithm: COSE algorithm identifier for the key.
+//   cose_key_curve: COSE curve identifier for the key.
+typedef struct DiceKeyParam_ {
+  const char* profile_name;
+  size_t public_key_size;
+  size_t signature_size;
+  int64_t cose_key_type;
+  int64_t cose_key_algorithm;
+  int64_t cose_key_curve;
+} DiceKeyParam;
 
 #endif  // DICE_TYPES_H_

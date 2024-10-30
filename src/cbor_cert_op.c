@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "dice/cbor_writer.h"
+#include "dice/config/cose_key_config.h"
 #include "dice/dice.h"
 #include "dice/ops.h"
 #include "dice/ops/trait/cose.h"
@@ -31,7 +32,8 @@
 // Max size of the COSE_Sign1 protected attributes.
 #define DICE_MAX_PROTECTED_ATTRIBUTES_SIZE 16
 
-static DiceResult EncodeProtectedAttributes(size_t buffer_size, uint8_t* buffer,
+static DiceResult EncodeProtectedAttributes(void* context, size_t buffer_size,
+                                            uint8_t* buffer,
                                             size_t* encoded_size) {
   // Constants per RFC 8152.
   const int64_t kCoseHeaderAlgLabel = 1;
@@ -40,8 +42,13 @@ static DiceResult EncodeProtectedAttributes(size_t buffer_size, uint8_t* buffer,
   CborOutInit(buffer, buffer_size, &out);
   CborWriteMap(/*num_elements=*/1, &out);
   // Add the algorithm.
+  DiceKeyParam key_param;
+  DiceResult result = DiceGetKeyParam(context, &key_param);
+  if (result != kDiceResultOk) {
+    return result;
+  }
   CborWriteInt(kCoseHeaderAlgLabel, &out);
-  CborWriteInt(DICE_COSE_KEY_ALG_VALUE, &out);
+  CborWriteInt(key_param.cose_key_algorithm, &out);
   *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
@@ -75,8 +82,9 @@ static DiceResult EncodeCoseTbs(const uint8_t* protected_attributes,
 }
 
 static DiceResult EncodeCoseSign1(
-    const uint8_t* protected_attributes, size_t protected_attributes_size,
-    const uint8_t* payload, size_t payload_size, bool move_payload,
+    void* context, const uint8_t* protected_attributes,
+    size_t protected_attributes_size, const uint8_t* payload,
+    size_t payload_size, bool move_payload,
     const uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE], size_t buffer_size,
     uint8_t* buffer, size_t* encoded_size) {
   struct CborOut out;
@@ -103,8 +111,13 @@ static DiceResult EncodeCoseSign1(
   } else {
     CborWriteBstr(payload_size, payload, &out);
   }
+  DiceKeyParam key_param;
+  DiceResult result = DiceGetKeyParam(context, &key_param);
+  if (result != kDiceResultOk) {
+    return result;
+  }
   // Signature.
-  CborWriteBstr(/*num_elements=*/DICE_SIGNATURE_BUFFER_SIZE, signature, &out);
+  CborWriteBstr(/*num_elements=*/key_param.signature_size, signature, &out);
   *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
     return kDiceResultBufferTooSmall;
@@ -125,7 +138,7 @@ DiceResult DiceCoseSignAndEncodeSign1(
   // COSE_Sign1 structure.
   uint8_t protected_attributes[DICE_MAX_PROTECTED_ATTRIBUTES_SIZE];
   size_t protected_attributes_size = 0;
-  result = EncodeProtectedAttributes(sizeof(protected_attributes),
+  result = EncodeProtectedAttributes(context, sizeof(protected_attributes),
                                      protected_attributes,
                                      &protected_attributes_size);
   if (result != kDiceResultOk) {
@@ -141,9 +154,10 @@ DiceResult DiceCoseSignAndEncodeSign1(
   if (result != kDiceResultOk) {
     // Check how big the buffer needs to be in total.
     size_t final_encoded_size = 0;
-    EncodeCoseSign1(protected_attributes, protected_attributes_size, payload,
-                    payload_size, /*move_payload=*/false, /*signature=*/NULL,
-                    /*buffer_size=*/0, /*buffer=*/NULL, &final_encoded_size);
+    EncodeCoseSign1(context, protected_attributes, protected_attributes_size,
+                    payload, payload_size, /*move_payload=*/false,
+                    /*signature=*/NULL, /*buffer_size=*/0, /*buffer=*/NULL,
+                    &final_encoded_size);
     if (*encoded_size < final_encoded_size) {
       *encoded_size = final_encoded_size;
     }
@@ -159,9 +173,10 @@ DiceResult DiceCoseSignAndEncodeSign1(
   }
 
   // The final certificate is an untagged COSE_Sign1 structure.
-  return EncodeCoseSign1(protected_attributes, protected_attributes_size,
-                         payload, payload_size, /*move_payload=*/false,
-                         signature, buffer_size, buffer, encoded_size);
+  return EncodeCoseSign1(context, protected_attributes,
+                         protected_attributes_size, payload, payload_size,
+                         /*move_payload=*/false, signature, buffer_size, buffer,
+                         encoded_size);
 }
 
 // Encodes a CBOR Web Token (CWT) with an issuer, subject, and additional
@@ -202,7 +217,13 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   if (input_values->authority_descriptor_size > 0) {
     map_pairs += 1;
   }
-  if (DICE_PROFILE_NAME) {
+
+  DiceKeyParam key_param;
+  DiceResult result = DiceGetKeyParam(context, &key_param);
+  if (result != kDiceResultOk) {
+    return result;
+  }
+  if (key_param.profile_name) {
     map_pairs += 1;
   }
 
@@ -229,9 +250,9 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
     uint8_t config_descriptor_hash[DICE_HASH_SIZE];
     // Skip hashing if we're not going to use the answer.
     if (!CborOutOverflowed(&out)) {
-      DiceResult result = DiceHash(context, input_values->config_descriptor,
-                                   input_values->config_descriptor_size,
-                                   config_descriptor_hash);
+      result = DiceHash(context, input_values->config_descriptor,
+                        input_values->config_descriptor_size,
+                        config_descriptor_hash);
       if (result != kDiceResultOk) {
         return result;
       }
@@ -268,9 +289,9 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   CborWriteInt(kKeyUsageLabel, &out);
   CborWriteBstr(/*data_size=*/1, &key_usage, &out);
   // Add the profile name
-  if (DICE_PROFILE_NAME) {
+  if (key_param.profile_name) {
     CborWriteInt(kProfileNameLabel, &out);
-    CborWriteTstr(DICE_PROFILE_NAME, &out);
+    CborWriteTstr(key_param.profile_name, &out);
   }
   *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
@@ -305,9 +326,15 @@ DiceResult DiceGenerateCertificate(
     goto out;
   }
 
+  DiceKeyParam key_param;
+  result = DiceGetKeyParam(context, &key_param);
+  if (result != kDiceResultOk) {
+    goto out;
+  }
+
   uint8_t subject_id[DICE_ID_SIZE];
   result = DiceDeriveCdiCertificateId(context, subject_public_key,
-                                      DICE_PUBLIC_KEY_BUFFER_SIZE, subject_id);
+                                      key_param.public_key_size, subject_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -324,8 +351,8 @@ DiceResult DiceGenerateCertificate(
   }
 
   uint8_t authority_id[DICE_ID_SIZE];
-  result = DiceDeriveCdiCertificateId(
-      context, authority_public_key, DICE_PUBLIC_KEY_BUFFER_SIZE, authority_id);
+  result = DiceDeriveCdiCertificateId(context, authority_public_key,
+                                      key_param.public_key_size, authority_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -349,7 +376,7 @@ DiceResult DiceGenerateCertificate(
   // COSE_Sign1 structure.
   uint8_t protected_attributes[DICE_MAX_PROTECTED_ATTRIBUTES_SIZE];
   size_t protected_attributes_size = 0;
-  result = EncodeProtectedAttributes(sizeof(protected_attributes),
+  result = EncodeProtectedAttributes(context, sizeof(protected_attributes),
                                      protected_attributes,
                                      &protected_attributes_size);
   if (result != kDiceResultOk) {
@@ -381,9 +408,10 @@ DiceResult DiceGenerateCertificate(
     // we need is either the amount needed for the TBS, or the amount needed for
     // encoded payload and signature.
     size_t final_encoded_size = 0;
-    EncodeCoseSign1(protected_attributes, protected_attributes_size, cwt_ptr,
-                    cwt_size, /*move_payload=*/false, /*signature=*/NULL,
-                    /*buffer_size=*/0, /*buffer=*/NULL, &final_encoded_size);
+    EncodeCoseSign1(context, protected_attributes, protected_attributes_size,
+                    cwt_ptr, cwt_size, /*move_payload=*/false,
+                    /*signature=*/NULL, /*buffer_size=*/0, /*buffer=*/NULL,
+                    &final_encoded_size);
     *certificate_actual_size =
         final_encoded_size > tbs_size ? final_encoded_size : tbs_size;
     result = kDiceResultBufferTooSmall;
@@ -412,10 +440,10 @@ DiceResult DiceGenerateCertificate(
 
   // And now we can produce the complete CoseSign1, including the signature, and
   // moving the payload into place as we do it.
-  result = EncodeCoseSign1(protected_attributes, protected_attributes_size,
-                           cwt_ptr, cwt_size, /*move_payload=*/true, signature,
-                           certificate_buffer_size, certificate,
-                           certificate_actual_size);
+  result = EncodeCoseSign1(
+      context, protected_attributes, protected_attributes_size, cwt_ptr,
+      cwt_size, /*move_payload=*/true, signature, certificate_buffer_size,
+      certificate, certificate_actual_size);
 
 out:
   DiceClearMemory(context, sizeof(subject_private_key), subject_private_key);
@@ -423,4 +451,55 @@ out:
                   authority_private_key);
 
   return result;
+}
+
+DiceResult DiceCoseEncodePublicKey(
+    void* context, const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
+    size_t buffer_size, uint8_t* buffer, size_t* encoded_size) {
+  DiceKeyParam key_param;
+  DiceResult result = DiceGetKeyParam(context, &key_param);
+  if (result != kDiceResultOk) {
+    return result;
+  }
+  struct CborOut out;
+  CborOutInit(buffer, buffer_size, &out);
+  if (key_param.cose_key_type == kCoseKeyKtyOkp) {
+    CborWriteMap(/*num_pairs=*/5, &out);
+  } else if (key_param.cose_key_type == kCoseKeyKtyEc2) {
+    CborWriteMap(/*num_pairs=*/6, &out);
+  } else {
+    return kDiceResultInvalidInput;
+  }
+  // Add the key type.
+  CborWriteInt(kCoseKeyKtyLabel, &out);
+  CborWriteInt(key_param.cose_key_type, &out);
+  // Add the algorithm.
+  CborWriteInt(kCoseKeyAlgLabel, &out);
+  CborWriteInt(key_param.cose_key_algorithm, &out);
+  // Add the KeyOps.
+  CborWriteInt(kCoseKeyOpsLabel, &out);
+  CborWriteArray(/*num_elements=*/1, &out);
+  CborWriteInt(kCoseKeyOpsVerify, &out);
+  // Add the curve.
+  CborWriteInt(kCoseKeyCrvLabel, &out);
+  CborWriteInt(key_param.cose_key_curve, &out);
+
+  // Add the public key.
+  if (key_param.cose_key_type == kCoseKeyKtyOkp) {
+    CborWriteInt(kCoseKeyXLabel, &out);
+    CborWriteBstr(key_param.public_key_size, public_key, &out);
+  } else if (key_param.cose_key_type == kCoseKeyKtyEc2) {
+    // Add the subject public key x and y coordinates
+    int xy_param_size = key_param.public_key_size / 2;
+    CborWriteInt(kCoseKeyXLabel, &out);
+    CborWriteBstr(xy_param_size, &public_key[0], &out);
+    CborWriteInt(kCoseKeyYLabel, &out);
+    CborWriteBstr(xy_param_size, &public_key[xy_param_size], &out);
+  }
+
+  *encoded_size = CborOutSize(&out);
+  if (CborOutOverflowed(&out)) {
+    return kDiceResultBufferTooSmall;
+  }
+  return kDiceResultOk;
 }

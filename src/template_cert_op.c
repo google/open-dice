@@ -174,10 +174,16 @@ DiceResult DiceGenerateCertificate(
     uint8_t* certificate, size_t* certificate_actual_size) {
   DiceResult result = kDiceResultOk;
 
+  DiceKeyParam key_param;
+  result = DiceGetKeyParam(context, &key_param);
+  if (result != kDiceResultOk) {
+    goto out;
+  }
+
   // Variable length descriptors are not supported.
   if (input_values->code_descriptor_size > 0 ||
       input_values->config_type != kDiceConfigTypeInline ||
-      input_values->authority_descriptor_size > 0 || DICE_PROFILE_NAME) {
+      input_values->authority_descriptor_size > 0 || key_param.profile_name) {
     return kDiceResultInvalidInput;
   }
 

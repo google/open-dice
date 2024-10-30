@@ -16,6 +16,7 @@
 
 #include <stdint.h>
 
+#include "dice/config/cose_key_config.h"
 #include "dice/dice.h"
 #include "dice/ops.h"
 #include "openssl/curve25519.h"
@@ -32,6 +33,20 @@
 #if DICE_SIGNATURE_BUFFER_SIZE != 64
 #error "Ed25519 needs 64 bytes to store the signature."
 #endif
+
+#define DICE_PROFILE_NAME NULL
+
+DiceResult DiceGetKeyParam(void* context_not_used, DiceKeyParam* key_param) {
+  (void)context_not_used;
+  key_param->profile_name = DICE_PROFILE_NAME;
+  key_param->public_key_size = DICE_PUBLIC_KEY_BUFFER_SIZE;
+  key_param->signature_size = DICE_SIGNATURE_BUFFER_SIZE;
+
+  key_param->cose_key_type = kCoseKeyKtyOkp;
+  key_param->cose_key_algorithm = kCoseAlgEdDsa;
+  key_param->cose_key_curve = kCoseCrvEd25519;
+  return kDiceResultOk;
+}
 
 DiceResult DiceKeypairFromSeed(void* context_not_used,
                                const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],

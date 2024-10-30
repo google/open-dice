@@ -26,6 +26,10 @@
 extern "C" {
 #endif
 
+// Retrieves the DICE key parameters based on the key pair generation
+// algorithm set up at compile time or in the |context| parameter at runtime.
+DiceResult DiceGetKeyParam(void* context, DiceKeyParam* key_param);
+
 // An implementation of SHA-512, or an alternative hash. Hashes |input_size|
 // bytes of |input| and populates |output| on success.
 DiceResult DiceHash(void* context, const uint8_t* input, size_t input_size,
