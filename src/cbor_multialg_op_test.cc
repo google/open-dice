@@ -36,7 +36,8 @@ using dice::test::KeyType_P256;
 using dice::test::KeyType_P384;
 
 TEST(DiceOpsTest, Ed25519KnownAnswerZeroInput) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmEd25519};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
+                      .subject_algorithm = kDiceKeyAlgorithmEd25519};
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
@@ -62,7 +63,8 @@ TEST(DiceOpsTest, Ed25519KnownAnswerZeroInput) {
 }
 
 TEST(DiceOpsTest, P256KnownAnswerZeroInput) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP256};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP256,
+                      .subject_algorithm = kDiceKeyAlgorithmP256};
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
@@ -92,7 +94,8 @@ TEST(DiceOpsTest, P256KnownAnswerZeroInput) {
 }
 
 TEST(DiceOpsTest, P384KnownAnswerZeroInput) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP384};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP384,
+                      .subject_algorithm = kDiceKeyAlgorithmP384};
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
@@ -122,7 +125,8 @@ TEST(DiceOpsTest, P384KnownAnswerZeroInput) {
 }
 
 TEST(DiceOpsTest, Ed25519KnownAnswerHashOnlyInput) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmEd25519};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
+                      .subject_algorithm = kDiceKeyAlgorithmEd25519};
   DiceStateForTest current_state = {};
   DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);
   DeriveFakeInputValue("cdi_seal", DICE_CDI_SIZE, current_state.cdi_seal);
@@ -159,7 +163,8 @@ TEST(DiceOpsTest, Ed25519KnownAnswerHashOnlyInput) {
 }
 
 TEST(DiceOpsTest, P256KnownAnswerHashOnlyInput) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP256};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP256,
+                      .subject_algorithm = kDiceKeyAlgorithmP256};
   DiceStateForTest current_state = {};
   DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);
   DeriveFakeInputValue("cdi_seal", DICE_CDI_SIZE, current_state.cdi_seal);
@@ -197,7 +202,8 @@ TEST(DiceOpsTest, P256KnownAnswerHashOnlyInput) {
 }
 
 TEST(DiceOpsTest, P384KnownAnswerHashOnlyInput) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP384};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP384,
+                      .subject_algorithm = kDiceKeyAlgorithmP384};
   DiceStateForTest current_state = {};
   DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);
   DeriveFakeInputValue("cdi_seal", DICE_CDI_SIZE, current_state.cdi_seal);
@@ -235,7 +241,8 @@ TEST(DiceOpsTest, P384KnownAnswerHashOnlyInput) {
 }
 
 TEST(DiceOpsTest, Ed25519KnownAnswerDescriptorInput) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmEd25519};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
+                      .subject_algorithm = kDiceKeyAlgorithmEd25519};
   DiceStateForTest current_state = {};
   DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);
   DeriveFakeInputValue("cdi_seal", DICE_CDI_SIZE, current_state.cdi_seal);
@@ -285,7 +292,8 @@ TEST(DiceOpsTest, Ed25519KnownAnswerDescriptorInput) {
 }
 
 TEST(DiceOpsTest, P256KnownAnswerDescriptorInput) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP256};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP256,
+                      .subject_algorithm = kDiceKeyAlgorithmP256};
   DiceStateForTest current_state = {};
   DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);
   DeriveFakeInputValue("cdi_seal", DICE_CDI_SIZE, current_state.cdi_seal);
@@ -336,7 +344,8 @@ TEST(DiceOpsTest, P256KnownAnswerDescriptorInput) {
 }
 
 TEST(DiceOpsTest, P384KnownAnswerDescriptorInput) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP384};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP384,
+                      .subject_algorithm = kDiceKeyAlgorithmP384};
   DiceStateForTest current_state = {};
   DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);
   DeriveFakeInputValue("cdi_seal", DICE_CDI_SIZE, current_state.cdi_seal);
@@ -387,7 +396,8 @@ TEST(DiceOpsTest, P384KnownAnswerDescriptorInput) {
 }
 
 TEST(DiceOpsTest, Ed25519NonZeroMode) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmEd25519};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
+                      .subject_algorithm = kDiceKeyAlgorithmEd25519};
   constexpr size_t kModeOffsetInCert = 315;
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
@@ -402,7 +412,8 @@ TEST(DiceOpsTest, Ed25519NonZeroMode) {
 }
 
 TEST(DiceOpsTest, P256NonZeroMode) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP256};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP256,
+                      .subject_algorithm = kDiceKeyAlgorithmP256};
   constexpr size_t kModeOffsetInCert = 315;
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
@@ -417,7 +428,8 @@ TEST(DiceOpsTest, P256NonZeroMode) {
 }
 
 TEST(DiceOpsTest, P384NonZeroMode) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP384};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP384,
+                      .subject_algorithm = kDiceKeyAlgorithmP384};
   constexpr size_t kModeOffsetInCert = 316;
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
@@ -432,7 +444,8 @@ TEST(DiceOpsTest, P384NonZeroMode) {
 }
 
 TEST(DiceOpsTest, Ed25519LargeInputs) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmEd25519};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
+                      .subject_algorithm = kDiceKeyAlgorithmEd25519};
   constexpr uint8_t kBigBuffer[1024 * 1024] = {};
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
@@ -447,7 +460,8 @@ TEST(DiceOpsTest, Ed25519LargeInputs) {
 }
 
 TEST(DiceOpsTest, P256LargeInputs) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP256};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP256,
+                      .subject_algorithm = kDiceKeyAlgorithmP256};
   constexpr uint8_t kBigBuffer[1024 * 1024] = {};
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
@@ -462,7 +476,8 @@ TEST(DiceOpsTest, P256LargeInputs) {
 }
 
 TEST(DiceOpsTest, P384LargeInputs) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP384};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP384,
+                      .subject_algorithm = kDiceKeyAlgorithmP384};
   constexpr uint8_t kBigBuffer[1024 * 1024] = {};
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
@@ -477,7 +492,8 @@ TEST(DiceOpsTest, P384LargeInputs) {
 }
 
 TEST(DiceOpsTest, Ed25519InvalidConfigType) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmEd25519};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
+                      .subject_algorithm = kDiceKeyAlgorithmEd25519};
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
@@ -490,7 +506,8 @@ TEST(DiceOpsTest, Ed25519InvalidConfigType) {
 }
 
 TEST(DiceOpsTest, P256InvalidConfigType) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP256};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP256,
+                      .subject_algorithm = kDiceKeyAlgorithmP256};
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
@@ -503,7 +520,8 @@ TEST(DiceOpsTest, P256InvalidConfigType) {
 }
 
 TEST(DiceOpsTest, P384InvalidConfigType) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP384};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP384,
+                      .subject_algorithm = kDiceKeyAlgorithmP384};
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
@@ -516,7 +534,8 @@ TEST(DiceOpsTest, P384InvalidConfigType) {
 }
 
 TEST(DiceOpsTest, Ed25519PartialCertChain) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmEd25519};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
+                      .subject_algorithm = kDiceKeyAlgorithmEd25519};
   constexpr size_t kNumLayers = 7;
   DiceStateForTest states[kNumLayers + 1] = {};
   DiceInputValues inputs[kNumLayers] = {};
@@ -547,7 +566,8 @@ TEST(DiceOpsTest, Ed25519PartialCertChain) {
 }
 
 TEST(DiceOpsTest, P256PartialCertChain) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP256};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP256,
+                      .subject_algorithm = kDiceKeyAlgorithmP256};
   constexpr size_t kNumLayers = 7;
   DiceStateForTest states[kNumLayers + 1] = {};
   DiceInputValues inputs[kNumLayers] = {};
@@ -578,7 +598,8 @@ TEST(DiceOpsTest, P256PartialCertChain) {
 }
 
 TEST(DiceOpsTest, P384PartialCertChain) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP384};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP384,
+                      .subject_algorithm = kDiceKeyAlgorithmP384};
   constexpr size_t kNumLayers = 7;
   DiceStateForTest states[kNumLayers + 1] = {};
   DiceInputValues inputs[kNumLayers] = {};
@@ -609,7 +630,8 @@ TEST(DiceOpsTest, P384PartialCertChain) {
 }
 
 TEST(DiceOpsTest, Ed25519FullCertChain) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmEd25519};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
+                      .subject_algorithm = kDiceKeyAlgorithmEd25519};
   constexpr size_t kNumLayers = 7;
   DiceStateForTest states[kNumLayers + 1] = {};
   DiceInputValues inputs[kNumLayers] = {};
@@ -645,7 +667,8 @@ TEST(DiceOpsTest, Ed25519FullCertChain) {
 }
 
 TEST(DiceOpsTest, P256FullCertChain) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP256};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP256,
+                      .subject_algorithm = kDiceKeyAlgorithmP256};
   constexpr size_t kNumLayers = 7;
   DiceStateForTest states[kNumLayers + 1] = {};
   DiceInputValues inputs[kNumLayers] = {};
@@ -681,7 +704,8 @@ TEST(DiceOpsTest, P256FullCertChain) {
 }
 
 TEST(DiceOpsTest, P384FullCertChain) {
-  DiceContext context{.key_algorithm = kDiceKeyAlgorithmP384};
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP384,
+                      .subject_algorithm = kDiceKeyAlgorithmP384};
   constexpr size_t kNumLayers = 7;
   DiceStateForTest states[kNumLayers + 1] = {};
   DiceInputValues inputs[kNumLayers] = {};

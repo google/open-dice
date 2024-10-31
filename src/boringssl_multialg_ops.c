@@ -41,9 +41,9 @@
 #define DICE_PROFILE_NAME_P256 "opendice.example.p256"
 #define DICE_PROFILE_NAME_P384 "opendice.example.p384"
 
-DiceResult DiceGetKeyParam(void* context, DiceKeyParam* key_param) {
-  DiceContext* c = (DiceContext*)context;
-  switch (c->key_algorithm) {
+DiceResult DiceGetKeyParam(void* context, DicePrincipal principal,
+                           DiceKeyParam* key_param) {
+  switch (DiceGetKeyAlgorithm(context, principal)) {
     case kDiceKeyAlgorithmEd25519:
       key_param->profile_name = DICE_PROFILE_NAME_ED25519;
       key_param->public_key_size = 32;
@@ -75,13 +75,11 @@ DiceResult DiceGetKeyParam(void* context, DiceKeyParam* key_param) {
   return kDiceResultPlatformError;
 }
 
-DiceResult DiceKeypairFromSeed(void* context,
+DiceResult DiceKeypairFromSeed(void* context, DicePrincipal principal,
                                const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
                                uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
                                uint8_t private_key[DICE_PRIVATE_KEY_SIZE]) {
-  DiceContext* c = (DiceContext*)context;
-
-  switch (c->key_algorithm) {
+  switch (DiceGetKeyAlgorithm(context, principal)) {
     case kDiceKeyAlgorithmEd25519:
       ED25519_keypair_from_seed(public_key, private_key, seed);
       return kDiceResultOk;
@@ -102,9 +100,7 @@ DiceResult DiceKeypairFromSeed(void* context,
 DiceResult DiceSign(void* context, const uint8_t* message, size_t message_size,
                     const uint8_t private_key[DICE_PRIVATE_KEY_SIZE],
                     uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE]) {
-  DiceContext* c = (DiceContext*)context;
-
-  switch (c->key_algorithm) {
+  switch (DiceGetKeyAlgorithm(context, kDicePrincipalAuthority)) {
     case kDiceKeyAlgorithmEd25519:
       if (1 == ED25519_sign(signature, message, message_size, private_key)) {
         return kDiceResultOk;
@@ -128,9 +124,7 @@ DiceResult DiceVerify(void* context, const uint8_t* message,
                       size_t message_size,
                       const uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE],
                       const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE]) {
-  DiceContext* c = (DiceContext*)context;
-
-  switch (c->key_algorithm) {
+  switch (DiceGetKeyAlgorithm(context, kDicePrincipalAuthority)) {
     case kDiceKeyAlgorithmEd25519:
       if (1 == ED25519_verify(message, message_size, signature, public_key)) {
         return kDiceResultOk;

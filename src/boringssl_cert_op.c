@@ -585,7 +585,7 @@ DiceResult DiceGenerateCertificate(
     goto out;
   }
   DiceKeyParam key_param;
-  result = DiceGetKeyParam(context, &key_param);
+  result = DiceGetKeyParam(context, kDicePrincipalSubject, &key_param);
   if (result != kDiceResultOk) {
     goto out;
   }

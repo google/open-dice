@@ -28,7 +28,8 @@ extern "C" {
 
 // Retrieves the DICE key parameters based on the key pair generation
 // algorithm set up at compile time or in the |context| parameter at runtime.
-DiceResult DiceGetKeyParam(void* context, DiceKeyParam* key_param);
+DiceResult DiceGetKeyParam(void* context, DicePrincipal principal,
+                           DiceKeyParam* key_param);
 
 // An implementation of SHA-512, or an alternative hash. Hashes |input_size|
 // bytes of |input| and populates |output| on success.
@@ -46,7 +47,7 @@ DiceResult DiceKdf(void* context, size_t length, const uint8_t* ikm,
 // Since this is deterministic, |seed| is as sensitive as a private key and can
 // be used directly as the private key. The |private_key| may use an
 // implementation defined format so may only be passed to the |sign| operation.
-DiceResult DiceKeypairFromSeed(void* context,
+DiceResult DiceKeypairFromSeed(void* context, DicePrincipal principal,
                                const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
                                uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
                                uint8_t private_key[DICE_PRIVATE_KEY_SIZE]);

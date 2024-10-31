@@ -32,8 +32,9 @@
 // Max size of the COSE_Sign1 protected attributes.
 #define DICE_MAX_PROTECTED_ATTRIBUTES_SIZE 16
 
-static DiceResult EncodeProtectedAttributes(void* context, size_t buffer_size,
-                                            uint8_t* buffer,
+static DiceResult EncodeProtectedAttributes(void* context,
+                                            DicePrincipal principal,
+                                            size_t buffer_size, uint8_t* buffer,
                                             size_t* encoded_size) {
   // Constants per RFC 8152.
   const int64_t kCoseHeaderAlgLabel = 1;
@@ -43,7 +44,7 @@ static DiceResult EncodeProtectedAttributes(void* context, size_t buffer_size,
   CborWriteMap(/*num_elements=*/1, &out);
   // Add the algorithm.
   DiceKeyParam key_param;
-  DiceResult result = DiceGetKeyParam(context, &key_param);
+  DiceResult result = DiceGetKeyParam(context, principal, &key_param);
   if (result != kDiceResultOk) {
     return result;
   }
@@ -112,7 +113,8 @@ static DiceResult EncodeCoseSign1(
     CborWriteBstr(payload_size, payload, &out);
   }
   DiceKeyParam key_param;
-  DiceResult result = DiceGetKeyParam(context, &key_param);
+  DiceResult result =
+      DiceGetKeyParam(context, kDicePrincipalAuthority, &key_param);
   if (result != kDiceResultOk) {
     return result;
   }
@@ -138,9 +140,9 @@ DiceResult DiceCoseSignAndEncodeSign1(
   // COSE_Sign1 structure.
   uint8_t protected_attributes[DICE_MAX_PROTECTED_ATTRIBUTES_SIZE];
   size_t protected_attributes_size = 0;
-  result = EncodeProtectedAttributes(context, sizeof(protected_attributes),
-                                     protected_attributes,
-                                     &protected_attributes_size);
+  result = EncodeProtectedAttributes(
+      context, kDicePrincipalSubject, sizeof(protected_attributes),
+      protected_attributes, &protected_attributes_size);
   if (result != kDiceResultOk) {
     return kDiceResultPlatformError;
   }
@@ -219,7 +221,8 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   }
 
   DiceKeyParam key_param;
-  DiceResult result = DiceGetKeyParam(context, &key_param);
+  DiceResult result =
+      DiceGetKeyParam(context, kDicePrincipalSubject, &key_param);
   if (result != kDiceResultOk) {
     return result;
   }
@@ -320,21 +323,29 @@ DiceResult DiceGenerateCertificate(
 
   // Derive keys and IDs from the private key seeds.
   uint8_t subject_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
-  result = DiceKeypairFromSeed(context, subject_private_key_seed,
-                               subject_public_key, subject_private_key);
+  result = DiceKeypairFromSeed(context, kDicePrincipalSubject,
+                               subject_private_key_seed, subject_public_key,
+                               subject_private_key);
   if (result != kDiceResultOk) {
     goto out;
   }
 
-  DiceKeyParam key_param;
-  result = DiceGetKeyParam(context, &key_param);
+  DiceKeyParam subject_key_param;
+  DiceKeyParam authority_key_param;
+  result = DiceGetKeyParam(context, kDicePrincipalSubject, &subject_key_param);
+  if (result != kDiceResultOk) {
+    goto out;
+  }
+  result =
+      DiceGetKeyParam(context, kDicePrincipalAuthority, &authority_key_param);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   uint8_t subject_id[DICE_ID_SIZE];
-  result = DiceDeriveCdiCertificateId(context, subject_public_key,
-                                      key_param.public_key_size, subject_id);
+  result =
+      DiceDeriveCdiCertificateId(context, subject_public_key,
+                                 subject_key_param.public_key_size, subject_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -344,15 +355,17 @@ DiceResult DiceGenerateCertificate(
   subject_id_hex[sizeof(subject_id_hex) - 1] = '\0';
 
   uint8_t authority_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
-  result = DiceKeypairFromSeed(context, authority_private_key_seed,
-                               authority_public_key, authority_private_key);
+  result = DiceKeypairFromSeed(context, kDicePrincipalAuthority,
+                               authority_private_key_seed, authority_public_key,
+                               authority_private_key);
   if (result != kDiceResultOk) {
     goto out;
   }
 
   uint8_t authority_id[DICE_ID_SIZE];
   result = DiceDeriveCdiCertificateId(context, authority_public_key,
-                                      key_param.public_key_size, authority_id);
+                                      authority_key_param.public_key_size,
+                                      authority_id);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -365,8 +378,8 @@ DiceResult DiceGenerateCertificate(
   uint8_t encoded_public_key[DICE_MAX_PUBLIC_KEY_SIZE];
   size_t encoded_public_key_size = 0;
   result = DiceCoseEncodePublicKey(
-      context, subject_public_key, sizeof(encoded_public_key),
-      encoded_public_key, &encoded_public_key_size);
+      context, kDicePrincipalSubject, subject_public_key,
+      sizeof(encoded_public_key), encoded_public_key, &encoded_public_key_size);
   if (result != kDiceResultOk) {
     result = kDiceResultPlatformError;
     goto out;
@@ -376,9 +389,9 @@ DiceResult DiceGenerateCertificate(
   // COSE_Sign1 structure.
   uint8_t protected_attributes[DICE_MAX_PROTECTED_ATTRIBUTES_SIZE];
   size_t protected_attributes_size = 0;
-  result = EncodeProtectedAttributes(context, sizeof(protected_attributes),
-                                     protected_attributes,
-                                     &protected_attributes_size);
+  result = EncodeProtectedAttributes(
+      context, kDicePrincipalSubject, sizeof(protected_attributes),
+      protected_attributes, &protected_attributes_size);
   if (result != kDiceResultOk) {
     result = kDiceResultPlatformError;
     goto out;
@@ -454,10 +467,11 @@ out:
 }
 
 DiceResult DiceCoseEncodePublicKey(
-    void* context, const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
-    size_t buffer_size, uint8_t* buffer, size_t* encoded_size) {
+    void* context, DicePrincipal principal,
+    const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE], size_t buffer_size,
+    uint8_t* buffer, size_t* encoded_size) {
   DiceKeyParam key_param;
-  DiceResult result = DiceGetKeyParam(context, &key_param);
+  DiceResult result = DiceGetKeyParam(context, principal, &key_param);
   if (result != kDiceResultOk) {
     return result;
   }

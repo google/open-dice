@@ -165,7 +165,7 @@ DiceResult DiceGenerateCertificate(
   DiceResult result = kDiceResultOk;
 
   DiceKeyParam key_param;
-  result = DiceGetKeyParam(context, &key_param);
+  result = DiceGetKeyParam(context, kDicePrincipalSubject, &key_param);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -189,8 +189,9 @@ DiceResult DiceGenerateCertificate(
 
   // Derive keys and IDs from the private key seeds.
   uint8_t subject_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
-  result = DiceKeypairFromSeed(context, subject_private_key_seed,
-                               subject_public_key, subject_private_key);
+  result = DiceKeypairFromSeed(context, kDicePrincipalSubject,
+                               subject_private_key_seed, subject_public_key,
+                               subject_private_key);
   if (result != kDiceResultOk) {
     goto out;
   }
@@ -206,8 +207,9 @@ DiceResult DiceGenerateCertificate(
                 sizeof(subject_id_hex));
 
   uint8_t authority_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
-  result = DiceKeypairFromSeed(context, authority_private_key_seed,
-                               authority_public_key, authority_private_key);
+  result = DiceKeypairFromSeed(context, kDicePrincipalAuthority,
+                               authority_private_key_seed, authority_public_key,
+                               authority_private_key);
   if (result != kDiceResultOk) {
     goto out;
   }

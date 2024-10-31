@@ -18,6 +18,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "dice/types.h"
+
 // Upper bound of sizes based on P-384.
 #define DICE_PUBLIC_KEY_BUFFER_SIZE 96
 #define DICE_PRIVATE_KEY_SIZE 64
@@ -36,8 +38,20 @@ typedef enum {
 // Provides the algorithm configuration and must be passed as the context
 // parameter to every function in the library.
 typedef struct DiceContext_ {
-  DiceKeyAlgorithm key_algorithm;
+  DiceKeyAlgorithm authority_algorithm;
+  DiceKeyAlgorithm subject_algorithm;
 } DiceContext;
+
+static inline DiceKeyAlgorithm DiceGetKeyAlgorithm(void* context,
+                                                   DicePrincipal principal) {
+  DiceContext* c = (DiceContext*)context;
+  switch (principal) {
+    case kDicePrincipalAuthority:
+      return c->authority_algorithm;
+    case kDicePrincipalSubject:
+      return c->subject_algorithm;
+  }
+}
 
 #ifdef __cplusplus
 }  // extern "C"

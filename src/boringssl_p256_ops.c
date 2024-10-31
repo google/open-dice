@@ -37,8 +37,11 @@
 
 #define DICE_PROFILE_NAME "opendice.example.p256"
 
-DiceResult DiceGetKeyParam(void* context_not_used, DiceKeyParam* key_param) {
+DiceResult DiceGetKeyParam(void* context_not_used,
+                           DicePrincipal principal_not_used,
+                           DiceKeyParam* key_param) {
   (void)context_not_used;
+  (void)principal_not_used;
   key_param->profile_name = DICE_PROFILE_NAME;
   key_param->public_key_size = DICE_PUBLIC_KEY_BUFFER_SIZE;
   key_param->signature_size = DICE_SIGNATURE_BUFFER_SIZE;
@@ -50,10 +53,12 @@ DiceResult DiceGetKeyParam(void* context_not_used, DiceKeyParam* key_param) {
 }
 
 DiceResult DiceKeypairFromSeed(void* context_not_used,
+                               DicePrincipal principal_not_used,
                                const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
                                uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
                                uint8_t private_key[DICE_PRIVATE_KEY_SIZE]) {
   (void)context_not_used;
+  (void)principal_not_used;
   if (1 == P256KeypairFromSeed(public_key, private_key, seed)) {
     return kDiceResultOk;
   }

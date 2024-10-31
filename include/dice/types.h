@@ -26,6 +26,11 @@ typedef enum {
 } DiceResult;
 
 typedef enum {
+  kDicePrincipalAuthority,
+  kDicePrincipalSubject,
+} DicePrincipal;
+
+typedef enum {
   kDiceModeNotInitialized,
   kDiceModeNormal,
   kDiceModeDebug,

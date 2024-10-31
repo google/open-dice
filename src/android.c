@@ -159,7 +159,8 @@ static DiceResult DiceAndroidMainFlowWithNewDiceChain(
     goto out;
   }
   // Derive attestation key pair.
-  result = DiceKeypairFromSeed(context, current_cdi_private_key_seed,
+  result = DiceKeypairFromSeed(context, kDicePrincipalAuthority,
+                               current_cdi_private_key_seed,
                                attestation_public_key, attestation_private_key);
   if (result != kDiceResultOk) {
     goto out;
@@ -180,8 +181,9 @@ static DiceResult DiceAndroidMainFlowWithNewDiceChain(
   }
 
   size_t encoded_pub_key_size = 0;
-  result = DiceCoseEncodePublicKey(context, attestation_public_key, buffer_size,
-                                   buffer, &encoded_pub_key_size);
+  result = DiceCoseEncodePublicKey(context, kDicePrincipalAuthority,
+                                   attestation_public_key, buffer_size, buffer,
+                                   &encoded_pub_key_size);
   if (result == kDiceResultOk) {
     buffer += encoded_pub_key_size;
     buffer_size -= encoded_pub_key_size;
