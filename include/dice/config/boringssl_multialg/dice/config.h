@@ -20,9 +20,9 @@
 
 #include "dice/types.h"
 
-// Upper bound of sizes based on P-384.
+// Upper bound of sizes for all the supported algorithms.
 #define DICE_PUBLIC_KEY_BUFFER_SIZE 96
-#define DICE_PRIVATE_KEY_SIZE 64
+#define DICE_PRIVATE_KEY_BUFFER_SIZE 64
 #define DICE_SIGNATURE_BUFFER_SIZE 96
 
 #ifdef __cplusplus

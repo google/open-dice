@@ -28,7 +28,7 @@
 #if DICE_PUBLIC_KEY_BUFFER_SIZE != 96
 #error "This P-384 implementation needs 96 bytes to store the public key."
 #endif
-#if DICE_PRIVATE_KEY_SIZE != 48
+#if DICE_PRIVATE_KEY_BUFFER_SIZE != 48
 #error "P-384 needs 48 bytes for the private key."
 #endif
 #if DICE_SIGNATURE_BUFFER_SIZE != 96
@@ -52,11 +52,11 @@ DiceResult DiceGetKeyParam(void* context_not_used,
   return kDiceResultOk;
 }
 
-DiceResult DiceKeypairFromSeed(void* context_not_used,
-                               DicePrincipal principal_not_used,
-                               const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
-                               uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
-                               uint8_t private_key[DICE_PRIVATE_KEY_SIZE]) {
+DiceResult DiceKeypairFromSeed(
+    void* context_not_used, DicePrincipal principal_not_used,
+    const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
+    uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE]) {
   (void)context_not_used;
   (void)principal_not_used;
   if (1 == P384KeypairFromSeed(public_key, private_key, seed)) {
@@ -67,7 +67,7 @@ DiceResult DiceKeypairFromSeed(void* context_not_used,
 
 DiceResult DiceSign(void* context_not_used, const uint8_t* message,
                     size_t message_size,
-                    const uint8_t private_key[DICE_PRIVATE_KEY_SIZE],
+                    const uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE],
                     uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE]) {
   (void)context_not_used;
   if (1 == P384Sign(signature, message, message_size, private_key)) {

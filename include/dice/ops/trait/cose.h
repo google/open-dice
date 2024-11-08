@@ -48,7 +48,7 @@ DiceResult DiceCoseEncodePublicKey(
 DiceResult DiceCoseSignAndEncodeSign1(
     void* context, const uint8_t* payload, size_t payload_size,
     const uint8_t* aad, size_t aad_size,
-    const uint8_t private_key[DICE_PRIVATE_KEY_SIZE], size_t buffer_size,
+    const uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE], size_t buffer_size,
     uint8_t* buffer, size_t* encoded_size);
 
 #ifdef __cplusplus

@@ -30,7 +30,7 @@
 #if DICE_PUBLIC_KEY_BUFFER_SIZE != 96
 #error "Multialg needs 96 bytes to for the public key (P-384)"
 #endif
-#if DICE_PRIVATE_KEY_SIZE != 64
+#if DICE_PRIVATE_KEY_BUFFER_SIZE != 64
 #error "Multialg needs 64 bytes for the private key (Ed25519)"
 #endif
 #if DICE_SIGNATURE_BUFFER_SIZE != 96
@@ -75,10 +75,11 @@ DiceResult DiceGetKeyParam(void* context, DicePrincipal principal,
   return kDiceResultPlatformError;
 }
 
-DiceResult DiceKeypairFromSeed(void* context, DicePrincipal principal,
-                               const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
-                               uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
-                               uint8_t private_key[DICE_PRIVATE_KEY_SIZE]) {
+DiceResult DiceKeypairFromSeed(
+    void* context, DicePrincipal principal,
+    const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
+    uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
+    uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE]) {
   switch (DiceGetKeyAlgorithm(context, principal)) {
     case kDiceKeyAlgorithmEd25519:
       ED25519_keypair_from_seed(public_key, private_key, seed);
@@ -98,7 +99,7 @@ DiceResult DiceKeypairFromSeed(void* context, DicePrincipal principal,
 }
 
 DiceResult DiceSign(void* context, const uint8_t* message, size_t message_size,
-                    const uint8_t private_key[DICE_PRIVATE_KEY_SIZE],
+                    const uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE],
                     uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE]) {
   switch (DiceGetKeyAlgorithm(context, kDicePrincipalAuthority)) {
     case kDiceKeyAlgorithmEd25519:

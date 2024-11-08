@@ -20,7 +20,7 @@
 // These value aren't yet used meaningfully in such tests so are given
 // placeholder values.
 #define DICE_PUBLIC_KEY_BUFFER_SIZE 1
-#define DICE_PRIVATE_KEY_SIZE 1
+#define DICE_PRIVATE_KEY_BUFFER_SIZE 1
 #define DICE_SIGNATURE_BUFFER_SIZE 1
 #define DICE_PROFILE_NAME NULL
 

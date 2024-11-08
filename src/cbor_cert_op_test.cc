@@ -250,7 +250,7 @@ TEST(DiceOpsTest, CoseSignAndEncodeSign1) {
                                        private_key_seed);
   ASSERT_EQ(kDiceResultOk, result);
 
-  uint8_t private_key[DICE_PRIVATE_KEY_SIZE];
+  uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE];
   uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
   result = DiceKeypairFromSeed(NULL, kDicePrincipalAuthority, private_key_seed,
                                public_key, private_key);

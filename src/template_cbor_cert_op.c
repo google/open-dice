@@ -184,8 +184,8 @@ DiceResult DiceGenerateCertificate(
   }
 
   // Declare buffers which are cleared on 'goto out'.
-  uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE];
-  uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE];
+  uint8_t subject_private_key[DICE_PRIVATE_KEY_BUFFER_SIZE];
+  uint8_t authority_private_key[DICE_PRIVATE_KEY_BUFFER_SIZE];
 
   // Derive keys and IDs from the private key seeds.
   uint8_t subject_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];

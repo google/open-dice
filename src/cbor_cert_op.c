@@ -130,7 +130,7 @@ static DiceResult EncodeCoseSign1(
 DiceResult DiceCoseSignAndEncodeSign1(
     void* context, const uint8_t* payload, size_t payload_size,
     const uint8_t* aad, size_t aad_size,
-    const uint8_t private_key[DICE_PRIVATE_KEY_SIZE], size_t buffer_size,
+    const uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE], size_t buffer_size,
     uint8_t* buffer, size_t* encoded_size) {
   DiceResult result;
 
@@ -318,8 +318,8 @@ DiceResult DiceGenerateCertificate(
   }
 
   // Declare buffers which are cleared on 'goto out'.
-  uint8_t subject_private_key[DICE_PRIVATE_KEY_SIZE];
-  uint8_t authority_private_key[DICE_PRIVATE_KEY_SIZE];
+  uint8_t subject_private_key[DICE_PRIVATE_KEY_BUFFER_SIZE];
+  uint8_t authority_private_key[DICE_PRIVATE_KEY_BUFFER_SIZE];
 
   // Derive keys and IDs from the private key seeds.
   uint8_t subject_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
