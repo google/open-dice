@@ -35,6 +35,17 @@ using dice::test::KeyType_Ed25519;
 using dice::test::KeyType_P256;
 using dice::test::KeyType_P384;
 
+TEST(DiceOpsTest, InvalidContextReturnsError) {
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  DiceResult result = DiceMainFlow(
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultInvalidInput, result);
+}
+
 TEST(DiceOpsTest, Ed25519KnownAnswerZeroInput) {
   DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
                       .subject_algorithm = kDiceKeyAlgorithmEd25519};

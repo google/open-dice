@@ -43,7 +43,12 @@
 
 DiceResult DiceGetKeyParam(void* context, DicePrincipal principal,
                            DiceKeyParam* key_param) {
-  switch (DiceGetKeyAlgorithm(context, principal)) {
+  DiceKeyAlgorithm alg;
+  DiceResult result = DiceGetKeyAlgorithm(context, principal, &alg);
+  if (result != kDiceResultOk) {
+    return result;
+  }
+  switch (alg) {
     case kDiceKeyAlgorithmEd25519:
       key_param->profile_name = DICE_PROFILE_NAME_ED25519;
       key_param->public_key_size = 32;
@@ -80,7 +85,12 @@ DiceResult DiceKeypairFromSeed(
     const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE],
     uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE],
     uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE]) {
-  switch (DiceGetKeyAlgorithm(context, principal)) {
+  DiceKeyAlgorithm alg;
+  DiceResult result = DiceGetKeyAlgorithm(context, principal, &alg);
+  if (result != kDiceResultOk) {
+    return result;
+  }
+  switch (alg) {
     case kDiceKeyAlgorithmEd25519:
       ED25519_keypair_from_seed(public_key, private_key, seed);
       return kDiceResultOk;
@@ -101,7 +111,13 @@ DiceResult DiceKeypairFromSeed(
 DiceResult DiceSign(void* context, const uint8_t* message, size_t message_size,
                     const uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE],
                     uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE]) {
-  switch (DiceGetKeyAlgorithm(context, kDicePrincipalAuthority)) {
+  DiceKeyAlgorithm alg;
+  DiceResult result =
+      DiceGetKeyAlgorithm(context, kDicePrincipalAuthority, &alg);
+  if (result != kDiceResultOk) {
+    return result;
+  }
+  switch (alg) {
     case kDiceKeyAlgorithmEd25519:
       if (1 == ED25519_sign(signature, message, message_size, private_key)) {
         return kDiceResultOk;
@@ -125,7 +141,13 @@ DiceResult DiceVerify(void* context, const uint8_t* message,
                       size_t message_size,
                       const uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE],
                       const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE]) {
-  switch (DiceGetKeyAlgorithm(context, kDicePrincipalAuthority)) {
+  DiceKeyAlgorithm alg;
+  DiceResult result =
+      DiceGetKeyAlgorithm(context, kDicePrincipalAuthority, &alg);
+  if (result != kDiceResultOk) {
+    return result;
+  }
+  switch (alg) {
     case kDiceKeyAlgorithmEd25519:
       if (1 == ED25519_verify(message, message_size, signature, public_key)) {
         return kDiceResultOk;

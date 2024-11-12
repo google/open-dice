@@ -42,15 +42,22 @@ typedef struct DiceContext_ {
   DiceKeyAlgorithm subject_algorithm;
 } DiceContext;
 
-static inline DiceKeyAlgorithm DiceGetKeyAlgorithm(void* context,
-                                                   DicePrincipal principal) {
+static inline DiceResult DiceGetKeyAlgorithm(void* context,
+                                             DicePrincipal principal,
+                                             DiceKeyAlgorithm* alg) {
   DiceContext* c = (DiceContext*)context;
+  if (context == NULL) {
+    return kDiceResultInvalidInput;
+  }
   switch (principal) {
     case kDicePrincipalAuthority:
-      return c->authority_algorithm;
+      *alg = c->authority_algorithm;
+      break;
     case kDicePrincipalSubject:
-      return c->subject_algorithm;
+      *alg = c->subject_algorithm;
+      break;
   }
+  return kDiceResultOk;
 }
 
 #ifdef __cplusplus
