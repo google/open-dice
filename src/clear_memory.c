@@ -17,9 +17,9 @@
 // volatile data pointer. Attention has not been given to performance, clearing
 // caches or other potential side channels.
 
-#include <stdint.h>
+#include "dice/ops/clear_memory.h"
 
-#include "dice/ops.h"
+#include <stdint.h>
 
 void DiceClearMemory(void* context, size_t size, void* address) {
   (void)context;

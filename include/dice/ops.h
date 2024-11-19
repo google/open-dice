@@ -17,6 +17,7 @@
 
 #include <dice/config.h>
 #include <dice/dice.h>
+#include <dice/ops/clear_memory.h>
 
 // These are the set of functions that implement various operations that the
 // main DICE functions depend on. They are provided as part of an integration
@@ -79,14 +80,6 @@ DiceResult DiceGenerateCertificate(
     const uint8_t authority_private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     const DiceInputValues* input_values, size_t certificate_buffer_size,
     uint8_t* certificate, size_t* certificate_actual_size);
-
-// Securely clears |size| bytes at |address|. This project contains a basic
-// implementation. OPENSSL_cleanse from boringssl, SecureZeroMemory from
-// Windows and memset_s from C11 could also be used as an implementation but a
-// particular target platform or toolchain may have a better implementation
-// available that can be plugged in here. Care may be needed to ensure sensitive
-// data does not leak due to features such as caches.
-void DiceClearMemory(void* context, size_t size, void* address);
 
 #ifdef __cplusplus
 }  // extern "C"
