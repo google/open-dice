@@ -141,7 +141,7 @@ DiceResult DiceCoseSignAndEncodeSign1(
   uint8_t protected_attributes[DICE_MAX_PROTECTED_ATTRIBUTES_SIZE];
   size_t protected_attributes_size = 0;
   result = EncodeProtectedAttributes(
-      context, kDicePrincipalSubject, sizeof(protected_attributes),
+      context, kDicePrincipalAuthority, sizeof(protected_attributes),
       protected_attributes, &protected_attributes_size);
   if (result != kDiceResultOk) {
     return kDiceResultPlatformError;
@@ -390,7 +390,7 @@ DiceResult DiceGenerateCertificate(
   uint8_t protected_attributes[DICE_MAX_PROTECTED_ATTRIBUTES_SIZE];
   size_t protected_attributes_size = 0;
   result = EncodeProtectedAttributes(
-      context, kDicePrincipalSubject, sizeof(protected_attributes),
+      context, kDicePrincipalAuthority, sizeof(protected_attributes),
       protected_attributes, &protected_attributes_size);
   if (result != kDiceResultOk) {
     result = kDiceResultPlatformError;
