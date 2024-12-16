@@ -134,7 +134,7 @@ DiceResult DiceAndroidMainFlow(void* context,
     buffer_size -= new_chain_prefix_size + chain_items_size;
   }
 
-  size_t certificate_size;
+  size_t certificate_size = 0;
   result = DiceMainFlow(context, current_cdi_attest, current_cdi_seal,
                         input_values, buffer_size, buffer, &certificate_size,
                         next_cdi_attest, next_cdi_seal);
