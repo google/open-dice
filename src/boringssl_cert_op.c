@@ -21,6 +21,7 @@
 
 #include "dice/dice.h"
 #include "dice/ops.h"
+#include "dice/profile_name.h"
 #include "dice/utils.h"
 #include "openssl/asn1.h"
 #include "openssl/asn1t.h"
@@ -310,8 +311,7 @@ out:
   return result;
 }
 
-static DiceResult GetDiceExtensionData(const char* profile_name,
-                                       const DiceInputValues* input_values,
+static DiceResult GetDiceExtensionData(const DiceInputValues* input_values,
                                        size_t buffer_size, uint8_t* buffer,
                                        size_t* actual_size) {
   DiceResult result = kDiceResultOk;
@@ -431,14 +431,14 @@ static DiceResult GetDiceExtensionData(const char* profile_name,
   }
 
   // Encode profile name.
-  if (profile_name) {
+  if (DICE_PROFILE_NAME) {
     asn1->profile_name = ASN1_UTF8STRING_new();
     if (!asn1->profile_name) {
       result = kDiceResultPlatformError;
       goto out;
     }
-    if (!ASN1_STRING_set(asn1->profile_name, profile_name,
-                         strlen(profile_name))) {
+    if (!ASN1_STRING_set(asn1->profile_name, DICE_PROFILE_NAME,
+                         strlen(DICE_PROFILE_NAME))) {
       result = kDiceResultPlatformError;
       goto out;
     }
@@ -458,8 +458,7 @@ out:
   return result;
 }
 
-static DiceResult AddDiceExtension(const char* profile_name,
-                                   const DiceInputValues* input_values,
+static DiceResult AddDiceExtension(const DiceInputValues* input_values,
                                    X509* x509) {
   const char* kDiceExtensionOid = "1.3.6.1.4.1.11129.2.1.24";
 
@@ -471,7 +470,7 @@ static DiceResult AddDiceExtension(const char* profile_name,
   uint8_t extension_buffer[DICE_MAX_EXTENSION_SIZE];
   size_t extension_size = 0;
   DiceResult result =
-      GetDiceExtensionData(profile_name, input_values, sizeof(extension_buffer),
+      GetDiceExtensionData(input_values, sizeof(extension_buffer),
                            extension_buffer, &extension_size);
   if (result != kDiceResultOk) {
     goto out;
@@ -589,7 +588,7 @@ DiceResult DiceGenerateCertificate(
   if (result != kDiceResultOk) {
     goto out;
   }
-  result = AddDiceExtension(key_param.profile_name, input_values, x509);
+  result = AddDiceExtension(input_values, x509);
   if (result != kDiceResultOk) {
     goto out;
   }

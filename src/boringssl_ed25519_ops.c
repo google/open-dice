@@ -34,14 +34,11 @@
 #error "Ed25519 needs 64 bytes to store the signature."
 #endif
 
-#define DICE_PROFILE_NAME NULL
-
 DiceResult DiceGetKeyParam(void* context_not_used,
                            DicePrincipal principal_not_used,
                            DiceKeyParam* key_param) {
   (void)context_not_used;
   (void)principal_not_used;
-  key_param->profile_name = DICE_PROFILE_NAME;
   key_param->public_key_size = DICE_PUBLIC_KEY_BUFFER_SIZE;
   key_param->signature_size = DICE_SIGNATURE_BUFFER_SIZE;
 

@@ -44,15 +44,16 @@ TEST(DiceOpsTest, KnownAnswerZeroInput) {
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
-  DumpState(CertificateType_Cbor, KeyType_Ed25519, "zero_input", next_state);
+  DumpState(CertificateType_Cbor, KeyType_Ed25519, "android_zero_input",
+            next_state);
   // Both CDI values and the certificate should be deterministic.
   EXPECT_EQ(0, memcmp(next_state.cdi_attest,
                       dice::test::kExpectedCdiAttest_ZeroInput, DICE_CDI_SIZE));
   EXPECT_EQ(0, memcmp(next_state.cdi_seal,
                       dice::test::kExpectedCdiSeal_ZeroInput, DICE_CDI_SIZE));
-  ASSERT_EQ(sizeof(dice::test::kExpectedCborEd25519Cert_ZeroInput),
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborEd25519Cert_AndroidZeroInput),
             next_state.certificate_size);
-  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborEd25519Cert_ZeroInput,
+  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborEd25519Cert_AndroidZeroInput,
                       next_state.certificate, next_state.certificate_size));
 }
 
@@ -60,15 +61,15 @@ TEST(DiceOpsTest, KnownAnswerZeroInputMeasurement) {
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
-  ASSERT_LE(sizeof(dice::test::kExpectedCborEd25519Cert_ZeroInput) / 2,
+  ASSERT_LE(sizeof(dice::test::kExpectedCborEd25519Cert_AndroidZeroInput) / 2,
             sizeof(next_state.certificate));
   DiceResult result = DiceMainFlow(
       NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
-      sizeof(dice::test::kExpectedCborEd25519Cert_ZeroInput) / 2,
+      sizeof(dice::test::kExpectedCborEd25519Cert_AndroidZeroInput) / 2,
       next_state.certificate, &next_state.certificate_size,
       next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultBufferTooSmall, result);
-  EXPECT_EQ(sizeof(dice::test::kExpectedCborEd25519Cert_ZeroInput),
+  EXPECT_EQ(sizeof(dice::test::kExpectedCborEd25519Cert_AndroidZeroInput),
             next_state.certificate_size);
 }
 
@@ -90,7 +91,7 @@ TEST(DiceOpsTest, KnownAnswerHashOnlyInput) {
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
-  DumpState(CertificateType_Cbor, KeyType_Ed25519, "hash_only_input",
+  DumpState(CertificateType_Cbor, KeyType_Ed25519, "android_hash_only_input",
             next_state);
   // Both CDI values and the certificate should be deterministic.
   EXPECT_EQ(
@@ -99,9 +100,9 @@ TEST(DiceOpsTest, KnownAnswerHashOnlyInput) {
   EXPECT_EQ(
       0, memcmp(next_state.cdi_seal, dice::test::kExpectedCdiSeal_HashOnlyInput,
                 DICE_CDI_SIZE));
-  ASSERT_EQ(sizeof(dice::test::kExpectedCborEd25519Cert_HashOnlyInput),
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborEd25519Cert_AndroidHashOnlyInput),
             next_state.certificate_size);
-  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborEd25519Cert_HashOnlyInput,
+  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborEd25519Cert_AndroidHashOnlyInput,
                       next_state.certificate, next_state.certificate_size));
 }
 
@@ -139,7 +140,7 @@ TEST(DiceOpsTest, KnownAnswerDescriptorInput) {
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
-  DumpState(CertificateType_Cbor, KeyType_Ed25519, "descriptor_input",
+  DumpState(CertificateType_Cbor, KeyType_Ed25519, "android_descriptor_input",
             next_state);
   // Both CDI values and the certificate should be deterministic.
   EXPECT_EQ(
@@ -148,10 +149,11 @@ TEST(DiceOpsTest, KnownAnswerDescriptorInput) {
   EXPECT_EQ(
       0, memcmp(next_state.cdi_seal,
                 dice::test::kExpectedCdiSeal_DescriptorInput, DICE_CDI_SIZE));
-  ASSERT_EQ(sizeof(dice::test::kExpectedCborEd25519Cert_DescriptorInput),
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborEd25519Cert_AndroidDescriptorInput),
             next_state.certificate_size);
-  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborEd25519Cert_DescriptorInput,
-                      next_state.certificate, next_state.certificate_size));
+  EXPECT_EQ(0,
+            memcmp(dice::test::kExpectedCborEd25519Cert_AndroidDescriptorInput,
+                   next_state.certificate, next_state.certificate_size));
 }
 
 TEST(DiceOpsTest, NonZeroMode) {

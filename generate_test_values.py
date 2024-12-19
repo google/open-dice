@@ -122,8 +122,7 @@ def _generate_cert_comment(data):
     )[:-3]
 
 
-def _generate_c(name):
-    """Generates C declarations from dumps identified by |name|."""
+def _generate_attest_and_seal(name):
     content = ""
     attest_cdi_data = _read_file("_attest_cdi_%s.bin" % name)
     content += _generate_array(
@@ -133,24 +132,32 @@ def _generate_c(name):
     content += _generate_array(
         "kExpectedCdiSeal_%s" % _to_camel_case(name), seal_cdi_data
     )
-    for cert_type in ("X509", "CBOR"):
-        for key_type in ("Ed25519", "P256", "P384"):
-            var_name = "kExpected%s%sCert_%s" % (
-                _to_camel_case(cert_type),
-                _to_camel_case(key_type),
-                _to_camel_case(name),
-            )
-            cert_data = _read_file(
-                "_%s_%s_cert_%s.cert" % (cert_type, key_type, name)
-            )
-            if cert_type == "X509" and key_type != "P384":
-                content += (
-                    "// $ openssl x509 -inform DER -noout -text -certopt "
-                    "ext_parse\n"
-                )
-                content += _generate_cert_comment(cert_data)
-            content += _generate_array(var_name, cert_data)
     return content
+
+
+def _generate_cert(name, cert_type, key_type):
+    content = ""
+    var_name = "kExpected%s%sCert_%s" % (
+        _to_camel_case(cert_type),
+        _to_camel_case(key_type),
+        _to_camel_case(name),
+    )
+    cert_data = _read_file("_%s_%s_cert_%s.cert" % (cert_type, key_type, name))
+    if cert_type == "X509" and key_type != "P384":
+        content += (
+            "// $ openssl x509 -inform DER -noout -text -certopt " "ext_parse\n"
+        )
+        content += _generate_cert_comment(cert_data)
+    content += _generate_array(var_name, cert_data)
+    return content
+
+
+def _generate_certs(name, cert_type):
+    """Generates C declarations from dumps identified by |name|."""
+    return "".join(
+        _generate_cert(name, cert_type, key_type)
+        for key_type in ("Ed25519", "P256", "P384")
+    )
 
 
 def main(argv):
@@ -158,9 +165,11 @@ def main(argv):
         raise app.UsageError("Too many command-line arguments.")
 
     content = _FILE_HEADER
-    content += _generate_c("zero_input")
-    content += _generate_c("hash_only_input")
-    content += _generate_c("descriptor_input")
+    for name in ("zero_input", "hash_only_input", "descriptor_input"):
+        content += _generate_attest_and_seal(name)
+        content += _generate_certs(name, "X509")
+        content += _generate_certs(name, "CBOR")
+        content += _generate_certs("android_" + name, "CBOR")
     content += _FILE_FOOTER
     subprocess.run(
         ["clang-format", "--style=file"], input=content.encode(), check=True

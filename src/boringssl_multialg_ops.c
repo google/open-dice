@@ -37,10 +37,6 @@
 #error "Multialg needs 96 bytes to store the signature (P-384)"
 #endif
 
-#define DICE_PROFILE_NAME_ED25519 NULL
-#define DICE_PROFILE_NAME_P256 "opendice.example.p256"
-#define DICE_PROFILE_NAME_P384 "opendice.example.p384"
-
 DiceResult DiceGetKeyParam(void* context, DicePrincipal principal,
                            DiceKeyParam* key_param) {
   DiceKeyAlgorithm alg;
@@ -50,7 +46,6 @@ DiceResult DiceGetKeyParam(void* context, DicePrincipal principal,
   }
   switch (alg) {
     case kDiceKeyAlgorithmEd25519:
-      key_param->profile_name = DICE_PROFILE_NAME_ED25519;
       key_param->public_key_size = 32;
       key_param->signature_size = 64;
 
@@ -59,7 +54,6 @@ DiceResult DiceGetKeyParam(void* context, DicePrincipal principal,
       key_param->cose_key_curve = kCoseCrvEd25519;
       return kDiceResultOk;
     case kDiceKeyAlgorithmP256:
-      key_param->profile_name = DICE_PROFILE_NAME_P256;
       key_param->public_key_size = 64;
       key_param->signature_size = 64;
 
@@ -68,7 +62,6 @@ DiceResult DiceGetKeyParam(void* context, DicePrincipal principal,
       key_param->cose_key_curve = kCoseCrvP256;
       return kDiceResultOk;
     case kDiceKeyAlgorithmP384:
-      key_param->profile_name = DICE_PROFILE_NAME_P384;
       key_param->public_key_size = 96;
       key_param->signature_size = 96;
 

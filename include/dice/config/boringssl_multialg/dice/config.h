@@ -64,4 +64,4 @@ static inline DiceResult DiceGetKeyAlgorithm(void* context,
 }  // extern "C"
 #endif
 
-#endif  // DICE_CONFIG_BORINGSSL_MULTIALG_DICE_DICE_CONFIG_H_
+#endif  // DICE_CONFIG_BORINGSSL_MULTIALG_DICE_CONFIG_H_

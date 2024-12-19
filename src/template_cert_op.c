@@ -35,6 +35,7 @@
 
 #include "dice/dice.h"
 #include "dice/ops.h"
+#include "dice/profile_name.h"
 #include "dice/utils.h"
 #include "openssl/curve25519.h"
 #include "openssl/is_boringssl.h"
@@ -183,7 +184,7 @@ DiceResult DiceGenerateCertificate(
   // Variable length descriptors are not supported.
   if (input_values->code_descriptor_size > 0 ||
       input_values->config_type != kDiceConfigTypeInline ||
-      input_values->authority_descriptor_size > 0 || key_param.profile_name) {
+      input_values->authority_descriptor_size > 0 || DICE_PROFILE_NAME) {
     return kDiceResultInvalidInput;
   }
 

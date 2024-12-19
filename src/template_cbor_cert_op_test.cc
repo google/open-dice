@@ -41,6 +41,7 @@ TEST(DiceOpsTest, KnownAnswerZeroInput) {
       sizeof(next_state.certificate), next_state.certificate,
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
+  DumpState(CertificateType_Cbor, KeyType_Ed25519, "zero_input", next_state);
   // Both CDI values and the certificate should be deterministic.
   EXPECT_EQ(0, memcmp(next_state.cdi_attest,
                       dice::test::kExpectedCdiAttest_ZeroInput, DICE_CDI_SIZE));
@@ -71,6 +72,8 @@ TEST(DiceOpsTest, KnownAnswerHashOnlyInput) {
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
   // Both CDI values and the certificate should be deterministic.
+  DumpState(CertificateType_Cbor, KeyType_Ed25519, "hash_only_input",
+            next_state);
   EXPECT_EQ(
       0, memcmp(next_state.cdi_attest,
                 dice::test::kExpectedCdiAttest_HashOnlyInput, DICE_CDI_SIZE));

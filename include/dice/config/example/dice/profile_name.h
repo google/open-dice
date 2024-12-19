@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License. You may obtain a copy of
@@ -12,13 +12,9 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#ifndef DICE_CONFIG_BORINGSSL_ECDSA_P384_DICE_CONFIG_H_
-#define DICE_CONFIG_BORINGSSL_ECDSA_P384_DICE_CONFIG_H_
+#ifndef DICE_CONFIG_EXAMPLE_DICE_PROFILE_NAME_H_
+#define DICE_CONFIG_EXAMPLE_DICE_PROFILE_NAME_H_
 
-// ECDSA P384
-// From table 1 of RFC 9053
-#define DICE_PUBLIC_KEY_BUFFER_SIZE 96
-#define DICE_PRIVATE_KEY_BUFFER_SIZE 48
-#define DICE_SIGNATURE_BUFFER_SIZE 96
+#define DICE_PROFILE_NAME "opendice.example"
 
-#endif  // DICE_CONFIG_BORINGSSL_ECDSA_P384_DICE_CONFIG_H_
+#endif  // DICE_CONFIG_EXAMPLE_DICE_PROFILE_NAME_H_

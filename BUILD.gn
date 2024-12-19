@@ -55,6 +55,18 @@ pw_static_library("dice_standalone") {
   all_dependent_configs = [ ":standalone_ops_config" ]
 }
 
+config("android_profile") {
+  include_dirs = [ "//include/dice/config/android" ]
+}
+
+config("example_profile") {
+  include_dirs = [ "//include/dice/config/example" ]
+}
+
+config("default_profile") {
+  include_dirs = [ "//include/dice/config/default" ]
+}
+
 config("boringssl_ed25519_ops_config") {
   include_dirs = [ "//include/dice/config/boringssl_ed25519" ]
 }
@@ -85,7 +97,10 @@ pw_static_library("dice_with_boringssl_ed25519_ops") {
     "src/utils.c",
   ]
   deps = [ "//third_party/boringssl:crypto" ]
-  all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
+  all_dependent_configs = [
+    ":boringssl_ed25519_ops_config",
+    ":default_profile",
+  ]
 }
 
 pw_static_library("dice_with_boringssl_p256_ops") {
@@ -102,7 +117,10 @@ pw_static_library("dice_with_boringssl_p256_ops") {
     "src/utils.c",
   ]
   deps = [ "//third_party/boringssl:crypto" ]
-  all_dependent_configs = [ ":boringssl_ecdsa_p256_ops_config" ]
+  all_dependent_configs = [
+    ":boringssl_ecdsa_p256_ops_config",
+    ":example_profile",
+  ]
 }
 
 pw_static_library("dice_with_boringssl_p384_ops") {
@@ -119,7 +137,10 @@ pw_static_library("dice_with_boringssl_p384_ops") {
     "src/utils.c",
   ]
   deps = [ "//third_party/boringssl:crypto" ]
-  all_dependent_configs = [ ":boringssl_ecdsa_p384_ops_config" ]
+  all_dependent_configs = [
+    ":boringssl_ecdsa_p384_ops_config",
+    ":example_profile",
+  ]
 }
 
 config("mbedtls_ops_config") {
@@ -159,7 +180,10 @@ pw_static_library("dice_with_cbor_ed25519_cert") {
     ":cbor_writer",
     "//third_party/boringssl:crypto",
   ]
-  all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
+  all_dependent_configs = [
+    ":boringssl_ed25519_ops_config",
+    ":android_profile",
+  ]
 }
 
 pw_static_library("boringssl_ecdsa_utils") {
@@ -190,7 +214,10 @@ pw_static_library("dice_with_cbor_p256_cert") {
     ":cbor_writer",
     "//third_party/boringssl:crypto",
   ]
-  all_dependent_configs = [ ":boringssl_ecdsa_p256_ops_config" ]
+  all_dependent_configs = [
+    ":boringssl_ecdsa_p256_ops_config",
+    ":example_profile",
+  ]
 }
 
 pw_static_library("dice_with_cbor_p384_cert") {
@@ -211,7 +238,10 @@ pw_static_library("dice_with_cbor_p384_cert") {
     ":cbor_writer",
     "//third_party/boringssl:crypto",
   ]
-  all_dependent_configs = [ ":boringssl_ecdsa_p384_ops_config" ]
+  all_dependent_configs = [
+    ":boringssl_ecdsa_p384_ops_config",
+    ":example_profile",
+  ]
 }
 
 pw_static_library("dice_with_cbor_multialg") {
@@ -232,7 +262,10 @@ pw_static_library("dice_with_cbor_multialg") {
     ":cbor_writer",
     "//third_party/boringssl:crypto",
   ]
-  all_dependent_configs = [ ":boringssl_multialg_ops_config" ]
+  all_dependent_configs = [
+    ":boringssl_multialg_ops_config",
+    ":android_profile",
+  ]
 }
 
 pw_static_library("dice_with_cbor_template_ed25519_cert") {
@@ -249,7 +282,10 @@ pw_static_library("dice_with_cbor_template_ed25519_cert") {
     "src/utils.c",
   ]
   deps = [ "//third_party/boringssl:crypto" ]
-  all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
+  all_dependent_configs = [
+    ":boringssl_ed25519_ops_config",
+    ":default_profile",
+  ]
 }
 
 pw_static_library("dice_with_x509_template_cert") {
@@ -266,7 +302,10 @@ pw_static_library("dice_with_x509_template_cert") {
     "src/utils.c",
   ]
   deps = [ "//third_party/boringssl:crypto" ]
-  all_dependent_configs = [ ":boringssl_ed25519_ops_config" ]
+  all_dependent_configs = [
+    ":boringssl_ed25519_ops_config",
+    ":default_profile",
+  ]
 }
 
 pw_source_set("fuzzer") {

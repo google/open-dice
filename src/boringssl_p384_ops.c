@@ -35,14 +35,11 @@
 #error "P-384 needs 96 bytes to store the signature."
 #endif
 
-#define DICE_PROFILE_NAME "opendice.example.p384"
-
 DiceResult DiceGetKeyParam(void* context_not_used,
                            DicePrincipal principal_not_used,
                            DiceKeyParam* key_param) {
   (void)context_not_used;
   (void)principal_not_used;
-  key_param->profile_name = DICE_PROFILE_NAME;
   key_param->public_key_size = DICE_PUBLIC_KEY_BUFFER_SIZE;
   key_param->signature_size = DICE_SIGNATURE_BUFFER_SIZE;
 

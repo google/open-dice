@@ -25,6 +25,7 @@
 #include "dice/dice.h"
 #include "dice/ops.h"
 #include "dice/ops/trait/cose.h"
+#include "dice/profile_name.h"
 #include "dice/utils.h"
 
 // Max size of COSE_Key encoding.
@@ -226,7 +227,7 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   if (result != kDiceResultOk) {
     return result;
   }
-  if (key_param.profile_name) {
+  if (DICE_PROFILE_NAME) {
     map_pairs += 1;
   }
 
@@ -292,9 +293,9 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   CborWriteInt(kKeyUsageLabel, &out);
   CborWriteBstr(/*data_size=*/1, &key_usage, &out);
   // Add the profile name
-  if (key_param.profile_name) {
+  if (DICE_PROFILE_NAME) {
     CborWriteInt(kProfileNameLabel, &out);
-    CborWriteTstr(key_param.profile_name, &out);
+    CborWriteTstr(DICE_PROFILE_NAME, &out);
   }
   *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
