@@ -152,3 +152,31 @@ pub(crate) fn encode_bytes_prefix<const S: usize>(
         .map_err(|_| ErrCode::InternalError)?;
     Ok(())
 }
+
+/// Tokenizes a given CBOR encoded value. This is intended for testing and
+/// panics on failure.
+#[cfg(test)]
+#[allow(unused_results, clippy::unwrap_used)]
+pub(crate) fn tokenize_cbor_for_debug(
+    cbor: &[u8],
+) -> heapless::Vec<minicbor::data::Type, 100> {
+    let mut vec = heapless::Vec::<minicbor::data::Type, 100>::new();
+    let mut decoder = Decoder::new(cbor);
+    while let Ok(t) = decoder.datatype() {
+        if vec.push(t).is_err() {
+            break;
+        }
+        match t {
+            minicbor::data::Type::Array => {
+                decoder.array().unwrap();
+            }
+            minicbor::data::Type::Map => {
+                decoder.map().unwrap();
+            }
+            _ => {
+                decoder.skip().unwrap();
+            }
+        }
+    }
+    vec
+}

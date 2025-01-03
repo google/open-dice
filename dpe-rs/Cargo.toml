@@ -28,6 +28,8 @@ libc-print = "0.1.22"
 log = "0.4.20"
 minicbor = "0.19.1"
 noise-protocol = "0.2.0"
+num-derive = "0.4.2"
+num-traits = { version = "0.2.19", default-features = false }
 rand_core = "0.6.4"
 zeroize = { version = "1.7.0", features = ["zeroize_derive"], default-features = false }
 
