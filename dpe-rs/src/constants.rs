@@ -73,6 +73,9 @@ pub(crate) const DPE_MAX_CERTIFICATE_SIZE: usize = 1024;
 /// The maximum number of certificates that can appear in a certificate chain.
 pub(crate) const DPE_MAX_CERTIFICATES_PER_CHAIN: usize = 4;
 
+/// The maximum number of certificate info blocks that can be held per context.
+pub(crate) const DPE_MAX_CERTIFICATE_INFOS_PER_CONTEXT: usize = 6;
+
 /// The maximum number of internal inputs that can be included in a message.
 pub(crate) const DPE_MAX_INTERNAL_INPUTS: usize = 8;
 

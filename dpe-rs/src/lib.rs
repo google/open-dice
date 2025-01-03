@@ -52,6 +52,7 @@ pub mod args;
 pub mod cbor;
 pub mod constants;
 pub mod crypto;
+pub mod dice;
 pub mod encode;
 pub mod error;
 pub mod memory;

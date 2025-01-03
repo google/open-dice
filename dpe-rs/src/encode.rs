@@ -22,6 +22,10 @@ use crate::cbor::{
 };
 use crate::constants::*;
 use crate::crypto::{HandshakePayload, Hash};
+use crate::dice::{
+    Cdi, Certificate, DiceInput, DiceInputConfig, DiceInputMode,
+    InternalInputType, Uds,
+};
 use crate::error::{DpeResult, ErrCode};
 use crate::memory::{Message, SizedMessage};
 use heapless::Vec;
@@ -49,8 +53,6 @@ use zeroize::ZeroizeOnDrop;
 // ]
 const MESSAGE_ARRAY_SIZE: u64 = 2;
 
-byte_array_wrapper!(Uds, DICE_UDS_SIZE, "UDS");
-byte_array_wrapper!(Cdi, DICE_CDI_SIZE, "CDI");
 byte_array_wrapper!(ContextHandle, DPE_HANDLE_SIZE, "context handle");
 
 impl ContextHandle {
@@ -69,10 +71,6 @@ impl ContextHandle {
 /// A message type with a smaller buffer. This saves memory when we're confident
 /// the contents will fit.
 pub(crate) type SmallMessage = SizedMessage<DPE_MAX_SMALL_MESSAGE_SIZE>;
-
-/// A Vec wrapper to represent a single encoded certificate.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Hash, ZeroizeOnDrop)]
-pub(crate) struct Certificate(pub(crate) Vec<u8, DPE_MAX_CERTIFICATE_SIZE>);
 
 /// A Vec wrapper to represent a certificate chain.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
@@ -131,28 +129,6 @@ pub(crate) enum InitType {
     /// Used when a DPE context is initialized from CDI values available to the
     /// DPE but not available to the client.
     InternalCdis,
-}
-
-/// Defines the supported internal input types. The enum discriminants match the
-/// encoded CBOR values. When an internal input is indicated as part of a
-/// context derivation, the corresponding information is included in the CDI
-/// derivation and possibly an associated certificate.
-#[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Hash, FromPrimitive, ToPrimitive,
-)]
-pub(crate) enum InternalInputType {
-    /// Associated with information the DPE has about its own identity. This
-    /// information is included in the context's certificate info.
-    DpeInfo = 1,
-    /// Associated with information the DPE has about its own DICE attestation
-    /// data. This information is included in the context's certificate info.
-    DpeDice = 2,
-    /// Associated with a value that can be rotated in some way. This value
-    /// remains internal to the DPE and is not included in certificate info.
-    RotationValue = 3,
-    /// Associated with a monotonic counter internal do the DPE. This value
-    /// remains internal to the DPE and is not included in certificate info.
-    MonotonicCounter = 4,
 }
 
 impl TryFrom<u32> for InternalInputType {
@@ -255,22 +231,6 @@ impl TryFrom<u32> for InitTypeSelector {
     }
 }
 
-/// Represents the mode value in DICE input. The discriminants match the CBOR
-/// encoded values. See the Open Profile for DICE specification for details.
-#[derive(
-    Clone, Copy, Debug, Eq, PartialEq, Hash, FromPrimitive, ToPrimitive,
-)]
-pub(crate) enum DiceInputMode {
-    /// The `Not Configured` mode.
-    NotInitialized = 0,
-    /// The `Normal` mode.
-    Normal = 1,
-    /// The `Debug` mode.
-    Debug = 2,
-    /// The `Recovery` mode (aka maintenance mode).
-    Recovery = 3,
-}
-
 impl TryFrom<u8> for DiceInputMode {
     type Error = ErrCode;
     fn try_from(value: u8) -> DpeResult<Self> {
@@ -306,40 +266,6 @@ impl TryFrom<u32> for DiceInputMapKey {
             ErrCode::InvalidArgument
         })
     }
-}
-
-/// Represents a config value as defined by the Open Profile for DICE.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
-pub(crate) enum DiceInputConfig<'a> {
-    /// No config value provided by the client.
-    #[default]
-    EmptyConfig,
-    /// The inline 64-byte value provided by the client.
-    ConfigInlineValue(Hash),
-    /// The free-form configuration descriptor provided by the client.
-    ConfigDescriptor(&'a [u8]),
-}
-
-/// Represents a complete set of DICE input values as defined by the Open
-/// Profile for DICE.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
-pub(crate) struct DiceInput<'a> {
-    /// The `Code` input value.
-    pub(crate) code_hash: Option<Hash>,
-    /// An optional code descriptor (not included in the CDI derivation).
-    pub(crate) code_descriptor: Option<&'a [u8]>,
-    /// The `Configuration Data` input value.
-    pub(crate) config: DiceInputConfig<'a>,
-    /// The `Authority Data` input value as a hash. One of this field or the
-    /// `authority_descriptor` field is required.
-    pub(crate) authority_hash: Option<Hash>,
-    /// The `Authority Data` input value as a descriptor. One of this field or
-    /// the `authority_hash` field is required.
-    pub(crate) authority_descriptor: Option<&'a [u8]>,
-    /// The `Mode Decision` input value.
-    pub(crate) mode: Option<DiceInputMode>,
-    /// The `Hidden Inputs` input value.
-    pub(crate) hidden: Option<Hash>,
 }
 
 /// Decodes a CBOR-encoded set of internal input selectors.
@@ -1266,9 +1192,9 @@ pub(crate) mod test {
     #[test]
     fn init_seed_decode() {
         test_init();
-        let uds_value = Uds([0; DICE_UDS_SIZE]);
-        let cdi_sign = Cdi([1; DICE_CDI_SIZE]);
-        let cdi_seal = Cdi([2; DICE_CDI_SIZE]);
+        let uds_value = Uds::from_array(&[0; DICE_UDS_SIZE]);
+        let cdi_sign = Cdi::from_array(&[1; DICE_CDI_SIZE]);
+        let cdi_seal = Cdi::from_array(&[2; DICE_CDI_SIZE]);
         let invalid_seed = encode_init_seed_for_testing(None, None, None, None);
         let uds_internal_init = InitType::InternalUds;
         let uds_internal_seed = encode_init_seed_for_testing(
