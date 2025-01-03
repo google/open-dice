@@ -36,7 +36,6 @@ pw_static_library("mbedcrypto") {
     "src/library/ecdsa.c",
     "src/library/ecp.c",
     "src/library/ecp_curves.c",
-    "src/library/hash_info.c",
     "src/library/hkdf.c",
     "src/library/hmac_drbg.c",
     "src/library/md.c",

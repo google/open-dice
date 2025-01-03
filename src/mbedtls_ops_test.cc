@@ -138,7 +138,7 @@ TEST(DiceOpsTest, KnownAnswerDescriptorInput) {
 }
 
 TEST(DiceOpsTest, NonZeroMode) {
-  constexpr size_t kModeOffsetInCert = 0x26a;
+  constexpr size_t kModeOffsetInCert = 0x268;
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
