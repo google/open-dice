@@ -20,11 +20,11 @@ use heapless::FnvIndexMap;
 use log::error;
 
 /// Represents the numeric identifier of a command or response argument.
-pub type ArgId = u32;
+pub(crate) type ArgId = u32;
 
 /// Represents the type of a command or response argument.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
-pub enum ArgTypeSelector {
+pub(crate) enum ArgTypeSelector {
     /// Indicates an argument was not recognized, so its type is unknown.
     #[default]
     Unknown,
@@ -40,46 +40,46 @@ pub enum ArgTypeSelector {
 
 /// Represents a command or response argument value.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub enum ArgValue<'a> {
+pub(crate) enum ArgValue<'a> {
     /// This instantiation borrows a slice of a message buffer that was decoded
     /// as a CBOR byte string. The slice needs to live at least as long as
     /// this.
-    BytesArg(&'a [u8]),
+    Bytes(&'a [u8]),
     /// This instantiation contains a decoded CBOR unsigned integer.
-    IntArg(u64),
+    Int(u64),
     /// This instantiation contains a decoded CBOR boolean value.
-    BoolArg(bool),
+    Bool(bool),
 }
 
 impl<'a> ArgValue<'a> {
-    /// Creates a new `BytesArg` from a slice, borrowing the slice.
-    pub fn from_slice(value: &'a [u8]) -> Self {
-        ArgValue::BytesArg(value)
+    /// Creates a new `Bytes` from a slice, borrowing the slice.
+    pub(crate) fn from_slice(value: &'a [u8]) -> Self {
+        ArgValue::Bytes(value)
     }
 
-    /// Returns the borrowed slice if this is a BytesArg.
+    /// Returns the borrowed slice if this is a Bytes.
     ///
     /// # Errors
     ///
-    /// Returns an InternalError error if this is not a BytesArg.
-    pub fn try_into_slice(&self) -> DpeResult<&'a [u8]> {
+    /// Returns an InternalError error if this is not a Bytes.
+    pub(crate) fn try_into_slice(&self) -> DpeResult<&'a [u8]> {
         match self {
-            ArgValue::IntArg(_) | ArgValue::BoolArg(_) => {
+            ArgValue::Int(_) | ArgValue::Bool(_) => {
                 error!("ArgValue::try_info_slice called on {:?}", self);
                 Err(ErrCode::InternalError)
             }
-            ArgValue::BytesArg(value) => Ok(value),
+            ArgValue::Bytes(value) => Ok(value),
         }
     }
 
-    /// Returns the value held by an IntArg as a u32.
+    /// Returns the value held by an Int as a u32.
     ///
     /// # Errors
     ///
-    /// Returns an InternalError error if this is not an IntArg.
-    pub fn try_into_u32(&self) -> DpeResult<u32> {
+    /// Returns an InternalError error if this is not an Int.
+    pub(crate) fn try_into_u32(&self) -> DpeResult<u32> {
         match self {
-            ArgValue::IntArg(i) => Ok((*i).try_into()?),
+            ArgValue::Int(i) => Ok((*i).try_into()?),
             _ => {
                 error!("ArgValue::try_into_u32 called on {:?}", self);
                 Err(ErrCode::InternalError)
@@ -87,19 +87,19 @@ impl<'a> ArgValue<'a> {
         }
     }
 
-    /// Creates a new `IntArg` holding the given u32 `value`.
-    pub fn from_u32(value: u32) -> Self {
-        ArgValue::IntArg(value as u64)
+    /// Creates a new `Int` holding the given u32 `value`.
+    pub(crate) fn from_u32(value: u32) -> Self {
+        ArgValue::Int(value as u64)
     }
 
-    /// Returns the value held by an IntArg as a u64.
+    /// Returns the value held by an Int as a u64.
     ///
     /// # Errors
     ///
-    /// Returns an InternalError error if this is not an IntArg.
-    pub fn try_into_u64(&self) -> DpeResult<u64> {
+    /// Returns an InternalError error if this is not an Int.
+    pub(crate) fn try_into_u64(&self) -> DpeResult<u64> {
         match self {
-            ArgValue::IntArg(i) => Ok(*i),
+            ArgValue::Int(i) => Ok(*i),
             _ => {
                 error!("ArgValue::try_into_u64 called on {:?}", self);
                 Err(ErrCode::InternalError)
@@ -107,19 +107,19 @@ impl<'a> ArgValue<'a> {
         }
     }
 
-    /// Creates a new `IntArg` holding the given u64 `value`.
-    pub fn from_u64(value: u64) -> Self {
-        ArgValue::IntArg(value)
+    /// Creates a new `Int` holding the given u64 `value`.
+    pub(crate) fn from_u64(value: u64) -> Self {
+        ArgValue::Int(value)
     }
 
-    /// Returns the value held by a BoolArg.
+    /// Returns the value held by a Bool.
     ///
     /// # Errors
     ///
-    /// Returns an InternalError error if this is not a BoolArg.
-    pub fn try_into_bool(&self) -> DpeResult<bool> {
+    /// Returns an InternalError error if this is not a Bool.
+    pub(crate) fn try_into_bool(&self) -> DpeResult<bool> {
         match self {
-            ArgValue::BoolArg(b) => Ok(*b),
+            ArgValue::Bool(b) => Ok(*b),
             _ => {
                 error!("ArgValue::try_into_bool called on {:?}", self);
                 Err(ErrCode::InternalError)
@@ -127,22 +127,22 @@ impl<'a> ArgValue<'a> {
         }
     }
 
-    /// Creates a new `BoolArg` holding the given `value`.
-    pub fn from_bool(value: bool) -> Self {
-        ArgValue::BoolArg(value)
+    /// Creates a new `Bool` holding the given `value`.
+    pub(crate) fn from_bool(value: bool) -> Self {
+        ArgValue::Bool(value)
     }
 }
 
 impl<'a, const S: usize> From<&'a SizedMessage<S>> for ArgValue<'a> {
     fn from(message: &'a SizedMessage<S>) -> Self {
-        Self::BytesArg(message.as_slice())
+        Self::Bytes(message.as_slice())
     }
 }
 
 /// Contains a set of command or response arguments in the form of a map from
 /// [`ArgId`] to [`ArgValue`].
-pub type ArgMap<'a> = FnvIndexMap<ArgId, ArgValue<'a>, 16>;
+pub(crate) type ArgMap<'a> = FnvIndexMap<ArgId, ArgValue<'a>, 16>;
 
 /// Contains a set of argument types in the form of a map from ArgId to
 /// [`ArgTypeSelector`].
-pub type ArgTypeMap = FnvIndexMap<ArgId, ArgTypeSelector, 16>;
+pub(crate) type ArgTypeMap = FnvIndexMap<ArgId, ArgTypeSelector, 16>;

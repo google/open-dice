@@ -27,30 +27,31 @@ macro_rules! byte_array_wrapper {
         #[doc = $desc]
         #[doc = "."]
         #[derive(Clone, Debug, Eq, PartialEq, Hash, ZeroizeOnDrop)]
-        pub struct $type_name([u8; $len]);
+        pub(crate) struct $type_name([u8; $len]);
+        #[allow(dead_code)]
         impl $type_name {
             #[doc = "Returns the length of the array."]
-            pub fn len(&self) -> usize {
+            pub(crate) fn len(&self) -> usize {
                 self.0.len()
             }
 
             #[doc = "Whether the array is empty."]
-            pub fn is_empty(&self) -> bool {
+            pub(crate) fn is_empty(&self) -> bool {
                 self.0.is_empty()
             }
 
             #[doc = "Borrows the array as a slice."]
-            pub fn as_slice(&self) -> &[u8] {
+            pub(crate) fn as_slice(&self) -> &[u8] {
                 self.0.as_slice()
             }
 
             #[doc = "Mutably borrows the array as a slice."]
-            pub fn as_mut_slice(&mut self) -> &mut [u8] {
+            pub(crate) fn as_mut_slice(&mut self) -> &mut [u8] {
                 &mut self.0
             }
 
             #[doc = "Borrows the array."]
-            pub fn as_array(&self) -> &[u8; $len] {
+            pub(crate) fn as_array(&self) -> &[u8; $len] {
                 &self.0
             }
 
@@ -59,7 +60,7 @@ macro_rules! byte_array_wrapper {
             #[doc = " from a slice. Fails if the slice length is not "]
             #[doc = stringify!($len)]
             #[doc = "."]
-            pub fn from_slice(s: &[u8]) -> DpeResult<Self> {
+            pub(crate) fn from_slice(s: &[u8]) -> DpeResult<Self> {
                 Self::try_from(s)
             }
 
@@ -73,7 +74,7 @@ macro_rules! byte_array_wrapper {
             #[doc = ", only the first "]
             #[doc = stringify!($len)]
             #[doc = " bytes are used. This method is infallible."]
-            pub fn from_slice_infallible(value: &[u8]) -> Self {
+            pub(crate) fn from_slice_infallible(value: &[u8]) -> Self {
                 #![allow(clippy::indexing_slicing)]
                 let mut tmp: Self = Default::default();
                 if value.len() < $len {
@@ -87,7 +88,7 @@ macro_rules! byte_array_wrapper {
             #[doc = "Creates a "]
             #[doc = stringify!($type_name)]
             #[doc = " from an array."]
-            pub fn from_array(value: &[u8; $len]) -> Self {
+            pub(crate) fn from_array(value: &[u8; $len]) -> Self {
                 Self(*value)
             }
         }
@@ -121,9 +122,9 @@ macro_rules! byte_array_wrapper {
 /// that are useful when processing DPE messages. The inner `vec` is also
 /// accessible directly.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Hash, ZeroizeOnDrop)]
-pub struct SizedMessage<const S: usize> {
+pub(crate) struct SizedMessage<const S: usize> {
     /// The wrapped Vec.
-    pub vec: Vec<u8, S>,
+    pub(crate) vec: Vec<u8, S>,
 }
 
 impl<const S: usize> SizedMessage<S> {
@@ -131,12 +132,12 @@ impl<const S: usize> SizedMessage<S> {
     ///
     /// # Example
     ///
-    /// ```rust
-    /// type MyMessage = dpe_rs::memory::SizedMessage<200>;
+    /// ```ignore
+    /// type MyMessage = crate::memory::SizedMessage<200>;
     ///
     /// assert_eq!(MyMessage::new().len(), 0);
     /// ```
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Default::default()
     }
 
@@ -148,12 +149,12 @@ impl<const S: usize> SizedMessage<S> {
     ///
     /// # Example
     ///
-    /// ```rust
-    /// type MyMessage = dpe_rs::memory::SizedMessage<200>;
+    /// ```ignore
+    /// type MyMessage = crate::memory::SizedMessage<200>;
     ///
     /// assert_eq!(MyMessage::from_slice(&[0; 12]).unwrap().as_slice(), &[0; 12]);
     /// ```
-    pub fn from_slice(value: &[u8]) -> DpeResult<Self> {
+    pub(crate) fn from_slice(value: &[u8]) -> DpeResult<Self> {
         Ok(Self {
             vec: Vec::from_slice(value).map_err(|_| ErrCode::OutOfMemory)?,
         })
@@ -167,20 +168,20 @@ impl<const S: usize> SizedMessage<S> {
     ///
     /// # Example
     ///
-    /// ```rust
-    /// type MyMessage = dpe_rs::memory::SizedMessage<200>;
+    /// ```ignore
+    /// type MyMessage = crate::memory::SizedMessage<200>;
     ///
     /// let mut m = MyMessage::from_slice(&[0; 12]).unwrap();
     /// m.clone_from_slice(&[1; 3]).unwrap();
     /// assert_eq!(m.as_slice(), &[1; 3]);
     /// ```
-    pub fn clone_from_slice(&mut self, slice: &[u8]) -> DpeResult<()> {
+    pub(crate) fn clone_from_slice(&mut self, slice: &[u8]) -> DpeResult<()> {
         self.clear();
         self.vec.extend_from_slice(slice).map_err(|_| ErrCode::OutOfMemory)
     }
 
     /// Borrows the inner byte array.
-    pub fn as_slice(&self) -> &[u8] {
+    pub(crate) fn as_slice(&self) -> &[u8] {
         self.vec.as_slice()
     }
 
@@ -193,33 +194,33 @@ impl<const S: usize> SizedMessage<S> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```ignore
     /// use rand_core::{RngCore, SeedableRng};
     ///
-    /// type MyMessage = dpe_rs::memory::SizedMessage<200>;
+    /// type MyMessage = crate::memory::SizedMessage<200>;
     ///
     /// let mut buffer = MyMessage::new();
     /// <rand_chacha::ChaCha12Rng as SeedableRng>::seed_from_u64(0)
     ///     .fill_bytes(buffer.as_mut_sized(100).unwrap());
     /// assert_eq!(buffer.len(), 100);
     /// ```
-    pub fn as_mut_sized(&mut self, size: usize) -> DpeResult<&mut [u8]> {
+    pub(crate) fn as_mut_sized(&mut self, size: usize) -> DpeResult<&mut [u8]> {
         self.vec.resize_default(size).map_err(|_| ErrCode::OutOfMemory)?;
         Ok(self.vec.as_mut())
     }
 
     /// Returns the length of the inner vec.
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.vec.len()
     }
 
     /// Whether the inner vec is empty.
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.vec.is_empty()
     }
 
     /// Clears the inner vec.
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.vec.clear()
     }
 
@@ -233,14 +234,17 @@ impl<const S: usize> SizedMessage<S> {
     ///
     /// # Example
     ///
-    /// ```rust
-    /// type MyMessage = dpe_rs::memory::SizedMessage<200>;
+    /// ```ignore
+    /// type MyMessage = crate::memory::SizedMessage<200>;
     ///
     /// let mut m = MyMessage::from_slice("prefixdata".as_bytes()).unwrap();
     /// m.remove_prefix(6).unwrap();
     /// assert_eq!(m.as_slice(), "data".as_bytes());
     /// ```
-    pub fn remove_prefix(&mut self, prefix_size: usize) -> DpeResult<()> {
+    pub(crate) fn remove_prefix(
+        &mut self,
+        prefix_size: usize,
+    ) -> DpeResult<()> {
         if prefix_size > self.len() {
             return Err(ErrCode::InternalError);
         }
@@ -264,14 +268,14 @@ impl<const S: usize> SizedMessage<S> {
     ///
     /// # Example
     ///
-    /// ```rust
-    /// type MyMessage = dpe_rs::memory::SizedMessage<200>;
+    /// ```ignore
+    /// type MyMessage = crate::memory::SizedMessage<200>;
     ///
     /// let mut m = MyMessage::from_slice("data".as_bytes()).unwrap();
     /// m.insert_prefix("prefix".as_bytes()).unwrap();
     /// assert_eq!(m.as_slice(), "prefixdata".as_bytes());
     /// ```
-    pub fn insert_prefix(&mut self, prefix: &[u8]) -> DpeResult<()> {
+    pub(crate) fn insert_prefix(&mut self, prefix: &[u8]) -> DpeResult<()> {
         let old_len = self.len();
         self.vec
             .resize_default(self.len() + prefix.len())
@@ -288,4 +292,4 @@ impl<const S: usize> SizedMessage<S> {
 
 /// Represents a DPE command/response message. This type is large and should not
 /// be instantiated unnecessarily.
-pub type Message = SizedMessage<MAX_MESSAGE_SIZE>;
+pub(crate) type Message = SizedMessage<MAX_MESSAGE_SIZE>;

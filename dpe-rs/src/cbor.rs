@@ -28,21 +28,21 @@ impl<const S: usize> minicbor::encode::Write for SizedMessage<S> {
 }
 
 /// Creates a CBOR [Encoder] which encodes into `output`.
-pub fn cbor_encoder_from_message<const S: usize>(
+pub(crate) fn cbor_encoder_from_message<const S: usize>(
     output: &mut SizedMessage<S>,
 ) -> Encoder<&mut SizedMessage<S>> {
     Encoder::new(output)
 }
 
 /// Creates a CBOR [Decoder] which decodes from `input`.
-pub fn cbor_decoder_from_message<const S: usize>(
+pub(crate) fn cbor_decoder_from_message<const S: usize>(
     input: &SizedMessage<S>,
 ) -> Decoder {
     Decoder::new(input.as_slice())
 }
 
 /// Extends minicbor::Decoder.
-pub trait DecoderExt {
+pub(crate) trait DecoderExt {
     /// Decodes a byte slice and returns only its position. This is useful when
     /// the byte slice is the last CBOR item, might be large, and will be
     /// processed in-place using up to the entire available message buffer.
@@ -54,13 +54,13 @@ pub trait DecoderExt {
     ///
     /// # Example
     ///
-    /// ```rust
-    /// use dpe_rs::cbor::{
+    /// ```ignore
+    /// use crate::cbor::{
     ///     cbor_decoder_from_message,
     ///     cbor_encoder_from_message,
     ///     DecoderExt,
     /// };
-    /// use dpe_rs::memory::Message;
+    /// use crate::memory::Message;
     ///
     /// let mut message = Message::new();
     /// cbor_encoder_from_message(&mut message).bytes(&[0; 1000]);
@@ -89,13 +89,13 @@ impl DecoderExt for Decoder<'_> {
 ///
 /// # Example
 ///
-/// ```rust
-/// use dpe_rs::cbor::{
+/// ```ignore
+/// use crate::cbor::{
 ///     cbor_decoder_from_message,
 ///     cbor_encoder_from_message,
 ///     encode_bytes_prefix,
 /// };
-/// use dpe_rs::memory::{
+/// use crate::memory::{
 ///     Message,
 ///     SizedMessage,
 /// };
@@ -108,7 +108,7 @@ impl DecoderExt for Decoder<'_> {
 /// let mut decoder = cbor_decoder_from_message(&message);
 /// assert_eq!(decoder.bytes().unwrap(), &[0; 100]);
 /// ```
-pub fn encode_bytes_prefix<const S: usize>(
+pub(crate) fn encode_bytes_prefix<const S: usize>(
     buffer: &mut SizedMessage<S>,
     bytes_len: usize,
 ) -> DpeResult<()> {
