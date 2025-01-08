@@ -354,8 +354,6 @@ DiceResult DiceGenerateCertificate(
   mbedtls_pk_init(&subject_key_context);
   mbedtls_x509write_cert cert_context;
   mbedtls_x509write_crt_init(&cert_context);
-  mbedtls_mpi serial_number;
-  mbedtls_mpi_init(&serial_number);
 
   // Derive key pairs and IDs.
   result = SetupKeyPair(authority_private_key_seed, &authority_key_context);
@@ -411,12 +409,8 @@ DiceResult DiceGenerateCertificate(
 
   // Construct the certificate.
   mbedtls_x509write_crt_set_version(&cert_context, MBEDTLS_X509_CRT_VERSION_3);
-  if (0 !=
-      mbedtls_mpi_read_binary(&serial_number, subject_id, sizeof(subject_id))) {
-    result = kDiceResultPlatformError;
-    goto out;
-  }
-  if (0 != mbedtls_x509write_crt_set_serial(&cert_context, &serial_number)) {
+  if (0 != mbedtls_x509write_crt_set_serial_raw(&cert_context, subject_id,
+                                                sizeof(subject_id))) {
     result = kDiceResultPlatformError;
     goto out;
   }
@@ -503,7 +497,6 @@ DiceResult DiceGenerateCertificate(
          *certificate_actual_size);
 
 out:
-  mbedtls_mpi_free(&serial_number);
   mbedtls_x509write_crt_free(&cert_context);
   mbedtls_pk_free(&authority_key_context);
   mbedtls_pk_free(&subject_key_context);
