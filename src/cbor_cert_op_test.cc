@@ -22,6 +22,7 @@
 #include "dice/known_test_values.h"
 #include "dice/ops.h"
 #include "dice/ops/trait/cose.h"
+#include "dice/profile_name.h"
 #include "dice/test_framework.h"
 #include "dice/test_utils.h"
 #include "dice/utils.h"
@@ -168,6 +169,20 @@ TEST(DiceOpsTest, NonZeroMode) {
       &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
   EXPECT_EQ(kDiceResultOk, result);
   EXPECT_EQ(kDiceModeDebug, next_state.certificate[kModeOffsetInCert]);
+}
+
+TEST(DiceOpsTest, ProfileName) {
+  constexpr size_t kProfileNameOffsetInCert = 0x17d;
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  DiceResult result = DiceMainFlow(
+      NULL, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+  EXPECT_EQ(0, memcmp(&next_state.certificate[kProfileNameOffsetInCert],
+                      DICE_PROFILE_NAME, strlen(DICE_PROFILE_NAME)));
 }
 
 TEST(DiceOpsTest, LargeInputs) {
