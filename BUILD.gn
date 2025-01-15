@@ -105,6 +105,7 @@ pw_static_library("dice_with_boringssl_ed25519_ops") {
 
 pw_static_library("dice_with_boringssl_p256_ops") {
   public = [
+    "include/dice/boringssl_ecdsa_utils.h",
     "include/dice/dice.h",
     "include/dice/utils.h",
   ]
@@ -125,6 +126,7 @@ pw_static_library("dice_with_boringssl_p256_ops") {
 
 pw_static_library("dice_with_boringssl_p384_ops") {
   public = [
+    "include/dice/boringssl_ecdsa_utils.h",
     "include/dice/dice.h",
     "include/dice/utils.h",
   ]
@@ -160,7 +162,10 @@ pw_static_library("dice_with_mbedtls_ops") {
     "src/utils.c",
   ]
   deps = [ "//third_party/mbedtls:mbedcrypto" ]
-  all_dependent_configs = [ ":mbedtls_ops_config" ]
+  all_dependent_configs = [
+    ":mbedtls_ops_config",
+    ":example_profile",
+  ]
 }
 
 pw_static_library("dice_with_cbor_ed25519_cert") {
@@ -365,8 +370,23 @@ pw_executable("boringssl_ed25519_ops_fuzzer") {
   ]
 }
 
+pw_test("boringssl_p256_ops_test") {
+  sources = [
+    "src/boringssl_p256_ops_test.cc",
+    "src/test_utils.cc",
+  ]
+  deps = [
+    ":boringssl_ecdsa_utils",
+    ":dice_with_boringssl_p256_ops",
+    "$dir_pw_string:pw_string",
+    "//third_party/boringssl:crypto",
+    "//third_party/cose-c:cose-c_p256",
+  ]
+}
+
 pw_executable("boringssl_p256_ops_fuzzer") {
   deps = [
+    ":boringssl_ecdsa_utils",
     ":dice_with_boringssl_p256_ops",
     ":fuzzer",
   ]
@@ -374,6 +394,7 @@ pw_executable("boringssl_p256_ops_fuzzer") {
 
 pw_executable("boringssl_p384_ops_fuzzer") {
   deps = [
+    ":boringssl_ecdsa_utils",
     ":dice_with_boringssl_p384_ops",
     ":fuzzer",
   ]
@@ -532,6 +553,7 @@ pw_test_group("tests") {
   tests = [
     ":android_test",
     ":boringssl_ed25519_ops_test",
+    ":boringssl_p256_ops_test",
     ":cbor_ed25519_cert_op_test",
     ":cbor_p256_cert_op_test",
     ":cbor_p384_cert_op_test",

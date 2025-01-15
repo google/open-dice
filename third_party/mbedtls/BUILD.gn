@@ -44,6 +44,7 @@ pw_static_library("mbedcrypto") {
     "src/library/pk_wrap.c",
     "src/library/pkwrite.c",
     "src/library/platform_util.c",
+    "src/library/sha256.c",
     "src/library/sha512.c",
     "src/library/x509_create.c",
     "src/library/x509write_crt.c",

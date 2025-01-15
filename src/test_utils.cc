@@ -707,6 +707,32 @@ bool VerifyCborCertificateChain(const uint8_t* root_certificate,
 namespace dice {
 namespace test {
 
+static constexpr uint8_t kDerTag[] = {0x30, 0x82, 0x00, 0x00};
+
+const uint8_t* GetX509PayloadPointer(const uint8_t* certificate) {
+  if (certificate == NULL) {
+    return NULL;
+  }
+  return &certificate[sizeof(kDerTag)];
+}
+
+size_t ComputeX509PayloadSize(const uint8_t* certificate,
+                              size_t certificate_size) {
+  if (certificate == NULL || certificate_size < 8) {
+    return 0;
+  }
+  // X509 header for certificate usually looks similar to
+  // 30 82 ** ** 30 82 xy zw # bytes
+  // 00 01 02 03 04 05 06 07 # offsets
+  // where xyzw is the length of the certificate payload
+  size_t payload_size =
+      sizeof(kDerTag) + (certificate[6] << 8) | certificate[7];
+  if (payload_size > certificate_size) {
+    return 0;
+  }
+  return payload_size;
+}
+
 void DumpState(CertificateType cert_type, KeyType key_type, const char* suffix,
                const DiceStateForTest& state) {
   char filename[100];

@@ -14,13 +14,14 @@
 
 // This is an implementation of DiceGenerateCertificate and the crypto
 // operations that uses mbedtls. The algorithms used are SHA512, HKDF-SHA512,
-// and deterministic ECDSA-P256-SHA512.
+// and deterministic ECDSA-P256-SHA256.
 
 #include <stdint.h>
 #include <string.h>
 
 #include "dice/dice.h"
 #include "dice/ops.h"
+#include "dice/profile_name.h"
 #include "dice/utils.h"
 #include "mbedtls/asn1.h"
 #include "mbedtls/asn1write.h"
@@ -73,17 +74,22 @@ out:
 static DiceResult GetIdFromKey(void* context,
                                const mbedtls_pk_context* pk_context,
                                uint8_t id[DICE_ID_SIZE]) {
-  uint8_t raw_public_key[33];
-  size_t raw_public_key_size = 0;
+  uint8_t formatted_public_key[DICE_PUBLIC_KEY_BUFFER_SIZE];
+  size_t formatted_public_key_size = 0;
   mbedtls_ecp_keypair* key = mbedtls_pk_ec(*pk_context);
 
   if (0 != mbedtls_ecp_point_write_binary(
-               &key->grp, &key->Q, MBEDTLS_ECP_PF_COMPRESSED,
-               &raw_public_key_size, raw_public_key, sizeof(raw_public_key))) {
+               &key->grp, &key->Q, MBEDTLS_ECP_PF_UNCOMPRESSED,
+               &formatted_public_key_size, formatted_public_key,
+               sizeof(formatted_public_key))) {
     return kDiceResultPlatformError;
   }
-  return DiceDeriveCdiCertificateId(context, raw_public_key,
-                                    raw_public_key_size, id);
+
+  // mbedtls puts a format byte at the start of a binary representation
+  // of an elliptic curve point. For consistency with other uses of the function
+  // below, this byte is not used in the derivation of the certificate ID.
+  return DiceDeriveCdiCertificateId(context, &formatted_public_key[1],
+                                    formatted_public_key_size - 1, id);
 }
 
 // 54 byte name is prefix (13), hex id (40), and a null terminator.
@@ -435,7 +441,7 @@ DiceResult DiceGenerateCertificate(
   }
   mbedtls_x509write_crt_set_subject_key(&cert_context, &subject_key_context);
   mbedtls_x509write_crt_set_issuer_key(&cert_context, &authority_key_context);
-  mbedtls_x509write_crt_set_md_alg(&cert_context, MBEDTLS_MD_SHA512);
+  mbedtls_x509write_crt_set_md_alg(&cert_context, MBEDTLS_MD_SHA256);
   if (0 != mbedtls_x509write_crt_set_extension(
                &cert_context, MBEDTLS_OID_AUTHORITY_KEY_IDENTIFIER,
                MBEDTLS_OID_SIZE(MBEDTLS_OID_AUTHORITY_KEY_IDENTIFIER),

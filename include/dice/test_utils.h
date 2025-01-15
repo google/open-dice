@@ -44,6 +44,14 @@ struct DiceStateForTest {
   size_t certificate_size;
 };
 
+// Get a pointer to the payload section of a certificate.
+const uint8_t* GetX509PayloadPointer(const uint8_t* certificate);
+
+// Determines the length of the payload in a certificate. That is, exclude the
+// first tag/length at the beginning and the signature at the end.
+size_t ComputeX509PayloadSize(const uint8_t* certificate,
+                              size_t certificate_size);
+
 // Dumps |state| to a set of files in the current directory with the given
 // |suffix|.
 void DumpState(CertificateType cert_type, KeyType key_type, const char* suffix,
