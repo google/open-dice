@@ -54,7 +54,7 @@ update --init`, and updated after pulling commits that roll the submodules using
 To setup the build environment the first time:
 
 ```bash
-$ git submodule update --init
+$ git submodule update --init --recursive
 $ source bootstrap.sh
 $ gn gen out
 ```
