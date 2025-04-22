@@ -239,25 +239,50 @@ function. See below for the full list of
 
 The following pseudocode operations are used throughout this document:
 
-```py
-# A hash function. The input can be any length.
-hash = H(input)
+### Hash
 
-# Random salt values used as the 'salt' KDF argument (hex encoded).
+A hash function. The input can be any length.
+
+```py
+hash = H(input)
+```
+
+### Salt
+
+Random salt values used as the 'salt' KDF argument (hex encoded).
+
+```py
 ASYM_SALT = 63B6A04D2C077FC10F639F21DA793844356CC2B0B441B3A77124035C03F8E1BE
             6035D31F282821A7450A02222AB1B3CFF1679B05AB1CA5D1AFFB789CCD2B0B3B
 ID_SALT = DBDBAEBC8020DA9FF0DD5A24C83AA5A54286DFC263031E329B4DA148430659FE
           62CDB5B7E1E00FC680306711EB444AF77209359496FCFF1DB9520BA51C7B29EA
-
-# A KDF operation with the given desired output length, input key material,
-# salt, and info.
-output = KDF(length, ikm, salt, info)
-
-# An asymmetric key pair derivation, either Ed25519 or ECDSA.
-# * The private key is derived using KDF(32, input, ASYM_SALT, "Key Pair").
-# * The public key is derived from the private key (per the chosen algorithm).
-private_key, public_key = ASYM_KDF(input)
 ```
+
+### Key Derivation Function
+
+A KDF operation with the given desired output length, input key material, salt,
+and info.
+
+```py
+output = KDF(length, ikm, salt, info)
+```
+
+### Asymmetric Key Pair Derivation
+
+An asymmetric key pair derivation, either EdDSA or ECDSA, from a given input
+value. The key pair is derived using the output of
+`KDF(32, input, ASYM_SALT, "Key Pair")` as a seed to an algorithm-specific key
+derivation scheme. For EdDSA, the seed can be used as the private key without
+additional processing. See [ECDSA](#ecdsa) for a recommended scheme for ECDSA.
+Each algorithm defines how to compute a public key given a private key. For
+supported curves see [Digital Signatures](#digital-signatures).
+
+```py
+def ASYM_KDF(input):
+    seed = KDF(32, input, ASYM_SALT, "Key Pair")
+    return algorithm_specific_keypair_from_seed(seed)
+
+private_key, public_key = ASYM_KDF(input)
 
 ### Computing CDI Values
 
