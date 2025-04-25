@@ -45,6 +45,33 @@ pub(crate) struct CertificateInfoList(
     pub(crate) Vec<CertificateInfo, DPE_MAX_CERTIFICATE_INFOS_PER_CONTEXT>,
 );
 
+/// Represents a code input value as defined by the Open Profile for DICE.
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub(crate) enum DiceInputCode<'a> {
+    /// The client provides the hash directly.
+    CodeHash(Hash),
+    /// The client provides a free-form descriptor.
+    CodeDescriptor(&'a [u8]),
+}
+
+/// Represents an authority input value as defined by the Open Profile for DICE.
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub(crate) enum DiceInputAuthority<'a> {
+    /// The client provides the hash directly.
+    AuthorityHash(Hash),
+    /// The client provides a free-form descriptor.
+    AuthorityDescriptor(&'a [u8]),
+}
+
+/// Represents a config value as defined by the Open Profile for DICE.
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub(crate) enum DiceInputConfig<'a> {
+    /// The client provides a 64-byte value.
+    ConfigInlineValue(Hash),
+    /// The client provides a free-form descriptor.
+    ConfigDescriptor(&'a [u8]),
+}
+
 /// Represents the mode value in DICE input. The discriminants match the
 /// corresponding encoded values for CBOR or X.509. See the Open Profile for
 /// DICE specification for details.
@@ -60,18 +87,6 @@ pub(crate) enum DiceInputMode {
     Debug = 2,
     /// The `Recovery` mode (aka maintenance mode).
     Recovery = 3,
-}
-
-/// Represents a config value as defined by the Open Profile for DICE.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
-pub(crate) enum DiceInputConfig<'a> {
-    /// No config value provided by the client.
-    #[default]
-    EmptyConfig,
-    /// The inline 64-byte value provided by the client.
-    ConfigInlineValue(Hash),
-    /// The free-form configuration descriptor provided by the client.
-    ConfigDescriptor(&'a [u8]),
 }
 
 /// Defines the supported internal input types. The enum discriminants match the
@@ -98,23 +113,19 @@ pub(crate) enum InternalInputType {
 
 /// Represents a complete set of DICE input values as defined by the Open
 /// Profile for DICE.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub(crate) struct DiceInput<'a> {
     /// The `Code` input value.
-    pub(crate) code_hash: Option<Hash>,
-    /// An optional code descriptor (not included in the CDI derivation).
-    pub(crate) code_descriptor: Option<&'a [u8]>,
+    pub(crate) code: DiceInputCode<'a>,
     /// The `Configuration Data` input value.
     pub(crate) config: DiceInputConfig<'a>,
-    /// The `Authority Data` input value as a hash. One of this field or the
-    /// `authority_descriptor` field is required.
-    pub(crate) authority_hash: Option<Hash>,
-    /// The `Authority Data` input value as a descriptor. One of this field or
-    /// the `authority_hash` field is required.
-    pub(crate) authority_descriptor: Option<&'a [u8]>,
+    /// The `Authority Data` input value. When not provided, the value will be
+    /// 64 zero bytes.
+    pub(crate) authority: Option<DiceInputAuthority<'a>>,
     /// The `Mode Decision` input value.
-    pub(crate) mode: Option<DiceInputMode>,
-    /// The `Hidden Inputs` input value.
+    pub(crate) mode: DiceInputMode,
+    /// The `Hidden Inputs` input value. When not provided, the value will be
+    /// 64 zero bytes.
     pub(crate) hidden: Option<Hash>,
 }
 

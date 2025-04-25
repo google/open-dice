@@ -54,6 +54,8 @@ pub mod constants;
 pub mod crypto;
 pub mod dice;
 pub mod encode;
+#[cfg(test)]
+pub(crate) mod encode_test;
 pub mod error;
 pub mod memory;
 pub mod noise;
