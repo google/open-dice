@@ -14,7 +14,7 @@
 
 //! Tests for the encode module.
 
-use crate::args::{ArgId, ArgMap, ArgTypeSelector, ArgValue};
+use crate::args::{ArgMap, ArgTypeMap, ArgTypeSelector, ArgValue};
 use crate::cbor::tokenize_cbor_for_debug;
 use crate::cbor::{
     cbor_decoder_from_message, cbor_encoder_from_message, encode_bytes_prefix,
@@ -27,7 +27,7 @@ use crate::dice::{
 };
 use crate::encode::*;
 use crate::error::{DpeResult, ErrCode};
-use crate::memory::Message;
+use crate::memory::{Message, SmallMessage};
 use heapless::Vec;
 use log::debug;
 use minicbor::Decoder;
@@ -69,7 +69,7 @@ pub(crate) fn encode_and_insert_command_header_for_testing(
 #[allow(clippy::unwrap_used)]
 pub(crate) fn decode_response_for_testing<'a>(
     message: &'a Message,
-    arg_types: &[(ArgId, ArgTypeSelector)],
+    arg_types: &ArgTypeMap,
 ) -> DpeResult<ArgMap<'a>> {
     debug!("Raw response: {:?}", tokenize_cbor_for_debug(message.as_slice()));
     let mut decoder = cbor_decoder_from_message(message);
@@ -893,50 +893,48 @@ fn encode_decode_args() {
     let large = [0xAA; 2000];
     let arg_map = ArgMap::from_iter(
         [
-            (1, ArgValue::from_bool(true)),
-            (2, ArgValue::from_slice(&empty)),
-            (3, ArgValue::from_slice(&small)),
-            (4, ArgValue::from_slice(&large)),
-            (5, ArgValue::from_u32(5)),
-            (6, ArgValue::from_u64(2)),
+            (1, ArgValue::Bool(true)),
+            (2, ArgValue::Bytes(&empty)),
+            (3, ArgValue::Bytes(&small)),
+            (4, ArgValue::Bytes(&large)),
+            (5, ArgValue::Int(5)),
+            (6, ArgValue::Int(2)),
         ]
         .into_iter(),
     );
-    let arg_types = [
-        (4, ArgTypeSelector::Bytes),
-        (5, ArgTypeSelector::Int),
-        (6, ArgTypeSelector::Int),
-        (1, ArgTypeSelector::Bool),
-        (2, ArgTypeSelector::Bytes),
-        (3, ArgTypeSelector::Bytes),
-    ];
-    let arg_defaults = [
-        (1, ArgValue::from_bool(false)),
-        (5, ArgValue::from_u32(12)),
-        (6, ArgValue::from_u64(25000)),
-    ];
+    let arg_types = ArgTypeMap::from_iter(
+        [
+            (4, ArgTypeSelector::Bytes),
+            (5, ArgTypeSelector::Int),
+            (6, ArgTypeSelector::Int),
+            (1, ArgTypeSelector::Bool(false)),
+            (2, ArgTypeSelector::Bytes),
+            (3, ArgTypeSelector::Bytes),
+        ]
+        .into_iter(),
+    );
     encode_args(&arg_map, &mut buffer).unwrap();
     {
         let decoded_arg_map =
-            decode_args(buffer.as_slice(), &arg_types, &arg_defaults).unwrap();
+            decode_args(buffer.as_slice(), &arg_types).unwrap();
         assert_eq!(arg_map, decoded_arg_map);
         // Since all fields are defined, defaults are superfluous.
         let decoded_arg_map =
-            decode_args(buffer.as_slice(), &arg_types, &[]).unwrap();
+            decode_args(buffer.as_slice(), &arg_types).unwrap();
         assert_eq!(arg_map, decoded_arg_map);
     }
 
     let arg_map_empty = ArgMap::new();
-    let mut arg_map_with_defaults =
-        ArgMap::from_iter(arg_defaults.clone().into_iter());
-    // The Bytes args should default to empty.
-    let _ = arg_map_with_defaults.insert(2, ArgValue::from_slice(&[])).unwrap();
-    let _ = arg_map_with_defaults.insert(3, ArgValue::from_slice(&[])).unwrap();
-    let _ = arg_map_with_defaults.insert(4, ArgValue::from_slice(&[])).unwrap();
+    let arg_map_with_defaults = ArgMap::from_iter(
+        arg_types
+            .clone()
+            .into_iter()
+            .map(|(id, arg_type)| (id, arg_type.default_value().unwrap())),
+    );
     encode_args(&arg_map_empty, &mut buffer).unwrap();
     {
         let decoded_arg_map =
-            decode_args(buffer.as_slice(), &arg_types, &arg_defaults).unwrap();
+            decode_args(buffer.as_slice(), &arg_types).unwrap();
         assert_eq!(arg_map_with_defaults, decoded_arg_map);
     }
 }
@@ -946,7 +944,7 @@ fn decode_invalid_args() {
     // Empty bytes -> not valid CBOR map
     assert_eq!(
         ErrCode::InvalidCommand,
-        decode_args(&[], &[], &[]).unwrap_err()
+        decode_args(&[], &Default::default()).unwrap_err()
     );
     let mut buffer = Message::new();
     // CBOR array -> not valid CBOR map
@@ -957,10 +955,11 @@ fn decode_invalid_args() {
         .unwrap()
         .u16(7)
         .unwrap();
-    let arg_types = [(1, ArgTypeSelector::Bool)];
+    let arg_types =
+        ArgTypeMap::from_iter([(1, ArgTypeSelector::Bool(false))].into_iter());
     assert_eq!(
         ErrCode::InvalidCommand,
-        decode_args(buffer.as_slice(), &arg_types, &[]).unwrap_err()
+        decode_args(buffer.as_slice(), &arg_types).unwrap_err()
     );
     buffer.clear();
     // CBOR indefinite map -> should be not supported
@@ -971,22 +970,14 @@ fn decode_invalid_args() {
         .unwrap();
     assert_eq!(
         ErrCode::InvalidCommand,
-        decode_args(buffer.as_slice(), &arg_types, &[]).unwrap_err()
+        decode_args(buffer.as_slice(), &arg_types).unwrap_err()
     );
     // All args must be represented in arg types
-    let unknown_arg =
-        ArgMap::from_iter([(17, ArgValue::from_u32(17))].into_iter());
+    let unknown_arg = ArgMap::from_iter([(17, ArgValue::Int(17))].into_iter());
     encode_args(&unknown_arg, &mut buffer).unwrap();
     assert_eq!(
         ErrCode::InvalidArgument,
-        decode_args(buffer.as_slice(), &arg_types, &[]).unwrap_err()
-    );
-    // All known args must be present or have a default value
-    let arg_map_empty = ArgMap::new();
-    encode_args(&arg_map_empty, &mut buffer).unwrap();
-    assert_eq!(
-        ErrCode::InternalError,
-        decode_args(buffer.as_slice(), &arg_types, &[]).unwrap_err()
+        decode_args(buffer.as_slice(), &arg_types).unwrap_err()
     );
 }
 

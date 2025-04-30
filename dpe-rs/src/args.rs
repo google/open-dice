@@ -28,14 +28,32 @@ pub(crate) enum ArgTypeSelector {
     /// Indicates an argument was not recognized, so its type is unknown.
     #[default]
     Unknown,
-    /// Indicates an argument is encoded as a CBOR byte string.
+    /// Indicates an argument is encoded as a CBOR byte string. The default
+    /// value is an empty slice.
     Bytes,
-    /// Indicates an argument is encoded as a CBOR unsigned integer.
+    /// Indicates an argument is encoded as a CBOR unsigned integer. The
+    /// default value is zero.
     Int,
     /// Indicates an argument is encoded as a CBOR true or false simple value.
-    Bool,
-    /// Indicates an argument needs additional custom decoding.
+    /// The value holds a default value.
+    Bool(bool),
+    /// Indicates an argument is encoded as a generic CBOR data item and needs
+    /// additional custom decoding. The default value is an empty slice.
     Other,
+}
+
+impl<'a> ArgTypeSelector {
+    pub(crate) fn default_value(self) -> DpeResult<ArgValue<'a>> {
+        match self {
+            Self::Bool(value) => Ok(ArgValue::Bool(value)),
+            Self::Int => Ok(ArgValue::Int(0)),
+            Self::Bytes | Self::Other => Ok(ArgValue::Bytes(&[])),
+            Self::Unknown => {
+                error!("No default for unknown types");
+                Err(ErrCode::InternalError)
+            }
+        }
+    }
 }
 
 /// Represents a command or response argument value.
@@ -51,85 +69,97 @@ pub(crate) enum ArgValue<'a> {
     Bool(bool),
 }
 
-impl<'a> ArgValue<'a> {
-    /// Creates a new `Bytes` from a slice, borrowing the slice.
-    pub(crate) fn from_slice(value: &'a [u8]) -> Self {
-        ArgValue::Bytes(value)
-    }
+impl TryFrom<&ArgValue<'_>> for bool {
+    type Error = ErrCode;
 
-    /// Returns the borrowed slice if this is a Bytes.
-    ///
-    /// # Errors
-    ///
-    /// Returns an InternalError error if this is not a Bytes.
-    pub(crate) fn try_into_slice(&self) -> DpeResult<&'a [u8]> {
-        match self {
-            ArgValue::Int(_) | ArgValue::Bool(_) => {
-                error!("ArgValue::try_info_slice called on {:?}", self);
-                Err(ErrCode::InternalError)
-            }
-            ArgValue::Bytes(value) => Ok(value),
-        }
-    }
-
-    /// Returns the value held by an Int as a u32.
-    ///
-    /// # Errors
-    ///
-    /// Returns an InternalError error if this is not an Int.
-    pub(crate) fn try_into_u32(&self) -> DpeResult<u32> {
-        match self {
-            ArgValue::Int(i) => Ok((*i).try_into()?),
-            _ => {
-                error!("ArgValue::try_into_u32 called on {:?}", self);
-                Err(ErrCode::InternalError)
-            }
-        }
-    }
-
-    /// Creates a new `Int` holding the given u32 `value`.
-    pub(crate) fn from_u32(value: u32) -> Self {
-        ArgValue::Int(value as u64)
-    }
-
-    /// Returns the value held by an Int as a u64.
-    ///
-    /// # Errors
-    ///
-    /// Returns an InternalError error if this is not an Int.
-    pub(crate) fn try_into_u64(&self) -> DpeResult<u64> {
-        match self {
-            ArgValue::Int(i) => Ok(*i),
-            _ => {
-                error!("ArgValue::try_into_u64 called on {:?}", self);
-                Err(ErrCode::InternalError)
-            }
-        }
-    }
-
-    /// Creates a new `Int` holding the given u64 `value`.
-    pub(crate) fn from_u64(value: u64) -> Self {
-        ArgValue::Int(value)
-    }
-
-    /// Returns the value held by a Bool.
-    ///
-    /// # Errors
-    ///
-    /// Returns an InternalError error if this is not a Bool.
-    pub(crate) fn try_into_bool(&self) -> DpeResult<bool> {
-        match self {
+    fn try_from(value: &ArgValue) -> Result<Self, Self::Error> {
+        match value {
             ArgValue::Bool(b) => Ok(*b),
             _ => {
-                error!("ArgValue::try_into_bool called on {:?}", self);
+                error!("{:?} cannot be converted to bool", value);
                 Err(ErrCode::InternalError)
             }
         }
     }
+}
+impl TryFrom<&ArgValue<'_>> for u32 {
+    type Error = ErrCode;
 
-    /// Creates a new `Bool` holding the given `value`.
-    pub(crate) fn from_bool(value: bool) -> Self {
+    fn try_from(value: &ArgValue) -> Result<Self, Self::Error> {
+        match value {
+            ArgValue::Int(i) => Ok((*i).try_into()?),
+            _ => {
+                error!("{:?} cannot be converted to u32", value);
+                Err(ErrCode::InternalError)
+            }
+        }
+    }
+}
+
+impl TryFrom<&ArgValue<'_>> for u64 {
+    type Error = ErrCode;
+
+    fn try_from(value: &ArgValue) -> Result<Self, Self::Error> {
+        match value {
+            ArgValue::Int(i) => Ok(*i),
+            _ => {
+                error!("{:?} cannot be converted to u64", value);
+                Err(ErrCode::InternalError)
+            }
+        }
+    }
+}
+
+impl TryFrom<&ArgValue<'_>> for usize {
+    type Error = ErrCode;
+
+    fn try_from(value: &ArgValue) -> Result<Self, Self::Error> {
+        let tmp: u32 = value.try_into()?;
+        tmp.try_into().or(Err(ErrCode::InternalError))
+    }
+}
+
+impl<'a> TryFrom<&ArgValue<'a>> for &'a [u8] {
+    type Error = ErrCode;
+
+    fn try_from(value: &ArgValue<'a>) -> Result<Self, Self::Error> {
+        match value {
+            ArgValue::Int(_) | ArgValue::Bool(_) => {
+                error!("{:?} cannot be converted to a slice", value);
+                Err(ErrCode::InternalError)
+            }
+            ArgValue::Bytes(bytes) => Ok(bytes),
+        }
+    }
+}
+
+impl<'a> From<bool> for ArgValue<'a> {
+    fn from(value: bool) -> Self {
         ArgValue::Bool(value)
+    }
+}
+
+impl<'a> From<u32> for ArgValue<'a> {
+    fn from(value: u32) -> Self {
+        ArgValue::Int(value.into())
+    }
+}
+
+impl<'a> From<u64> for ArgValue<'a> {
+    fn from(value: u64) -> Self {
+        ArgValue::Int(value)
+    }
+}
+
+impl<'a> From<usize> for ArgValue<'a> {
+    fn from(value: usize) -> Self {
+        ArgValue::Int(value as u64)
+    }
+}
+
+impl<'a> From<&'a [u8]> for ArgValue<'a> {
+    fn from(value: &'a [u8]) -> Self {
+        ArgValue::Bytes(value)
     }
 }
 
@@ -146,3 +176,35 @@ pub(crate) type ArgMap<'a> = FnvIndexMap<ArgId, ArgValue<'a>, 16>;
 /// Contains a set of argument types in the form of a map from ArgId to
 /// [`ArgTypeSelector`].
 pub(crate) type ArgTypeMap = FnvIndexMap<ArgId, ArgTypeSelector, 16>;
+
+pub(crate) trait ArgMapExt<'a> {
+    /// Get the value for `id` as type `V`, or [`ErrCode::InternalError`] if
+    /// not found.
+    fn get_or_err<V>(&self, id: ArgId) -> DpeResult<V>
+    where
+        for<'b> &'b ArgValue<'a>: TryInto<V, Error = ErrCode>;
+
+    /// Insert a value with type 'V' for `id`, or [`ErrCode::OutOfMemory`] if
+    /// not possible.
+    fn insert_or_err<V>(&mut self, id: ArgId, value: V) -> DpeResult<()>
+    where
+        ArgValue<'a>: From<V>;
+}
+
+impl<'a> ArgMapExt<'a> for ArgMap<'a> {
+    fn get_or_err<V>(&self, id: ArgId) -> DpeResult<V>
+    where
+        for<'b> &'b ArgValue<'a>: TryInto<V, Error = ErrCode>,
+    {
+        self.get(&id).ok_or(ErrCode::InternalError)?.try_into()
+    }
+
+    fn insert_or_err<V>(&mut self, id: ArgId, value: V) -> DpeResult<()>
+    where
+        ArgValue<'a>: From<V>,
+    {
+        let _ =
+            self.insert(id, value.into()).map_err(|_| ErrCode::OutOfMemory)?;
+        Ok(())
+    }
+}

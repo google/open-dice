@@ -14,7 +14,7 @@
 
 //! Types and functions for encoding and decoding command/response messages.
 
-use crate::args::{ArgId, ArgMap, ArgTypeMap, ArgTypeSelector, ArgValue};
+use crate::args::{ArgMap, ArgTypeMap, ArgTypeSelector, ArgValue};
 use crate::byte_array_wrapper;
 use crate::cbor::{
     cbor_decoder_from_message, cbor_encoder_from_message, encode_bytes_prefix,
@@ -27,7 +27,7 @@ use crate::dice::{
     DiceInputConfig, DiceInputMode, InternalInputType, Uds,
 };
 use crate::error::{DpeResult, ErrCode};
-use crate::memory::{Message, SizedMessage};
+use crate::memory::{Message, SmallMessage};
 use heapless::Vec;
 use log::{debug, error};
 use minicbor::Decoder;
@@ -67,10 +67,6 @@ impl ContextHandle {
         }
     }
 }
-
-/// A message type with a smaller buffer. This saves memory when we're confident
-/// the contents will fit.
-pub(crate) type SmallMessage = SizedMessage<DPE_MAX_SMALL_MESSAGE_SIZE>;
 
 /// A Vec wrapper to represent a certificate chain.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
@@ -593,7 +589,7 @@ pub(crate) fn encode_args(
                 let _ = encoder.bool(*value)?;
             }
             _ => {
-                let _ = encoder.bytes(arg_value.try_into_slice()?)?;
+                let _ = encoder.bytes(arg_value.try_into()?)?;
             }
         }
     }
@@ -602,7 +598,7 @@ pub(crate) fn encode_args(
 
 pub(crate) fn decode_args_internal<'a>(
     encoded_args: &'a [u8],
-    arg_types: &[(ArgId, ArgTypeSelector)],
+    arg_types: &ArgTypeMap,
 ) -> DpeResult<ArgMap<'a>> {
     debug!("Decoding arguments of type: {:?}", arg_types);
     let mut decoder = Decoder::new(encoded_args);
@@ -617,33 +613,27 @@ pub(crate) fn decode_args_internal<'a>(
         }
         Ok(Some(num)) => num,
     };
-    let mut arg_types_map: ArgTypeMap = Default::default();
-    for (id, value) in arg_types {
-        let _ = arg_types_map
-            .insert(*id, *value)
-            .map_err(|_| ErrCode::OutOfMemory)?;
-    }
     let mut args: ArgMap = Default::default();
     for _ in 0..num_pairs {
         let arg_id = decoder.u32()?;
-        match arg_types_map.get(&arg_id).cloned().unwrap_or_default() {
+        match arg_types.get(&arg_id).cloned().unwrap_or_default() {
             ArgTypeSelector::Unknown => {
                 error!("Unknown argument id");
                 return Err(ErrCode::InvalidArgument);
             }
             ArgTypeSelector::Bytes => {
                 let _ = args
-                    .insert(arg_id, ArgValue::from_slice(decoder.bytes()?))
+                    .insert(arg_id, ArgValue::Bytes(decoder.bytes()?))
                     .map_err(|_| ErrCode::OutOfMemory)?;
             }
             ArgTypeSelector::Int => {
                 let _ = args
-                    .insert(arg_id, ArgValue::from_u64(decoder.u64()?))
+                    .insert(arg_id, ArgValue::Int(decoder.u64()?))
                     .map_err(|_| ErrCode::OutOfMemory)?;
             }
-            ArgTypeSelector::Bool => {
+            ArgTypeSelector::Bool(_) => {
                 let _ = args
-                    .insert(arg_id, ArgValue::from_bool(decoder.bool()?))
+                    .insert(arg_id, ArgValue::Bool(decoder.bool()?))
                     .map_err(|_| ErrCode::OutOfMemory)?;
             }
             ArgTypeSelector::Other => {
@@ -653,11 +643,10 @@ pub(crate) fn decode_args_internal<'a>(
                 let _ = args
                     .insert(
                         arg_id,
-                        ArgValue::from_slice(
-                            encoded_args
-                                .get(start..end)
-                                .ok_or(ErrCode::InvalidCommand)?,
-                        ),
+                        encoded_args
+                            .get(start..end)
+                            .ok_or(ErrCode::InvalidCommand)?
+                            .into(),
                     )
                     .map_err(|_| ErrCode::OutOfMemory)?;
             }
@@ -678,30 +667,14 @@ pub(crate) fn decode_args_internal<'a>(
 ///  * Returns `InternalError` if a default value is missing.
 pub(crate) fn decode_args<'a>(
     encoded_args: &'a [u8],
-    arg_types: &[(ArgId, ArgTypeSelector)],
-    arg_defaults: &[(ArgId, ArgValue<'a>)],
+    arg_types: &ArgTypeMap,
 ) -> DpeResult<ArgMap<'a>> {
     let mut args = decode_args_internal(encoded_args, arg_types)?;
-    for (arg_id, default_value) in arg_defaults {
-        if !args.contains_key(arg_id) {
-            let _ = args
-                .insert(*arg_id, default_value.clone())
-                .map_err(|_| ErrCode::OutOfMemory)?;
-        }
-    }
     for (arg_id, arg_type) in arg_types {
         if !args.contains_key(arg_id) {
-            if *arg_type == ArgTypeSelector::Bytes
-                || *arg_type == ArgTypeSelector::Other
-            {
-                // The default value for any byte array is the empty array.
-                let _ = args
-                    .insert(*arg_id, ArgValue::from_slice(&[]))
-                    .map_err(|_| ErrCode::OutOfMemory)?;
-            } else {
-                error!("No default value found for argument {}", arg_id);
-                return Err(ErrCode::InternalError);
-            }
+            let _ = args
+                .insert(*arg_id, arg_type.default_value()?)
+                .map_err(|_| ErrCode::OutOfMemory)?;
         }
     }
     Ok(args)
