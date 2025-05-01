@@ -891,28 +891,22 @@ fn encode_decode_args() {
     let empty: [u8; 0] = Default::default();
     let small = [0xFF; 50];
     let large = [0xAA; 2000];
-    let arg_map = ArgMap::from_iter(
-        [
-            (1, ArgValue::Bool(true)),
-            (2, ArgValue::Bytes(&empty)),
-            (3, ArgValue::Bytes(&small)),
-            (4, ArgValue::Bytes(&large)),
-            (5, ArgValue::Int(5)),
-            (6, ArgValue::Int(2)),
-        ]
-        .into_iter(),
-    );
-    let arg_types = ArgTypeMap::from_iter(
-        [
-            (4, ArgTypeSelector::Bytes),
-            (5, ArgTypeSelector::Int),
-            (6, ArgTypeSelector::Int),
-            (1, ArgTypeSelector::Bool(false)),
-            (2, ArgTypeSelector::Bytes),
-            (3, ArgTypeSelector::Bytes),
-        ]
-        .into_iter(),
-    );
+    let arg_map = ArgMap::from_iter([
+        (1, ArgValue::Bool(true)),
+        (2, ArgValue::Bytes(&empty)),
+        (3, ArgValue::Bytes(&small)),
+        (4, ArgValue::Bytes(&large)),
+        (5, ArgValue::Int(5)),
+        (6, ArgValue::Int(2)),
+    ]);
+    let arg_types = ArgTypeMap::from_iter([
+        (4, ArgTypeSelector::Bytes),
+        (5, ArgTypeSelector::Int),
+        (6, ArgTypeSelector::Int),
+        (1, ArgTypeSelector::Bool(false)),
+        (2, ArgTypeSelector::Bytes),
+        (3, ArgTypeSelector::Bytes),
+    ]);
     encode_args(&arg_map, &mut buffer).unwrap();
     {
         let decoded_arg_map =
@@ -944,7 +938,7 @@ fn decode_invalid_args() {
     // Empty bytes -> not valid CBOR map
     assert_eq!(
         ErrCode::InvalidCommand,
-        decode_args(&[], &Default::default()).unwrap_err()
+        decode_args(&[], &ArgTypeMap::new()).unwrap_err()
     );
     let mut buffer = Message::new();
     // CBOR array -> not valid CBOR map
@@ -955,8 +949,7 @@ fn decode_invalid_args() {
         .unwrap()
         .u16(7)
         .unwrap();
-    let arg_types =
-        ArgTypeMap::from_iter([(1, ArgTypeSelector::Bool(false))].into_iter());
+    let arg_types = ArgTypeMap::from_iter([(1, ArgTypeSelector::Bool(false))]);
     assert_eq!(
         ErrCode::InvalidCommand,
         decode_args(buffer.as_slice(), &arg_types).unwrap_err()
@@ -973,7 +966,7 @@ fn decode_invalid_args() {
         decode_args(buffer.as_slice(), &arg_types).unwrap_err()
     );
     // All args must be represented in arg types
-    let unknown_arg = ArgMap::from_iter([(17, ArgValue::Int(17))].into_iter());
+    let unknown_arg = ArgMap::from_iter([(17, ArgValue::Int(17))]);
     encode_args(&unknown_arg, &mut buffer).unwrap();
     assert_eq!(
         ErrCode::InvalidArgument,
