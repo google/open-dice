@@ -522,21 +522,23 @@ where
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod test {
     use super::*;
 
-    struct DepsForTesting {}
+    pub(crate) struct DepsForTesting {}
     impl NoiseCryptoDeps for DepsForTesting {
         type Cipher = noise_rust_crypto::Aes256Gcm;
         type DH = noise_rust_crypto::X25519;
         type Hash = noise_rust_crypto::Sha512;
     }
 
-    type SessionCryptoForTesting = NoiseSessionCrypto<DepsForTesting>;
+    pub(crate) type SessionCryptoForTesting =
+        NoiseSessionCrypto<DepsForTesting>;
 
-    type SessionClientForTesting = SessionClient<DepsForTesting>;
+    pub(crate) type SessionClientForTesting = SessionClient<DepsForTesting>;
 
-    type CipherStateForTesting = NoiseCipherState<noise_rust_crypto::Aes256Gcm>;
+    pub(crate) type CipherStateForTesting =
+        NoiseCipherState<noise_rust_crypto::Aes256Gcm>;
 
     #[test]
     fn end_to_end_session() {

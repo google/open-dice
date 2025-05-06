@@ -17,13 +17,11 @@
 
 use crate::args::{ArgMap, ArgMapExt, ArgTypeMap, ArgTypeSelector};
 use crate::commands::{handle_command_message, DeriveContextOptions, DpeCore};
-use crate::crypto::Hash;
 use crate::crypto::{
     HandshakeMessage, SealingPublicKey, Signature, SigningPublicKey,
 };
-use crate::dice::{Certificate, DiceInput, InternalInputType};
 use crate::dice::{
-    DiceInputAuthority, DiceInputCode, DiceInputConfig, DiceInputMode,
+    test::get_fake_dice_input, Certificate, DiceInput, InternalInputType,
 };
 use crate::encode::{CommandSelector, ContextHandle, LocalityId, SessionId};
 use crate::encode_test::{
@@ -835,17 +833,6 @@ impl DpeCore for FakeDpeCore {
         _recursive: bool,
     ) -> DpeResult<()> {
         Ok(())
-    }
-}
-
-fn get_fake_dice_input<'a>() -> DiceInput<'a> {
-    let hash = Hash::from_slice(&[0; 64]).unwrap();
-    DiceInput {
-        code: DiceInputCode::CodeHash(hash.clone()),
-        config: DiceInputConfig::ConfigInlineValue(hash.clone()),
-        authority: Some(DiceInputAuthority::AuthorityHash(hash.clone())),
-        mode: DiceInputMode::NotInitialized,
-        hidden: Some(hash.clone()),
     }
 }
 

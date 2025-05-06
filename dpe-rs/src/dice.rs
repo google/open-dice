@@ -207,3 +207,272 @@ pub(crate) trait Dice {
         additional_input: &[u8],
     ) -> DpeResult<Certificate>;
 }
+
+#[cfg(test)]
+pub(crate) mod test {
+    use super::*;
+    use crate::constants::SIGNING_PUBLIC_KEY_SIZE;
+    use crate::crypto::test::CryptoForTesting;
+    use crate::crypto::Crypto;
+    use crate::error::ErrCode;
+
+    #[derive(Default)]
+    pub(crate) struct DiceForTesting;
+    impl Dice for DiceForTesting {
+        fn dice(
+            &self,
+            cdi_sign: &Cdi,
+            cdi_seal: &Cdi,
+            // Note: this implementation is only useful for testing, it doesn't
+            // actually use the input values.
+            _inputs: &DiceInput,
+            _internal_inputs: &[InternalInputType],
+            is_export: bool,
+        ) -> DpeResult<(Cdi, Cdi)> {
+            let export_tag = if is_export { "export".as_bytes() } else { &[] };
+            let new_cdi_sign = Cdi::from_slice(
+                &CryptoForTesting::hash_iter(
+                    [cdi_sign.as_slice(), export_tag].into_iter(),
+                )
+                .as_slice()[0..DICE_CDI_SIZE],
+            )?;
+            let new_cdi_seal = Cdi::from_slice(
+                &CryptoForTesting::hash_iter(
+                    [cdi_seal.as_slice(), export_tag].into_iter(),
+                )
+                .as_slice()[0..DICE_CDI_SIZE],
+            )?;
+            Ok((new_cdi_sign, new_cdi_seal))
+        }
+
+        fn derive_eca_key_pair(
+            &self,
+            cdi_sign: &Cdi,
+        ) -> DpeResult<(SigningPublicKey, SigningPrivateKey)> {
+            let kdf_info = CryptoForTesting::hash(&[]);
+            let kdf_salt =
+                CryptoForTesting::hash("Key_Pair_25519_ECA".as_bytes());
+            let kdf_ikm = cdi_sign.as_slice();
+            let mut seed: Hash = Default::default();
+            CryptoForTesting::kdf(
+                kdf_ikm,
+                &kdf_info.as_slice(),
+                &kdf_salt.as_slice(),
+                seed.as_mut_slice(),
+            )?;
+            CryptoForTesting::signing_keypair_from_seed(&seed)
+        }
+
+        fn derive_signing_key_pair(
+            &self,
+            cdi_sign: &Cdi,
+            label: &[u8],
+        ) -> DpeResult<(SigningPublicKey, SigningPrivateKey)> {
+            let kdf_info = CryptoForTesting::hash(label);
+            let kdf_salt =
+                CryptoForTesting::hash("Key_Pair_25519_Sign".as_bytes());
+            let kdf_ikm = cdi_sign.as_slice();
+            let mut seed: Hash = Default::default();
+            CryptoForTesting::kdf(
+                kdf_ikm,
+                &kdf_info.as_slice(),
+                &kdf_salt.as_slice(),
+                seed.as_mut_slice(),
+            )?;
+            CryptoForTesting::signing_keypair_from_seed(&seed)
+        }
+
+        fn derive_sealing_key_pair(
+            &self,
+            cdi_seal: &Cdi,
+            label: &[u8],
+            unseal_policy: &[u8],
+        ) -> DpeResult<(SealingPublicKey, SealingPrivateKey)> {
+            let kdf_info =
+                CryptoForTesting::hash_iter([label, unseal_policy].into_iter());
+            let kdf_salt =
+                CryptoForTesting::hash("Key_Pair_25519_Seal".as_bytes());
+            let kdf_ikm = cdi_seal.as_slice();
+            let mut seed: Hash = Default::default();
+            CryptoForTesting::kdf(
+                kdf_ikm,
+                &kdf_info.as_slice(),
+                &kdf_salt.as_slice(),
+                seed.as_mut_slice(),
+            )?;
+            CryptoForTesting::sealing_keypair_from_seed(&seed)
+        }
+
+        fn derive_mac_key(
+            &self,
+            cdi_sign: &Cdi,
+            label: &[u8],
+        ) -> DpeResult<MacKey> {
+            let kdf_info = CryptoForTesting::hash(label);
+            let kdf_salt = CryptoForTesting::hash("Key_HMAC_Sign".as_bytes());
+            let kdf_ikm = cdi_sign.as_slice();
+            let mut key: MacKey = Default::default();
+            CryptoForTesting::kdf(
+                kdf_ikm,
+                &kdf_info.as_slice(),
+                &kdf_salt.as_slice(),
+                key.as_mut_slice(),
+            )?;
+            Ok(key)
+        }
+
+        fn derive_sealing_key(
+            &self,
+            cdi_seal: &Cdi,
+            label: &[u8],
+            unseal_policy: &[u8],
+        ) -> DpeResult<EncryptionKey> {
+            let kdf_info =
+                CryptoForTesting::hash_iter([label, unseal_policy].into_iter());
+            let kdf_salt = CryptoForTesting::hash("Key_AES_Seal".as_bytes());
+            let kdf_ikm = cdi_seal.as_slice();
+            let mut key: EncryptionKey = Default::default();
+            CryptoForTesting::kdf(
+                kdf_ikm,
+                &kdf_info.as_slice(),
+                &kdf_salt.as_slice(),
+                key.as_mut_slice(),
+            )?;
+            Ok(key)
+        }
+
+        fn create_certificate_info(
+            &self,
+            inputs: &DiceInput,
+            _internal_inputs: &[InternalInputType],
+        ) -> DpeResult<CertificateInfo> {
+            let mut info: CertificateInfo = Default::default();
+            let content = match &inputs.code {
+                DiceInputCode::CodeHash(h) => h.as_slice(),
+                DiceInputCode::CodeDescriptor(d) => d,
+            };
+            info.0
+                .extend_from_slice(content)
+                .map_err(|_| ErrCode::OutOfMemory)
+                .unwrap();
+            Ok(info)
+        }
+
+        fn create_eca_certificate(
+            &self,
+            issuer_key_pair: &(SigningPublicKey, SigningPrivateKey),
+            subject_public_key: &SigningPublicKey,
+            certificate_info: &CertificateInfo,
+            additional_certificate_info: &CertificateInfoList,
+            _is_export: bool,
+        ) -> DpeResult<Certificate> {
+            let mut new_eca_certificate: Certificate = Default::default();
+            new_eca_certificate
+                .0
+                .extend_from_slice(issuer_key_pair.0.as_slice())
+                .unwrap();
+            new_eca_certificate
+                .0
+                .extend_from_slice(subject_public_key.as_slice())
+                .unwrap();
+            new_eca_certificate
+                .0
+                .extend_from_slice(certificate_info.0.as_slice())
+                .unwrap();
+            for info in &additional_certificate_info.0 {
+                new_eca_certificate
+                    .0
+                    .extend_from_slice(info.0.as_slice())
+                    .unwrap();
+            }
+            let signature = CryptoForTesting::sign(
+                &issuer_key_pair.1,
+                new_eca_certificate.0.as_slice(),
+            )?;
+            new_eca_certificate
+                .0
+                .extend_from_slice(signature.as_slice())
+                .unwrap();
+            Ok(new_eca_certificate)
+        }
+
+        fn create_leaf_certificate(
+            &self,
+            issuer_key_pair: &(SigningPublicKey, SigningPrivateKey),
+            subject_public_key: &SigningPublicKey,
+            certificate_info: &CertificateInfoList,
+            additional_input: &[u8],
+        ) -> DpeResult<Certificate> {
+            let mut new_leaf_certificate: Certificate = Default::default();
+            new_leaf_certificate
+                .0
+                .extend_from_slice(issuer_key_pair.0.as_slice())
+                .unwrap();
+            new_leaf_certificate
+                .0
+                .extend_from_slice(subject_public_key.as_slice())
+                .unwrap();
+            new_leaf_certificate.0.extend_from_slice(additional_input).unwrap();
+            for info in &certificate_info.0 {
+                new_leaf_certificate
+                    .0
+                    .extend_from_slice(info.0.as_slice())
+                    .unwrap();
+            }
+            let signature = CryptoForTesting::sign(
+                &issuer_key_pair.1,
+                new_leaf_certificate.0.as_slice(),
+            )?;
+            new_leaf_certificate
+                .0
+                .extend_from_slice(signature.as_slice())
+                .unwrap();
+            Ok(new_leaf_certificate)
+        }
+    }
+
+    pub(crate) fn get_fake_dice_input() -> DiceInput<'static> {
+        let hash = Hash::from_slice(&[0; 64]).unwrap();
+        DiceInput {
+            code: DiceInputCode::CodeHash(hash.clone()),
+            config: DiceInputConfig::ConfigInlineValue(hash.clone()),
+            authority: Some(DiceInputAuthority::AuthorityHash(hash.clone())),
+            mode: DiceInputMode::NotInitialized,
+            hidden: Some(hash.clone()),
+        }
+    }
+
+    // Checks fake certs as constructed by DiceForTesting methods
+    pub(crate) fn check_cert(
+        cert: &Certificate,
+        expected_issuer: Option<&SigningPublicKey>,
+        expected_subject: &SigningPublicKey,
+        expected_cert_info: &CertificateInfoList,
+        expected_additional_info: &[u8],
+    ) -> () {
+        if let Some(issuer) = expected_issuer {
+            assert!(cert.0.starts_with(issuer.as_slice()));
+            let (tbs, sig) =
+                cert.0.split_at(cert.0.len() - SIGNING_PUBLIC_KEY_SIZE * 2);
+            let key = ed25519_dalek::VerifyingKey::try_from(issuer.as_slice())
+                .unwrap();
+            key.verify_strict(
+                tbs,
+                &ed25519_dalek::Signature::try_from(sig).unwrap(),
+            )
+            .unwrap();
+        }
+        assert!(cert.0[SIGNING_PUBLIC_KEY_SIZE..]
+            .starts_with(expected_subject.as_slice()));
+        assert!(cert.0[SIGNING_PUBLIC_KEY_SIZE * 2..]
+            .starts_with(expected_additional_info));
+        let mut cert_slice = &cert.0
+            [SIGNING_PUBLIC_KEY_SIZE * 2 + expected_additional_info.len()..];
+        for info in &expected_cert_info.0 {
+            assert!(cert_slice.starts_with(info.0.as_slice()));
+            cert_slice = &cert_slice[info.0.len()..];
+        }
+        // Only the signature is left
+        assert!(cert_slice.len() == SIGNING_PUBLIC_KEY_SIZE * 2);
+    }
+}
