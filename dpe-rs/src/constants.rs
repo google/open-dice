@@ -14,8 +14,12 @@
 
 //! Global constants
 
-/// The maximum size in bytes of a message buffer.
+/// The maximum size in bytes of a message buffer. This is the largest buffer
+/// size the DPE will support.
 pub(crate) const MAX_MESSAGE_SIZE: usize = 8192;
+
+/// The maximum size in bytes of a small message buffer.
+pub(crate) const MAX_SMALL_MESSAGE_SIZE: usize = 256;
 
 /// The size in bytes of a cryptographic hash.
 pub(crate) const HASH_SIZE: usize = 64;
@@ -59,13 +63,6 @@ pub(crate) const DICE_UDS_SIZE: usize = 64;
 
 /// The size in bytes of a DPE context handle.
 pub(crate) const DPE_HANDLE_SIZE: usize = 16;
-
-/// The maximum size in bytes of a message buffer. This is the largest buffer
-/// size the DPE will support.
-pub(crate) const DPE_MAX_MESSAGE_SIZE: usize = 8192;
-
-/// The maximum size in bytes of a small message buffer.
-pub(crate) const DPE_MAX_SMALL_MESSAGE_SIZE: usize = 256;
 
 /// The maximum size in bytes of a certificate.
 pub(crate) const DPE_MAX_CERTIFICATE_SIZE: usize = 1024;

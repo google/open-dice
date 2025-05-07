@@ -1137,7 +1137,7 @@ fn response_header() {
     assert_eq!(2, decoder.array().unwrap().unwrap());
     assert_eq!(0, decoder.u32().unwrap());
     assert_eq!(content, decoder.bytes().unwrap());
-    let overflow_content = [0u8; DPE_MAX_MESSAGE_SIZE - 2];
+    let overflow_content = [0u8; MAX_MESSAGE_SIZE - 2];
     let mut buffer = Message::from_slice(&overflow_content).unwrap();
     assert_eq!(
         ErrCode::OutOfMemory,

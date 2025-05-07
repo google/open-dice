@@ -296,4 +296,4 @@ pub(crate) type Message = SizedMessage<MAX_MESSAGE_SIZE>;
 
 /// A message type with a smaller buffer. This saves memory when we're confident
 /// the contents will fit.
-pub(crate) type SmallMessage = SizedMessage<DPE_MAX_SMALL_MESSAGE_SIZE>;
+pub(crate) type SmallMessage = SizedMessage<MAX_SMALL_MESSAGE_SIZE>;
