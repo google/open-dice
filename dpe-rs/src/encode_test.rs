@@ -33,7 +33,7 @@ use log::debug;
 use minicbor::Decoder;
 
 /// Encodes and logs input args.
-pub(crate) fn encode_args_for_testing(
+pub(crate) fn encode_and_log_args(
     args: &ArgMap,
     encoded_args: &mut Message,
 ) -> DpeResult<()> {
@@ -49,7 +49,7 @@ pub(crate) fn encode_args_for_testing(
 ///
 /// This function is for testing and panics on failure.
 #[allow(clippy::unwrap_used)]
-pub(crate) fn encode_and_insert_command_header_for_testing(
+pub(crate) fn encode_and_insert_command_header(
     command_id: CommandSelector,
     message: &mut Message,
 ) {
@@ -67,7 +67,7 @@ pub(crate) fn encode_and_insert_command_header_for_testing(
 ///
 /// This function is for testing and panics on failure to decode.
 #[allow(clippy::unwrap_used)]
-pub(crate) fn decode_response_for_testing<'a>(
+pub(crate) fn decode_response<'a>(
     message: &'a Message,
     arg_types: &ArgTypeMap,
 ) -> DpeResult<ArgMap<'a>> {
@@ -90,9 +90,7 @@ pub(crate) fn decode_response_for_testing<'a>(
 ///
 /// This function is for testing and panics on failure to decode.
 #[allow(clippy::unwrap_used)]
-pub(crate) fn decode_error_response_for_testing(
-    message: &[u8],
-) -> DpeResult<()> {
+pub(crate) fn decode_error_response(message: &[u8]) -> DpeResult<()> {
     let mut decoder = Decoder::new(message);
     assert_eq!(decoder.array().unwrap(), Some(MESSAGE_ARRAY_SIZE));
     let err_code = decoder.u32().unwrap();
@@ -104,9 +102,7 @@ pub(crate) fn decode_error_response_for_testing(
 ///
 /// This function is for testing and panics on failure to decode.
 #[allow(clippy::unwrap_used)]
-pub(crate) fn decode_certificate_chain_for_testing(
-    encoded: &Message,
-) -> CertificateChain {
+pub(crate) fn decode_certificate_chain(encoded: &Message) -> CertificateChain {
     let mut decoder = cbor_decoder_from_message(encoded);
     let num_certs = decoder.array().unwrap().unwrap();
     let mut chain: CertificateChain = Default::default();
@@ -125,7 +121,7 @@ pub(crate) fn decode_certificate_chain_for_testing(
 ///
 /// This function is for testing and panics on failure to encode.
 #[allow(unused_results, clippy::unwrap_used)]
-pub(crate) fn encode_init_seed_for_testing(
+pub(crate) fn encode_init_seed(
     init_type: Option<InitTypeSelector>,
     external_uds_seed: Option<&[u8]>,
     cdi_sign: Option<&[u8]>,
@@ -171,7 +167,7 @@ pub(crate) fn encode_init_seed_for_testing(
 ///
 /// This function is for testing and panics on failure to encode.
 #[allow(unused_results, clippy::unwrap_used)]
-pub(crate) fn encode_internal_inputs_for_testing(
+pub(crate) fn encode_internal_inputs(
     inputs: &[InternalInputType],
 ) -> SmallMessage {
     let mut encoded_inputs = SmallMessage::new();
@@ -187,9 +183,7 @@ pub(crate) fn encode_internal_inputs_for_testing(
 ///
 /// This function is for testing and panics on failure to encode.
 #[allow(unused_results, clippy::unwrap_used)]
-pub(crate) fn encode_locality_for_testing(
-    locality_id: LocalityId,
-) -> SmallMessage {
+pub(crate) fn encode_locality(locality_id: LocalityId) -> SmallMessage {
     let mut encoded_locality = SmallMessage::new();
     cbor_encoder_from_message(&mut encoded_locality)
         .u16(locality_id.try_into().unwrap())
@@ -202,11 +196,11 @@ pub(crate) fn encode_locality_for_testing(
 /// The version info indicates a slot and value to populate when processing
 /// this input. This function is for testing and panics on failure to
 /// encode.
-pub(crate) fn encode_dice_input_for_testing(
+pub(crate) fn encode_dice_input(
     version_info: Option<(usize, u64)>,
     dice_input: &DiceInput,
 ) -> Message {
-    encode_dice_input_for_testing_with_error(
+    encode_dice_input_with_error(
         version_info,
         dice_input,
         DiceInputEncodingError::NoError,
@@ -290,7 +284,7 @@ fn predict_dice_input_map_size(
 }
 
 #[allow(unused_results, clippy::unwrap_used)]
-fn encode_dice_input_for_testing_with_error(
+fn encode_dice_input_with_error(
     version_info: Option<(usize, u64)>,
     dice_input: &DiceInput,
     error: DiceInputEncodingError,
@@ -491,7 +485,7 @@ fn encode_dice_input_for_testing_with_error(
 
 /// Encodes an unseal policy argument for the sealing commands.
 #[allow(clippy::unwrap_used)]
-pub(crate) fn encode_unseal_policy_for_testing(
+pub(crate) fn encode_unseal_policy(
     versions: &[u64; DPE_MAX_VERSION_SLOTS],
 ) -> SmallMessage {
     let mut encoded_policy = SmallMessage::new();
@@ -593,10 +587,9 @@ fn internal_inputs_decode() {
     test_init();
     let before =
         [InternalInputType::DpeInfo, InternalInputType::MonotonicCounter];
-    let after = decode_internal_inputs(
-        encode_internal_inputs_for_testing(&before).as_slice(),
-    )
-    .unwrap();
+    let after =
+        decode_internal_inputs(encode_internal_inputs(&before).as_slice())
+            .unwrap();
     assert_eq!(before, after);
 }
 
@@ -605,11 +598,8 @@ fn locality_decode() {
     test_init();
     let default = LocalityId(0);
     let before = LocalityId(0xFFFF);
-    let after = decode_locality(
-        encode_locality_for_testing(before).as_slice(),
-        default,
-    )
-    .unwrap();
+    let after =
+        decode_locality(encode_locality(before).as_slice(), default).unwrap();
     assert_eq!(before, after);
     assert_eq!(default, decode_locality(&[], default).unwrap());
 }
@@ -620,34 +610,26 @@ fn init_seed_decode() {
     let uds_value = Uds::from_array(&[0; DICE_UDS_SIZE]);
     let cdi_sign = Cdi::from_array(&[1; DICE_CDI_SIZE]);
     let cdi_seal = Cdi::from_array(&[2; DICE_CDI_SIZE]);
-    let invalid_seed = encode_init_seed_for_testing(None, None, None, None);
+    let invalid_seed = encode_init_seed(None, None, None, None);
     let uds_internal_init = InitType::InternalUds;
-    let uds_internal_seed = encode_init_seed_for_testing(
-        Some(InitTypeSelector::Uds),
-        None,
-        None,
-        None,
-    );
+    let uds_internal_seed =
+        encode_init_seed(Some(InitTypeSelector::Uds), None, None, None);
     let uds_external_init =
         InitType::Uds { external_uds_seed: uds_value.clone() };
-    let uds_external_seed = encode_init_seed_for_testing(
+    let uds_external_seed = encode_init_seed(
         Some(InitTypeSelector::Uds),
         Some(uds_value.as_slice()),
         None,
         None,
     );
     let cdi_internal_init = InitType::InternalCdis;
-    let cdi_internal_seed = encode_init_seed_for_testing(
-        Some(InitTypeSelector::Cdi),
-        None,
-        None,
-        None,
-    );
+    let cdi_internal_seed =
+        encode_init_seed(Some(InitTypeSelector::Cdi), None, None, None);
     let cdi_external_init = InitType::Cdis {
         cdi_sign: cdi_sign.clone(),
         cdi_seal: cdi_seal.clone(),
     };
-    let cdi_external_seed = encode_init_seed_for_testing(
+    let cdi_external_seed = encode_init_seed(
         Some(InitTypeSelector::Cdi),
         None,
         Some(cdi_sign.as_slice()),
@@ -657,7 +639,7 @@ fn init_seed_decode() {
         cdi_sign: cdi_sign.clone(),
         cdi_seal: cdi_sign.clone(),
     };
-    let cdi_external_sign_seed = encode_init_seed_for_testing(
+    let cdi_external_sign_seed = encode_init_seed(
         Some(InitTypeSelector::Cdi),
         None,
         Some(cdi_sign.as_slice()),
@@ -715,15 +697,14 @@ fn dice_input_decode() {
 
     for dice_input in [&hash_dice_input, &descriptor_dice_input] {
         // Success case
-        let encoded_dice_input =
-            encode_dice_input_for_testing(None, dice_input);
+        let encoded_dice_input = encode_dice_input(None, dice_input);
         let (decoded_version_info, decoded_dice_input) =
             decode_dice_input(encoded_dice_input.as_slice()).unwrap();
         assert_eq!(*dice_input, decoded_dice_input);
         assert_eq!(None, decoded_version_info);
 
         let encoded_dice_input =
-            encode_dice_input_for_testing(Some(version_info), dice_input);
+            encode_dice_input(Some(version_info), dice_input);
         let (decoded_version_info, decoded_dice_input) =
             decode_dice_input(encoded_dice_input.as_slice()).unwrap();
         assert_eq!(*dice_input, decoded_dice_input);
@@ -732,7 +713,7 @@ fn dice_input_decode() {
         let mut input_without_authority = dice_input.clone();
         input_without_authority.authority = None;
         let encoded_dice_input =
-            encode_dice_input_for_testing(Some(version_info), dice_input);
+            encode_dice_input(Some(version_info), dice_input);
         let (decoded_version_info, decoded_dice_input) =
             decode_dice_input(encoded_dice_input.as_slice()).unwrap();
         assert_eq!(*dice_input, decoded_dice_input);
@@ -741,17 +722,15 @@ fn dice_input_decode() {
         let mut input_without_hidden = dice_input.clone();
         input_without_hidden.hidden = None;
         let encoded_dice_input =
-            encode_dice_input_for_testing(Some(version_info), dice_input);
+            encode_dice_input(Some(version_info), dice_input);
         let (decoded_version_info, decoded_dice_input) =
             decode_dice_input(encoded_dice_input.as_slice()).unwrap();
         assert_eq!(*dice_input, decoded_dice_input);
         assert_eq!(Some(version_info), decoded_version_info);
 
         // Invalid version case
-        let encoded_dice_input = encode_dice_input_for_testing(
-            Some(invalid_version_info),
-            dice_input,
-        );
+        let encoded_dice_input =
+            encode_dice_input(Some(invalid_version_info), dice_input);
         assert_eq!(
             ErrCode::InvalidArgument,
             decode_dice_input(encoded_dice_input.as_slice(),).unwrap_err()
@@ -779,7 +758,7 @@ fn dice_input_decode() {
             DiceInputEncodingError::InvalidModeType,
             DiceInputEncodingError::InvalidHiddenType,
         ] {
-            let encoded_dice_input = encode_dice_input_for_testing_with_error(
+            let encoded_dice_input = encode_dice_input_with_error(
                 Some(version_info),
                 dice_input,
                 error,
@@ -802,7 +781,7 @@ fn dice_input_decode() {
         DiceInputEncodingError::LongAuthorityHash,
         DiceInputEncodingError::LongHidden,
     ] {
-        let encoded_dice_input = encode_dice_input_for_testing_with_error(
+        let encoded_dice_input = encode_dice_input_with_error(
             Some(version_info),
             &hash_dice_input,
             error,
@@ -824,26 +803,20 @@ fn unseal_policy_decode() {
 
     assert_eq!(
         empty_versions,
-        decode_unseal_policy(
-            encode_unseal_policy_for_testing(&empty_versions).as_slice()
-        )
-        .unwrap()
+        decode_unseal_policy(encode_unseal_policy(&empty_versions).as_slice())
+            .unwrap()
     );
 
     assert_eq!(
         one_version,
-        decode_unseal_policy(
-            encode_unseal_policy_for_testing(&one_version).as_slice()
-        )
-        .unwrap()
+        decode_unseal_policy(encode_unseal_policy(&one_version).as_slice())
+            .unwrap()
     );
 
     assert_eq!(
         full_versions,
-        decode_unseal_policy(
-            encode_unseal_policy_for_testing(&full_versions).as_slice()
-        )
-        .unwrap()
+        decode_unseal_policy(encode_unseal_policy(&full_versions).as_slice())
+            .unwrap()
     );
 
     let mut buffer = SmallMessage::new();
@@ -872,7 +845,7 @@ fn check_error_response() {
     create_error_response(ErrCode::OutOfMemory, &mut buffer);
     assert_eq!(
         ErrCode::OutOfMemory,
-        decode_error_response_for_testing(buffer.as_slice()).unwrap_err()
+        decode_error_response(buffer.as_slice()).unwrap_err()
     );
     create_plaintext_session_error_response(ErrCode::Canceled, &mut buffer);
     let mut decoder = cbor_decoder_from_message(&buffer);
@@ -880,8 +853,7 @@ fn check_error_response() {
     assert_eq!(0, decoder.u16().unwrap());
     assert_eq!(
         ErrCode::Canceled,
-        decode_error_response_for_testing(decoder.bytes().unwrap())
-            .unwrap_err()
+        decode_error_response(decoder.bytes().unwrap()).unwrap_err()
     );
 }
 
@@ -999,7 +971,7 @@ fn certificate_chain_encode() {
     );
     let mut buffer = Message::new();
     encode_certificate_chain(&chain, &mut buffer).unwrap();
-    assert_eq!(chain, decode_certificate_chain_for_testing(&buffer));
+    assert_eq!(chain, decode_certificate_chain(&buffer));
 }
 
 #[test]
@@ -1063,7 +1035,7 @@ fn command_header() {
     let command_id = CommandSelector::RotateContextHandle;
     let content = [0u8; 100];
     let mut buffer = Message::from_slice(&content).unwrap();
-    encode_and_insert_command_header_for_testing(command_id, &mut buffer);
+    encode_and_insert_command_header(command_id, &mut buffer);
     assert!(content.len() < buffer.len());
     assert_eq!(
         command_id,

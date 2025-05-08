@@ -25,9 +25,8 @@ use crate::dice::{
 };
 use crate::encode::{CommandSelector, ContextHandle, LocalityId, SessionId};
 use crate::encode_test::{
-    decode_response_for_testing, encode_and_insert_command_header_for_testing,
-    encode_args_for_testing, encode_dice_input_for_testing,
-    encode_internal_inputs_for_testing, encode_locality_for_testing,
+    decode_response, encode_and_insert_command_header, encode_and_log_args,
+    encode_dice_input, encode_internal_inputs, encode_locality,
 };
 use crate::error::DpeResult;
 use crate::memory::{Message, SmallMessage};
@@ -45,8 +44,8 @@ impl CommandClient {
         input_args: &ArgMap,
         buffer: &mut Message,
     ) {
-        encode_args_for_testing(&input_args, buffer).unwrap();
-        encode_and_insert_command_header_for_testing(command_id, buffer);
+        encode_and_log_args(&input_args, buffer).unwrap();
+        encode_and_insert_command_header(command_id, buffer);
     }
 
     pub(crate) fn get_profile_in(buffer: &mut Message) {
@@ -59,7 +58,7 @@ impl CommandClient {
         buffer: &Message,
         descriptor: &mut Message,
     ) -> DpeResult<()> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([(1, ArgTypeSelector::Bytes)]),
         )?;
@@ -83,7 +82,7 @@ impl CommandClient {
     pub(crate) fn open_session_out(
         buffer: &Message,
     ) -> DpeResult<HandshakeMessage> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([(1, ArgTypeSelector::Bytes)]),
         )?;
@@ -105,7 +104,7 @@ impl CommandClient {
     }
 
     pub(crate) fn close_session_out(buffer: &Message) -> DpeResult<()> {
-        let _ = decode_response_for_testing(buffer, &ArgTypeMap::new())?;
+        let _ = decode_response(buffer, &ArgTypeMap::new())?;
         Ok(())
     }
 
@@ -122,7 +121,7 @@ impl CommandClient {
     }
 
     pub(crate) fn sync_session_out(buffer: &Message) -> DpeResult<u64> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([(1, ArgTypeSelector::Int)]),
         )?;
@@ -151,7 +150,7 @@ impl CommandClient {
     pub(crate) fn initialize_context_out(
         buffer: &Message,
     ) -> DpeResult<Option<ContextHandle>> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([(1, ArgTypeSelector::Bytes)]),
         )?;
@@ -177,8 +176,7 @@ impl CommandClient {
         buffer: &mut Message,
     ) {
         debug!("derive_context");
-        let encoded_dice_input =
-            encode_dice_input_for_testing(version_info, dice_input);
+        let encoded_dice_input = encode_dice_input(version_info, dice_input);
         let encoded_internal_inputs;
         let encoded_locality;
         let mut input_args: ArgMap = Default::default();
@@ -199,8 +197,7 @@ impl CommandClient {
         }
         let _ = input_args.insert_or_err(6, &encoded_dice_input).unwrap();
         if let Some(internal_inputs) = internal_inputs {
-            encoded_internal_inputs =
-                encode_internal_inputs_for_testing(internal_inputs);
+            encoded_internal_inputs = encode_internal_inputs(internal_inputs);
             if !internal_inputs.is_empty() {
                 let _ = input_args
                     .insert_or_err(7, &encoded_internal_inputs)
@@ -208,7 +205,7 @@ impl CommandClient {
             }
         }
         if let Some(locality) = target_locality {
-            encoded_locality = encode_locality_for_testing(locality);
+            encoded_locality = encode_locality(locality);
             let _ = input_args
                 .insert_or_err(8, encoded_locality.as_slice())
                 .unwrap();
@@ -240,7 +237,7 @@ impl CommandClient {
         new_certificate: &mut Option<Certificate>,
         exported_cdi: &mut Option<SmallMessage>,
     ) -> DpeResult<()> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([
                 (1, ArgTypeSelector::Bytes),
@@ -327,7 +324,7 @@ impl CommandClient {
         buffer: &Message,
         encoded_certificate_chain: &mut Message,
     ) -> DpeResult<Option<ContextHandle>> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([
                 (1, ArgTypeSelector::Bytes),
@@ -382,7 +379,7 @@ impl CommandClient {
         certificate: &mut Certificate,
         derived_public_key: &mut Option<SigningPublicKey>,
     ) -> DpeResult<Option<ContextHandle>> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([
                 (1, ArgTypeSelector::Bytes),
@@ -445,7 +442,7 @@ impl CommandClient {
         buffer: &Message,
         signature: &mut SmallMessage,
     ) -> DpeResult<Option<ContextHandle>> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([
                 (1, ArgTypeSelector::Bytes),
@@ -495,7 +492,7 @@ impl CommandClient {
         buffer: &Message,
         sealed_data: &mut Message,
     ) -> DpeResult<Option<ContextHandle>> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([
                 (1, ArgTypeSelector::Bytes),
@@ -549,7 +546,7 @@ impl CommandClient {
         buffer: &Message,
         unsealed_data: &mut Message,
     ) -> DpeResult<Option<ContextHandle>> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([
                 (1, ArgTypeSelector::Bytes),
@@ -601,7 +598,7 @@ impl CommandClient {
         buffer: &Message,
         public_key: &mut SealingPublicKey,
     ) -> DpeResult<Option<ContextHandle>> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([
                 (1, ArgTypeSelector::Bytes),
@@ -639,7 +636,7 @@ impl CommandClient {
             let _ = input_args.insert_or_err(2, to_default).unwrap();
         }
         if let Some(locality) = target_locality {
-            encoded_locality = encode_locality_for_testing(locality);
+            encoded_locality = encode_locality(locality);
             let _ = input_args
                 .insert_or_err(3, encoded_locality.as_slice())
                 .unwrap();
@@ -654,7 +651,7 @@ impl CommandClient {
     pub(crate) fn rotate_context_handle_out(
         buffer: &Message,
     ) -> DpeResult<Option<ContextHandle>> {
-        let output_args = decode_response_for_testing(
+        let output_args = decode_response(
             buffer,
             &ArgTypeMap::from_iter([(1, ArgTypeSelector::Bytes)]),
         )?;
@@ -690,7 +687,7 @@ impl CommandClient {
     }
 
     pub(crate) fn destroy_context_out(buffer: &Message) -> DpeResult<()> {
-        let _ = decode_response_for_testing(buffer, &ArgTypeMap::new())?;
+        let _ = decode_response(buffer, &ArgTypeMap::new())?;
         Ok(())
     }
 }
