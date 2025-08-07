@@ -33,7 +33,7 @@ config("internal_config") {
     "OPENSSL_NO_ASM",
     "OPENSSL_NO_THREADS_CORRUPT_MEMORY_AND_LEAK_SECRETS_IF_THREADED",
   ]
-  cflags_c = [
+  cflags = [
     "-Wno-unused-parameter",
     "-no-pedantic",
   ]
