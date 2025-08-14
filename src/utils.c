@@ -18,7 +18,7 @@
 
 void DiceHexEncode(const uint8_t* in, size_t num_bytes, void* out,
                    size_t out_size) {
-  const uint8_t kHexMap[16] = "0123456789abcdef";
+  const uint8_t kHexMap[17] = "0123456789abcdef";
   size_t in_pos = 0;
   size_t out_pos = 0;
   uint8_t* out_bytes = out;
