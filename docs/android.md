@@ -117,7 +117,7 @@ the version they are listed under.
 
 #### `"android.14"`
 
-The profile named `"android.14"` aligns with Android 14.
+The profile named `"android.14"` was introduced with Android 14.
 
 *   Based on the [Open Profile for DICE v2.4][open-dice-v2.4].
 *   The `configurationHash` field is permitted to be missing rather than being
@@ -131,7 +131,7 @@ The profile named `"android.14"` aligns with Android 14.
 
 #### `"android.15"`
 
-The profile named `"android.15"` aligns with Android 15. It is backwards
+The profile named `"android.15"` was introduced with Android 15. It is backwards
 compatible with the previous versions of the Andorid Profile for DICE.
 
 *   Based on the [Open Profile for DICE v2.5][open-dice-v2.5].
@@ -140,9 +140,8 @@ compatible with the previous versions of the Andorid Profile for DICE.
 
 #### `"android.16"`
 
-The profile named `"android.16"` aligns with Android 16 and is still subject to
-change. It is backwards compatible with the previous versions of the Android
-Profile for DICE.
+The profile named `"android.16"` was introduced with Android 16. It is backwards
+compatible with the previous versions of the Android Profile for DICE.
 
 *   Based on the [Open Profile for DICE v2.5][open-dice-v2.5].
 *   The security version field of the [configuration
