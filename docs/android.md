@@ -144,6 +144,8 @@ The profile named `"android.16"` was introduced with Android 16. It is backwards
 compatible with the previous versions of the Android Profile for DICE.
 
 *   Based on the [Open Profile for DICE v2.5][open-dice-v2.5].
+*   The `configurationHash` field is permitted to be missing rather than being
+    required, as specified by the Open Profile for DICE.
 *   The security version field of the [configuration
     descriptor](#configuration-descriptor) is required.
 
