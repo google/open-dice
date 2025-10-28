@@ -32,6 +32,7 @@ from pw_presubmit import (
     install_hook,
     keep_sorted,
     presubmit_context,
+    pw_internal_namespace,
     python_checks,
 )
 
@@ -84,6 +85,7 @@ LINTFORMAT = (
     ),
     inclusive_language.presubmit_check.with_filter(exclude=EXCLUSIONS),
     keep_sorted.presubmit_check.with_filter(exclude=EXCLUSIONS),
+    pw_internal_namespace.pw_internal_namespace,
     python_checks.gn_python_lint,
 )
 
