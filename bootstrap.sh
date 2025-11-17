@@ -92,7 +92,7 @@ if [ ! -e "$_util_sh" ]; then
   echo "Error: $_util_sh not found."
   echo "Did you forget to initialize the git submodules?"
   echo "To setup the git submodules run:"
-  echo "  git submodule update --init"
+  echo "  git submodule update --init --recursive"
   return
 fi
 
