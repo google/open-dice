@@ -216,9 +216,9 @@ static int Sign(int nid, uint8_t* signature, size_t signature_size,
   int ret = 0;
   BIGNUM* pD = NULL;
   EC_KEY* key = NULL;
-  uint8_t output[EVP_MAX_MD_SIZE];
-  unsigned int md_size;
-  ECDSA_SIG* sig = NULL;
+  uint8_t digest[EVP_MAX_MD_SIZE];
+  unsigned int digest_len;
+  size_t out_sig_len;
 
   pD = BN_bin2bn(private_key, private_key_size, NULL);
   if (!pD) {
@@ -231,18 +231,15 @@ static int Sign(int nid, uint8_t* signature, size_t signature_size,
   if (1 != EC_KEY_set_private_key(key, pD)) {
     goto out;
   }
-  if (1 != EVP_Digest(message, message_size, output, &md_size, md_type, NULL)) {
+  if (1 !=
+      EVP_Digest(message, message_size, digest, &digest_len, md_type, NULL)) {
     goto out;
   }
-  sig = ECDSA_do_sign(output, md_size, key);
-  if (!sig) {
+  if (1 != ECDSA_sign_p1363(digest, digest_len, signature, &out_sig_len,
+                            signature_size, key)) {
     goto out;
   }
-  size_t coord_size = signature_size / 2;
-  if (1 != BN_bn2bin_padded(&signature[0], coord_size, sig->r)) {
-    goto out;
-  }
-  if (1 != BN_bn2bin_padded(&signature[coord_size], coord_size, sig->s)) {
+  if (out_sig_len != signature_size) {
     goto out;
   }
   ret = 1;
@@ -250,7 +247,6 @@ static int Sign(int nid, uint8_t* signature, size_t signature_size,
 out:
   EC_KEY_free(key);
   BN_clear_free(pD);
-  ECDSA_SIG_free(sig);
   return ret;
 }
 
@@ -274,15 +270,15 @@ static int Verify(int nid, const EVP_MD* md_type, const uint8_t* message,
                   size_t signature_size, const uint8_t* public_key,
                   size_t public_key_size) {
   int ret = 0;
-  uint8_t output[EVP_MAX_MD_SIZE];
-  unsigned int md_size;
+  uint8_t digest[EVP_MAX_MD_SIZE];
+  unsigned int digest_len;
   EC_KEY* key = NULL;
   BIGNUM* bn_ret = NULL;
   BIGNUM* x = NULL;
   BIGNUM* y = NULL;
-  ECDSA_SIG* sig = NULL;
 
-  if (1 != EVP_Digest(message, message_size, output, &md_size, md_type, NULL)) {
+  if (1 !=
+      EVP_Digest(message, message_size, digest, &digest_len, md_type, NULL)) {
     goto out;
   }
   key = EC_KEY_new_by_curve_name(nid);
@@ -309,27 +305,12 @@ static int Verify(int nid, const EVP_MD* md_type, const uint8_t* message,
   if (1 != EC_KEY_set_public_key_affine_coordinates(key, x, y)) {
     goto out;
   }
-
-  sig = ECDSA_SIG_new();
-  if (!sig) {
-    goto out;
-  }
-  coord_size = signature_size / 2;
-  bn_ret = BN_bin2bn(&signature[0], coord_size, sig->r);
-  if (!bn_ret) {
-    goto out;
-  }
-  bn_ret = BN_bin2bn(&signature[coord_size], coord_size, sig->s);
-  if (!bn_ret) {
-    goto out;
-  }
-  ret = ECDSA_do_verify(output, md_size, sig, key);
+  ret = ECDSA_verify_p1363(digest, digest_len, signature, signature_size, key);
 
 out:
   BN_clear_free(y);
   BN_clear_free(x);
   EC_KEY_free(key);
-  ECDSA_SIG_free(sig);
   return ret;
 }
 
