@@ -31,7 +31,7 @@
 #include "openssl/is_boringssl.h"
 #include "openssl/sha.h"
 
-static int hmac(uint8_t k[64], uint8_t in[64], uint8_t *out,
+static int hmac(uint8_t k[64], uint8_t in[64], uint8_t* out,
                 unsigned int out_len) {
   int ret = 0;
 
@@ -54,7 +54,7 @@ out:
 }
 
 static int hmac3(uint8_t k[64], uint8_t in1[64], uint8_t in2,
-                 const uint8_t *in3, unsigned int in3_len, uint8_t out[64]) {
+                 const uint8_t* in3, unsigned int in3_len, uint8_t out[64]) {
   int ret = 0;
 
   HMAC_CTX ctx;
@@ -83,9 +83,9 @@ out:
 
 // Algorithm from section 3.2 of IETF RFC6979; limited to generating up to 64
 // byte private keys.
-static BIGNUM *derivePrivateKey(const EC_GROUP *group, const uint8_t *seed,
+static BIGNUM* derivePrivateKey(const EC_GROUP* group, const uint8_t* seed,
                                 size_t seed_size, size_t private_key_len) {
-  BIGNUM *candidate = NULL;
+  BIGNUM* candidate = NULL;
   uint8_t v[64];
   uint8_t k[64];
   memset(v, 1, 64);
@@ -129,20 +129,20 @@ out:
   return candidate;
 }
 
-static int KeypairFromSeed(int nid, uint8_t *public_key, size_t public_key_size,
-                           uint8_t *private_key, size_t private_key_size,
+static int KeypairFromSeed(int nid, uint8_t* public_key, size_t public_key_size,
+                           uint8_t* private_key, size_t private_key_size,
                            const uint8_t seed[DICE_PRIVATE_KEY_SEED_SIZE]) {
   int ret = 0;
-  EC_POINT *publicKey = NULL;
-  BIGNUM *pD = NULL;
-  BIGNUM *x = NULL;
-  BIGNUM *y = NULL;
+  EC_POINT* publicKey = NULL;
+  BIGNUM* pD = NULL;
+  BIGNUM* x = NULL;
+  BIGNUM* y = NULL;
 
-  EC_KEY *key = EC_KEY_new_by_curve_name(nid);
+  EC_KEY* key = EC_KEY_new_by_curve_name(nid);
   if (!key) {
     goto out;
   }
-  const EC_GROUP *group = EC_KEY_get0_group(key);
+  const EC_GROUP* group = EC_KEY_get0_group(key);
   if (!group) {
     goto out;
   }
@@ -209,16 +209,16 @@ int P384KeypairFromSeed(uint8_t public_key[P384_PUBLIC_KEY_SIZE],
                          private_key, P384_PRIVATE_KEY_SIZE, seed);
 }
 
-static int Sign(int nid, uint8_t *signature, size_t signature_size,
-                const EVP_MD *md_type, const uint8_t *message,
-                size_t message_size, const uint8_t *private_key,
+static int Sign(int nid, uint8_t* signature, size_t signature_size,
+                const EVP_MD* md_type, const uint8_t* message,
+                size_t message_size, const uint8_t* private_key,
                 size_t private_key_size) {
   int ret = 0;
-  BIGNUM *pD = NULL;
-  EC_KEY *key = NULL;
+  BIGNUM* pD = NULL;
+  EC_KEY* key = NULL;
   uint8_t output[EVP_MAX_MD_SIZE];
   unsigned int md_size;
-  ECDSA_SIG *sig = NULL;
+  ECDSA_SIG* sig = NULL;
 
   pD = BN_bin2bn(private_key, private_key_size, NULL);
   if (!pD) {
@@ -254,7 +254,7 @@ out:
   return ret;
 }
 
-int P256Sign(uint8_t signature[P256_SIGNATURE_SIZE], const uint8_t *message,
+int P256Sign(uint8_t signature[P256_SIGNATURE_SIZE], const uint8_t* message,
              size_t message_size,
              const uint8_t private_key[P256_PRIVATE_KEY_SIZE]) {
   return Sign(NID_X9_62_prime256v1, signature, P256_SIGNATURE_SIZE,
@@ -262,25 +262,25 @@ int P256Sign(uint8_t signature[P256_SIGNATURE_SIZE], const uint8_t *message,
               P256_PRIVATE_KEY_SIZE);
 }
 
-int P384Sign(uint8_t signature[P384_SIGNATURE_SIZE], const uint8_t *message,
+int P384Sign(uint8_t signature[P384_SIGNATURE_SIZE], const uint8_t* message,
              size_t message_size,
              const uint8_t private_key[P384_PRIVATE_KEY_SIZE]) {
   return Sign(NID_secp384r1, signature, P384_SIGNATURE_SIZE, EVP_sha384(),
               message, message_size, private_key, P384_PRIVATE_KEY_SIZE);
 }
 
-static int Verify(int nid, const EVP_MD *md_type, const uint8_t *message,
-                  size_t message_size, const uint8_t *signature,
-                  size_t signature_size, const uint8_t *public_key,
+static int Verify(int nid, const EVP_MD* md_type, const uint8_t* message,
+                  size_t message_size, const uint8_t* signature,
+                  size_t signature_size, const uint8_t* public_key,
                   size_t public_key_size) {
   int ret = 0;
   uint8_t output[EVP_MAX_MD_SIZE];
   unsigned int md_size;
-  EC_KEY *key = NULL;
-  BIGNUM *bn_ret = NULL;
-  BIGNUM *x = NULL;
-  BIGNUM *y = NULL;
-  ECDSA_SIG *sig = NULL;
+  EC_KEY* key = NULL;
+  BIGNUM* bn_ret = NULL;
+  BIGNUM* x = NULL;
+  BIGNUM* y = NULL;
+  ECDSA_SIG* sig = NULL;
 
   if (1 != EVP_Digest(message, message_size, output, &md_size, md_type, NULL)) {
     goto out;
@@ -333,7 +333,7 @@ out:
   return ret;
 }
 
-int P256Verify(const uint8_t *message, size_t message_size,
+int P256Verify(const uint8_t* message, size_t message_size,
                const uint8_t signature[P256_SIGNATURE_SIZE],
                const uint8_t public_key[P256_PUBLIC_KEY_SIZE]) {
   return Verify(NID_X9_62_prime256v1, EVP_sha256(), message, message_size,
@@ -341,7 +341,7 @@ int P256Verify(const uint8_t *message, size_t message_size,
                 P256_PUBLIC_KEY_SIZE);
 }
 
-int P384Verify(const uint8_t *message, size_t message_size,
+int P384Verify(const uint8_t* message, size_t message_size,
                const uint8_t signature[P384_SIGNATURE_SIZE],
                const uint8_t public_key[P384_PUBLIC_KEY_SIZE]) {
   return Verify(NID_secp384r1, EVP_sha384(), message, message_size, signature,
