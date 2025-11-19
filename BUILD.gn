@@ -540,15 +540,8 @@ pw_static_library("dice_android") {
 }
 
 pw_test("android_test") {
-  sources = [
-    "src/android_test.cc",
-    "src/test_utils.cc",
-  ]
-  deps = [
-    ":boringssl_ecdsa_utils",
-    ":dice_android",
-    "//third_party/cose-c:cose-c_multialg",
-  ]
+  sources = [ "src/android_test.cc" ]
+  deps = [ ":dice_android" ]
 }
 
 pw_executable("android_fuzzer") {

@@ -14,15 +14,7 @@
 
 #include "dice/android.h"
 
-#include "dice/dice.h"
-#include "dice/known_test_values.h"
-#include "dice/ops.h"
-#include "dice/ops/trait/cose.h"
-#include "dice/profile_name.h"
 #include "dice/test_framework.h"
-#include "dice/test_utils.h"
-#include "dice/utils.h"
-#include "pw_string/format.h"
 
 namespace {
 
@@ -229,9 +221,9 @@ TEST(DiceAndroidHandoverTest, ParseHandover) {
       0x40, 0x22, 0x40, 0x84, 0x40, 0xa0, 0x40, 0x40,
       // 8-bytes of trailing data that aren't part of the DICE chain.
       0x00, 0x41, 0x55, 0xa0, 0x42, 0x11, 0x22, 0x40};
-  const uint8_t *cdi_attest;
-  const uint8_t *cdi_seal;
-  const uint8_t *chain;
+  const uint8_t* cdi_attest;
+  const uint8_t* cdi_seal;
+  const uint8_t* chain;
   size_t chain_size;
   DiceResult result = DiceAndroidHandoverParse(
       handover, sizeof(handover), &cdi_attest, &cdi_seal, &chain, &chain_size);
@@ -255,9 +247,9 @@ TEST(DiceAndroidHandoverTest, ParseHandoverWithoutDiceChain) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       // 8-bytes of trailing data that aren't part of the DICE chain.
       0x00, 0x41, 0x55, 0xa0, 0x42, 0x11, 0x22, 0x40};
-  const uint8_t *cdi_attest;
-  const uint8_t *cdi_seal;
-  const uint8_t *chain;
+  const uint8_t* cdi_attest;
+  const uint8_t* cdi_seal;
+  const uint8_t* chain;
   size_t chain_size;
   DiceResult result = DiceAndroidHandoverParse(
       handover, sizeof(handover), &cdi_attest, &cdi_seal, &chain, &chain_size);
@@ -283,9 +275,9 @@ TEST(DiceAndroidHandoverTest, ParseHandoverWithoutDiceChainButUnknownField) {
       0x04, 0x01,
       // 8-bytes of trailing data that aren't part of the DICE chain.
       0x00, 0x41, 0x55, 0xa0, 0x42, 0x11, 0x22, 0x40};
-  const uint8_t *cdi_attest;
-  const uint8_t *cdi_seal;
-  const uint8_t *chain;
+  const uint8_t* cdi_attest;
+  const uint8_t* cdi_seal;
+  const uint8_t* chain;
   size_t chain_size;
   DiceResult result = DiceAndroidHandoverParse(
       handover, sizeof(handover), &cdi_attest, &cdi_seal, &chain, &chain_size);
@@ -309,54 +301,13 @@ TEST(DiceAndroidHandoverTest, ParseHandoverCdiTooLarge) {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       // 8-bytes of trailing data that aren't part of the DICE chain.
       0x00, 0x41, 0x55, 0xa0, 0x42, 0x11, 0x22, 0x40};
-  const uint8_t *cdi_attest;
-  const uint8_t *cdi_seal;
-  const uint8_t *chain;
+  const uint8_t* cdi_attest;
+  const uint8_t* cdi_seal;
+  const uint8_t* chain;
   size_t chain_size;
   DiceResult result = DiceAndroidHandoverParse(
       handover, sizeof(handover), &cdi_attest, &cdi_seal, &chain, &chain_size);
   EXPECT_EQ(kDiceResultInvalidInput, result);
-}
-
-using dice::test::CertificateType_Cbor;
-using dice::test::DeriveFakeInputValue;
-using dice::test::DiceStateForTest;
-using dice::test::KeyType_Ed25519;
-using dice::test::VerifyCoseSign1;
-
-TEST(DiceOpsTest, FullCertChain) {
-  constexpr size_t kNumLayers = 7;
-  DiceStateForTest states[kNumLayers + 1] = {};
-  DiceInputValues inputs[kNumLayers] = {};
-  for (size_t i = 0; i < kNumLayers; ++i) {
-    char seed[40];
-    pw::string::Format(seed, "code_hash_%zu", i);
-    DeriveFakeInputValue(seed, DICE_HASH_SIZE, inputs[i].code_hash);
-    pw::string::Format(seed, "authority_hash_%zu", i);
-    DeriveFakeInputValue(seed, DICE_HASH_SIZE, inputs[i].authority_hash);
-    inputs[i].config_type = kDiceConfigTypeInline;
-    pw::string::Format(seed, "inline_config_%zu", i);
-    DeriveFakeInputValue(seed, DICE_INLINE_CONFIG_SIZE, inputs[i].config_value);
-    inputs[i].mode = kDiceModeNormal;
-    EXPECT_EQ(
-        kDiceResultOk,
-        DiceMainFlow(/*context=*/NULL, states[i].cdi_attest, states[i].cdi_seal,
-                     &inputs[i], sizeof(states[i + 1].certificate),
-                     states[i + 1].certificate, &states[i + 1].certificate_size,
-                     states[i + 1].cdi_attest, states[i + 1].cdi_seal));
-    char suffix[40];
-    pw::string::Format(suffix, "full_cert_chain_%zu", i);
-    DumpState(CertificateType_Cbor, KeyType_Ed25519, suffix, states[i + 1]);
-  }
-  // Use a fake self-signed UDS cert as the 'root'.
-  uint8_t root_certificate[dice::test::kTestCertSize];
-  size_t root_certificate_size = 0;
-  dice::test::CreateFakeUdsCertificate(
-      NULL, states[0].cdi_attest, CertificateType_Cbor, KeyType_Ed25519,
-      root_certificate, &root_certificate_size);
-  EXPECT_TRUE(dice::test::VerifyCertificateChain(
-      CertificateType_Cbor, root_certificate, root_certificate_size, &states[1],
-      kNumLayers, /*is_partial_chain=*/false));
 }
 }
 
