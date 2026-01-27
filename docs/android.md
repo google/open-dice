@@ -132,7 +132,7 @@ The profile named `"android.14"` was introduced with Android 14.
 #### `"android.15"`
 
 The profile named `"android.15"` was introduced with Android 15. It is backwards
-compatible with the previous versions of the Andorid Profile for DICE.
+compatible with the previous versions of the Android Profile for DICE.
 
 *   Based on the [Open Profile for DICE v2.5][open-dice-v2.5].
 *   The `configurationHash` field is permitted to be missing rather than being
@@ -148,6 +148,11 @@ compatible with the previous versions of the Android Profile for DICE.
     required, as specified by the Open Profile for DICE.
 *   The security version field of the [configuration
     descriptor](#configuration-descriptor) is required.
+
+Please note there is no `"android.17"` profile as there were no changes to
+Android DICE support between Android versions 16 and 17. Google recommends
+that chipset vendors implement the `"android.16"` profile, as it is the most
+up-to-date.
 
 [open-dice-v2.4]: https://pigweed.googlesource.com/open-dice/+/f9f454ae493bfe76ec2af8011eb7543c20c5ffc2/docs/specification.md
 [open-dice-v2.5]: https://pigweed.googlesource.com/open-dice/+/0b5044098bf9b40128927d675dea4ec1fb75c510/docs/specification.md
