@@ -1,6 +1,6 @@
 # Open Profile for DICE
 
-v2.5
+v2.6
 
 [TOC]
 
@@ -234,7 +234,9 @@ defaults are [SHA-512](https://en.wikipedia.org/wiki/SHA-2),
 [HKDF](https://en.wikipedia.org/wiki/HKDF) (using SHA-512) and
 [Ed25519](https://en.wikipedia.org/wiki/EdDSA#Ed25519). Since Ed25519 uses
 SHA-512 under the hood, using this combination means implementing only one hash
-function. See below for the full list of
+function. For those requiring PQC algorithms,
+[ML-DSA](https://en.wikipedia.org/wiki/Lattice-based_cryptography#CRYSTALS-Dilithium)
+algorithms must be used for digital signatures. See below for the full list of
 [acceptable algorithms](#acceptable-cryptographic-algorithms).
 
 The following pseudocode operations are used throughout this document:
@@ -438,6 +440,21 @@ Following the process described in
 recommended. In this process the seed, in this case the output of ASYM_KDF, is
 used to seed an HMAC_DRBG instance and then the private key is generated from
 the DRBG. See the RFC for details.
+
+##### ML-DSA
+
+[ML-DSA](https://en.wikipedia.org/wiki/Lattice-based_cryptography#CRYSTALS-Dilithium)
+is the PQC digital signature algorithm.
+
+The following [NIST](https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.204.pdf)
+parameter choices are acceptable for implementation:
+
+*   ML-DSA-65
+*   ML-DSA-87
+
+Keep in mind that CNSA2.0 requirements accept ML-DSA-87 only.
+
+When deriving ML-DSA key pairs, the output of ASYM_KDF can be used directly.
 
 ## Layering Details
 
@@ -656,7 +673,7 @@ Field                | Description
 -------------------- | -----------
 version              | v3
 subject              | "SERIALNUMBER=\<UDS\_ID\>" where UDS\_ID is hex encoded lower case
-subjectPublicKeyInfo | When using Ed25519, the info per [RFC 8410](https://tools.ietf.org/html/rfc8410) and [RFC 8032](https://tools.ietf.org/html/rfc8032)
+subjectPublicKeyInfo | When using Ed25519, the info per [RFC 8410](https://tools.ietf.org/html/rfc8410) and [RFC 8032](https://tools.ietf.org/html/rfc8032). When using ML-DSA, the info per [RFC 9881](https://datatracker.ietf.org/doc/rfc9881)
 extensions           | The standard extensions described below are included.
 
 ##### UDS Standard Extensions
@@ -677,15 +694,15 @@ CDI\_Public key and the DICE input value details.
 
 Field                | Description
 -------------------- | -----------
-signatureAlgorithm   | When using Ed25519, id-Ed25519 per [RFC 8410](https://tools.ietf.org/html/rfc8410)
+signatureAlgorithm   | When using Ed25519, id-Ed25519 per [RFC 8410](https://tools.ietf.org/html/rfc8410). When using ML-DSA, algorithm identifiers as per [RFC 9881](https://datatracker.ietf.org/doc/rfc9881)
 signatureValue       | When using Ed25519, 64 byte Ed25519 signature per [RFC 8032](https://tools.ietf.org/html/rfc8032), using UDS\_Private or the current CDI\_Private as the signing key
 version              | v3
 serialNumber         | CDI\_ID in ASN.1 INTEGER form
-signature            | When using Ed25519, id-Ed25519 per [RFC 8410](https://tools.ietf.org/html/rfc8410)
+signature            | Same as signatureAlgorithm
 issuer               | "SERIALNUMBER=\<UDS\_ID\>" where UDS\_ID is hex encoded lower case. When layering, UDS\_ID becomes CDI\_ID of the current layer.
 validity             | The DICE is not expected to have a reliable source of time when generating a certificate. The validity values are populated as follows: *notBefore* can be any time known to be in the past; in the absence of a better value, "180322235959Z" can be used which is the date of publication of the [TCG DICE specification](#background), and *notAfter* is set to the standard value used to indicate no well-known expiry date, "99991231235959Z".
 subject              | "SERIALNUMBER=\<CDI\_ID\>" where CDI\_ID is hex encoded lower case. When layering this is the CDI\_ID of the next layer.
-subjectPublicKeyInfo | When using Ed25519, the info per [RFC 8410](https://tools.ietf.org/html/rfc8410) and [RFC 8032](https://tools.ietf.org/html/rfc8032)
+subjectPublicKeyInfo | When using Ed25519, the info per [RFC 8410](https://tools.ietf.org/html/rfc8410) and [RFC 8032](https://tools.ietf.org/html/rfc8032). When using ML-DSA, the info per [RFC 9881](https://datatracker.ietf.org/doc/rfc9881)
 issuerUniqueID       | Omitted
 subjectUniqueID      | Omitted
 extensions           | Standard extensions are included as well as a custom extension which holds information about the measurements used to derive CDI values. Both are described below.
