@@ -79,6 +79,9 @@ of the reserved range.
 Unless explicitly stated as required in the [versions](#versions) section, each
 field is optional. If no fields are relevant, an empty map should be encoded.
 
+The `configurationHash` field is permitted to be missing in all versions of the
+Android Profile for DICE.
+
 Name                   | Key    | Value&nbsp;type      | Meaning
 ---                    | ---    | ---                  | ---
 Component&nbsp;name    | -70002 | tstr                 | Name of the component
@@ -123,8 +126,6 @@ the version they are listed under.
 The profile named `"android.14"` was introduced with Android 14.
 
 *   Based on the [Open Profile for DICE v2.4][open-dice-v2.4].
-*   The `configurationHash` field is permitted to be missing rather than being
-    required, as specified by the Open Profile for DICE.
 *   The `mode` field is permitted to be encoded as an integer rather than the
     byte string that is specified by the Open Profile for DICE.
 *   The `keyUsage` field is permitted to be encoded in big-endian byte order as
@@ -138,8 +139,6 @@ The profile named `"android.15"` was introduced with Android 15. It is backwards
 compatible with the previous versions of the Android Profile for DICE.
 
 *   Based on the [Open Profile for DICE v2.5][open-dice-v2.5].
-*   The `configurationHash` field is permitted to be missing rather than being
-    required, as specified by the Open Profile for DICE.
 
 #### `"android.16"`
 
@@ -147,8 +146,6 @@ The profile named `"android.16"` was introduced with Android 16. It is backwards
 compatible with the previous versions of the Android Profile for DICE.
 
 *   Based on the [Open Profile for DICE v2.5][open-dice-v2.5].
-*   The `configurationHash` field is permitted to be missing rather than being
-    required, as specified by the Open Profile for DICE.
 *   The security version field of the [configuration
     descriptor](#configuration-descriptor) is required.
 
