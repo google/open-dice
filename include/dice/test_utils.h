@@ -23,7 +23,8 @@
 namespace dice {
 namespace test {
 
-constexpr size_t kTestCertSize = 2048;
+// Large enough for ML-DSA-87 certificates
+constexpr size_t kTestCertSize = 8500;
 
 enum CertificateType {
   CertificateType_X509,
@@ -35,6 +36,8 @@ enum KeyType {
   KeyType_P256,
   KeyType_P256_COMPRESSED,
   KeyType_P384,
+  KeyType_MLDSA_65,
+  KeyType_MLDSA_87,
 };
 
 struct DiceStateForTest {

@@ -580,6 +580,14 @@ out:
 static EVP_PKEY* CreatePrivateKey(
     const DiceKeyParam* key_param,
     const uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE]) {
+  if (key_param->cose_key_type == kCoseKeyKtyAkp) {
+    if (key_param->cose_key_algorithm == kCoseAlgMldsa65) {
+      return EVP_PKEY_from_private_seed(EVP_pkey_ml_dsa_65(), private_key, 32);
+    } else if (key_param->cose_key_algorithm == kCoseAlgMldsa87) {
+      return EVP_PKEY_from_private_seed(EVP_pkey_ml_dsa_87(), private_key, 32);
+    }
+    return NULL;
+  }
   if (key_param->cose_key_curve == kCoseCrvEd25519) {
     return EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, NULL, private_key,
                                         32);

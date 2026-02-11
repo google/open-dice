@@ -21,6 +21,7 @@
 static const int64_t kCoseKeyKtyLabel = 1;
 static const int64_t kCoseKeyKtyOkp = 1;
 static const int64_t kCoseKeyKtyEc2 = 2;
+static const int64_t kCoseKeyKtyAkp = 7;
 static const int64_t kCoseKeyAlgLabel = 3;
 static const int64_t kCoseKeyOpsLabel = 4;
 static const int64_t kCoseKeyOpsVerify = 2;
@@ -37,5 +38,10 @@ static const int64_t kCoseAlgEs256 = -7;
 static const int64_t kCoseCrvP256 = 1;
 static const int64_t kCoseAlgEs384 = -35;
 static const int64_t kCoseCrvP384 = 2;
+
+// Constants for ML-DSA keys
+static const int64_t kCoseAlgMldsa65 = -49;
+static const int64_t kCoseAlgMldsa87 = -50;
+static const int64_t kCoseKeyPubLabel = -1;
 
 #endif  // DICE_CONFIG_COSE_KEY_CONFIG_H_

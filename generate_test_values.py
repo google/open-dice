@@ -156,7 +156,7 @@ def _generate_certs(name, cert_type):
     """Generates C declarations from dumps identified by |name|."""
     return "".join(
         _generate_cert(name, cert_type, key_type)
-        for key_type in ("Ed25519", "P256", "P384")
+        for key_type in ("Ed25519", "P256", "P384", "MLDSA65", "MLDSA87")
     )
 
 

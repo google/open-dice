@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License. You may obtain a copy of
@@ -12,9 +12,13 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#ifndef DICE_CONFIG_ANDROID_DICE_PROFILE_NAME_H_
-#define DICE_CONFIG_ANDROID_DICE_PROFILE_NAME_H_
+#ifndef DICE_CONFIG_BORINGSSL_MLDSA_65_DICE_CONFIG_H_
+#define DICE_CONFIG_BORINGSSL_MLDSA_65_DICE_CONFIG_H_
 
-#define DICE_PROFILE_NAME "android.18"
+// ML-DSA-65
+// Key size value from Table 1 of COSE dilithium draft
+#define DICE_PUBLIC_KEY_BUFFER_SIZE 1952
+#define DICE_PRIVATE_KEY_BUFFER_SIZE 32
+#define DICE_SIGNATURE_BUFFER_SIZE 3309
 
-#endif  // DICE_CONFIG_ANDROID_DICE_PROFILE_NAME_H_
+#endif  // DICE_CONFIG_BORINGSSL_MLDSA_65_DICE_CONFIG_H_

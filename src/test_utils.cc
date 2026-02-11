@@ -33,14 +33,16 @@
 #include "openssl/evp.h"
 #include "openssl/is_boringssl.h"
 #include "openssl/mem.h"
+#include "openssl/mldsa.h"
 #include "openssl/sha.h"
 #include "openssl/x509.h"
 #include "openssl/x509_vfy.h"
 #include "openssl/x509v3.h"
 #include "pw_string/format.h"
 
-// The largest possible public key size among ECDSA P-384, P-256, and ED25519
-#define MAX_PUBLIC_KEY_SIZE 96
+// The largest possible public key size among ECDSA P-384, P-256, ED25519 and
+// MLDSA keys
+#define MAX_PUBLIC_KEY_SIZE 2592
 
 namespace {
 
@@ -69,6 +71,10 @@ const char* GetKeyTypeStr(dice::test::KeyType key_type) {
       return "P256";
     case dice::test::KeyType_P384:
       return "P384";
+    case dice::test::KeyType_MLDSA_65:
+      return "MLDSA65";
+    case dice::test::KeyType_MLDSA_87:
+      return "MLDSA87";
   }
   return "";
 }
@@ -107,9 +113,8 @@ bssl::UniquePtr<EVP_PKEY> EcKeyFromCoords(
 }
 
 bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(
-    const uint8_t raw_key[DICE_PRIVATE_KEY_SEED_SIZE],
-    dice::test::KeyType key_type, uint8_t raw_public_key[MAX_PUBLIC_KEY_SIZE],
-    size_t* raw_public_key_size) {
+    const uint8_t* raw_key, dice::test::KeyType key_type,
+    uint8_t raw_public_key[MAX_PUBLIC_KEY_SIZE], size_t* raw_public_key_size) {
   if (key_type == dice::test::KeyType_Ed25519) {
     bssl::UniquePtr<EVP_PKEY> key(
         EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, /*unused=*/nullptr,
@@ -143,10 +148,49 @@ bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(
     P384KeypairFromSeed(raw_public_key, pk, raw_key);
     *raw_public_key_size = kPublicKeySize;
     return EcKeyFromCoords(NID_secp384r1, raw_public_key, kPublicKeySize);
-  }
+  } else if (key_type == dice::test::KeyType_MLDSA_65) {
+    *raw_public_key_size = 1952;
+    auto priv = std::make_unique<MLDSA65_private_key>();
+    MLDSA65_private_key_from_seed(priv.get(), raw_key,
+                                  DICE_PRIVATE_KEY_SEED_SIZE);
+    auto pub = std::make_unique<MLDSA65_public_key>();
+    MLDSA65_public_from_private(pub.get(), priv.get());
+    CBB cbb_pub;
+    CBB_init_fixed(&cbb_pub, raw_public_key, *raw_public_key_size);
+    MLDSA65_marshal_public_key(&cbb_pub, pub.get());
 
+    bssl::UniquePtr<EVP_PKEY> key(EVP_PKEY_from_private_seed(
+        EVP_pkey_ml_dsa_65(), raw_key, DICE_PRIVATE_KEY_SEED_SIZE));
+    return key;
+  } else if (key_type == dice::test::KeyType_MLDSA_87) {
+    *raw_public_key_size = 2592;
+    auto priv = std::make_unique<MLDSA87_private_key>();
+    MLDSA87_private_key_from_seed(priv.get(), raw_key,
+                                  DICE_PRIVATE_KEY_SEED_SIZE);
+    auto pub = std::make_unique<MLDSA87_public_key>();
+    MLDSA87_public_from_private(pub.get(), priv.get());
+    CBB cbb_pub;
+    CBB_init_fixed(&cbb_pub, raw_public_key, *raw_public_key_size);
+    MLDSA87_marshal_public_key(&cbb_pub, pub.get());
+
+    bssl::UniquePtr<EVP_PKEY> key(EVP_PKEY_from_private_seed(
+        EVP_pkey_ml_dsa_87(), raw_key, DICE_PRIVATE_KEY_SEED_SIZE));
+    return key;
+  }
   printf("ERROR: Unsupported key type.\n");
   return nullptr;
+}
+
+const EVP_MD* GetDigestForPkey(EVP_PKEY* key) {
+  switch (EVP_PKEY_id(key)) {
+    case EVP_PKEY_ED25519:
+    case EVP_PKEY_ML_DSA_65:
+    case EVP_PKEY_ML_DSA_87:
+      // These algorithms do not use a separate digest.
+      return nullptr;
+    default:
+      return EVP_sha512();
+  }
 }
 
 void CreateX509UdsCertificate(EVP_PKEY* key, const uint8_t id[DICE_ID_SIZE],
@@ -200,8 +244,7 @@ void CreateX509UdsCertificate(EVP_PKEY* key, const uint8_t id[DICE_ID_SIZE],
 
   X509_set_pubkey(x509.get(), key);
   // ED25519 always uses SHA-512 so md must be NULL.
-  const EVP_MD* md =
-      (EVP_PKEY_id(key) == EVP_PKEY_ED25519) ? nullptr : EVP_sha512();
+  const EVP_MD* md = GetDigestForPkey(key);
   X509_sign(x509.get(), key, md);
   if (i2d_X509(x509.get(), /*out=*/nullptr) <=
       static_cast<int>(dice::test::kTestCertSize)) {
@@ -468,6 +511,91 @@ void CreateP384CborUdsCertificate(
                                 certificate, certificate_size);
 }
 
+void CreateMldsaCborUdsCertificate(
+    std::span<uint8_t> public_key,
+    std::function<std::vector<uint8_t>(std::span<uint8_t>)> sign,
+    const uint8_t id[DICE_ID_SIZE], int8_t alg,
+    uint8_t certificate[dice::test::kTestCertSize], size_t* certificate_size) {
+  const int64_t kCwtIssuerLabel = 1;
+  const int64_t kCwtSubjectLabel = 2;
+  const int64_t kUdsPublicKeyLabel = -4670552;
+  const int64_t kUdsKeyUsageLabel = -4670553;
+  const uint8_t kKeyUsageCertSign = 32;  // Bit 5.
+  const uint8_t kProtectedAttributesCbor[4] = {0xa1 /* map(1) */,
+                                               0x01 /* alg(1) */, 0x38,
+                                               static_cast<uint8_t>(-alg - 1)};
+
+  cn_cbor_errback error;
+  ScopedCbor public_key_cbor(cn_cbor_map_create(&error));
+  // Add required parameters
+  // key = AKP (7)
+  // alg = algorithm (3)
+  // pub = public key (-1)
+  cn_cbor_mapput_int(public_key_cbor.get(), 1, cn_cbor_int_create(7, &error),
+                     &error);
+  cn_cbor_mapput_int(public_key_cbor.get(), 3, cn_cbor_int_create(alg, &error),
+                     &error);
+  cn_cbor_mapput_int(
+      public_key_cbor.get(), -1,
+      cn_cbor_data_create(&public_key[0], public_key.size(), &error), &error);
+
+  uint8_t encoded_public_key[3000];
+  size_t encoded_public_key_size =
+      cn_cbor_encoder_write(encoded_public_key, 0, 3000, public_key_cbor.get());
+
+  // Simple CWT payload with issuer, subject, and use the same subject public
+  // key field as a CDI certificate to make verification easy.
+  char id_hex[41];
+  DiceHexEncode(id, DICE_ID_SIZE, id_hex, sizeof(id_hex));
+  id_hex[40] = '\0';
+  ScopedCbor cwt(cn_cbor_map_create(&error));
+  cn_cbor_mapput_int(cwt.get(), kCwtIssuerLabel,
+                     cn_cbor_string_create(id_hex, &error), &error);
+  cn_cbor_mapput_int(cwt.get(), kCwtSubjectLabel,
+                     cn_cbor_string_create(id_hex, &error), &error);
+  cn_cbor_mapput_int(
+      cwt.get(), kUdsPublicKeyLabel,
+      cn_cbor_data_create(encoded_public_key, encoded_public_key_size, &error),
+      &error);
+  uint8_t key_usage_byte = kKeyUsageCertSign;
+  cn_cbor_mapput_int(cwt.get(), kUdsKeyUsageLabel,
+                     cn_cbor_data_create(&key_usage_byte, 1, &error), &error);
+  uint8_t payload[dice::test::kTestCertSize];
+  size_t payload_size =
+      cn_cbor_encoder_write(payload, 0, dice::test::kTestCertSize, cwt.get());
+
+  // Signature over COSE Sign1 TBS.
+  ScopedCbor tbs_cbor(cn_cbor_array_create(&error));
+  cn_cbor_array_append(tbs_cbor.get(),
+                       cn_cbor_string_create("Signature1", &error), &error);
+  cn_cbor_array_append(tbs_cbor.get(),
+                       cn_cbor_data_create(kProtectedAttributesCbor, 4, &error),
+                       &error);
+  cn_cbor_array_append(tbs_cbor.get(), cn_cbor_data_create(NULL, 0, &error),
+                       &error);
+  cn_cbor_array_append(tbs_cbor.get(),
+                       cn_cbor_data_create(payload, payload_size, &error),
+                       &error);
+  uint8_t tbs[dice::test::kTestCertSize];
+  size_t tbs_size =
+      cn_cbor_encoder_write(tbs, 0, dice::test::kTestCertSize, tbs_cbor.get());
+  std::vector signature = sign({tbs, tbs_size});
+
+  // COSE Sign1.
+  ScopedCbor sign1(cn_cbor_array_create(&error));
+  cn_cbor_array_append(sign1.get(),
+                       cn_cbor_data_create(kProtectedAttributesCbor, 4, &error),
+                       &error);
+  cn_cbor_array_append(sign1.get(), cn_cbor_map_create(&error), &error);
+  cn_cbor_array_append(
+      sign1.get(), cn_cbor_data_create(payload, payload_size, &error), &error);
+  cn_cbor_array_append(
+      sign1.get(),
+      cn_cbor_data_create(signature.data(), signature.size(), &error), &error);
+  *certificate_size = cn_cbor_encoder_write(
+      certificate, 0, dice::test::kTestCertSize, sign1.get());
+}
+
 void CreateCborUdsCertificate(
     const uint8_t private_key_seed[DICE_PRIVATE_KEY_SEED_SIZE],
     dice::test::KeyType key_type, const uint8_t id[DICE_ID_SIZE],
@@ -487,6 +615,55 @@ void CreateCborUdsCertificate(
     case dice::test::KeyType_P384:
       CreateP384CborUdsCertificate(private_key_seed, id, certificate,
                                    certificate_size);
+      break;
+    case dice::test::KeyType_MLDSA_65: {
+      const size_t kPublicKeySize = 1952;
+      const size_t kSignatureSize = 3309;
+      const int8_t kAlgorithm = -49;
+      auto priv = std::make_unique<MLDSA65_private_key>();
+      MLDSA65_private_key_from_seed(priv.get(), private_key_seed,
+                                    DICE_PRIVATE_KEY_SEED_SIZE);
+      auto pub = std::make_unique<MLDSA65_public_key>();
+      MLDSA65_public_from_private(pub.get(), priv.get());
+      uint8_t public_key[kPublicKeySize];
+      CBB cbb_pub;
+      CBB_init_fixed(&cbb_pub, public_key, kPublicKeySize);
+      MLDSA65_marshal_public_key(&cbb_pub, pub.get());
+
+      auto sign = [&](std::span<uint8_t> tbs) {
+        std::vector<uint8_t> signature(kSignatureSize);
+        MLDSA65_sign(signature.data(), priv.get(), tbs.data(), tbs.size(),
+                     nullptr, 0);
+        return signature;
+      };
+
+      CreateMldsaCborUdsCertificate(public_key, sign, id, kAlgorithm,
+                                    certificate, certificate_size);
+      break;
+    }
+    case dice::test::KeyType_MLDSA_87:
+      const size_t kPublicKeySize = 2592;
+      const size_t kSignatureSize = 4627;
+      const int8_t kAlgorithm = -50;
+      auto priv = std::make_unique<MLDSA87_private_key>();
+      MLDSA87_private_key_from_seed(priv.get(), private_key_seed,
+                                    DICE_PRIVATE_KEY_SEED_SIZE);
+      auto pub = std::make_unique<MLDSA87_public_key>();
+      MLDSA87_public_from_private(pub.get(), priv.get());
+      uint8_t public_key[kPublicKeySize];
+      CBB cbb_pub;
+      CBB_init_fixed(&cbb_pub, public_key, kPublicKeySize);
+      MLDSA87_marshal_public_key(&cbb_pub, pub.get());
+
+      auto sign = [&](std::span<uint8_t> tbs) {
+        std::vector<uint8_t> signature(kSignatureSize);
+        MLDSA87_sign(signature.data(), priv.get(), tbs.data(), tbs.size(),
+                     nullptr, 0);
+        return signature;
+      };
+
+      CreateMldsaCborUdsCertificate(public_key, sign, id, kAlgorithm,
+                                    certificate, certificate_size);
       break;
   }
 }
@@ -770,12 +947,11 @@ void CreateFakeUdsCertificate(void* context, const uint8_t uds[32],
   uint8_t raw_key[DICE_PRIVATE_KEY_SEED_SIZE];
   DiceDeriveCdiPrivateKeySeed(context, uds, raw_key);
 
+  bssl::UniquePtr<EVP_PKEY> key;
+  uint8_t id[DICE_ID_SIZE];
   uint8_t raw_public_key[MAX_PUBLIC_KEY_SIZE];
   size_t raw_public_key_size = 0;
-  bssl::UniquePtr<EVP_PKEY> key(
-      KeyFromRawKey(raw_key, key_type, raw_public_key, &raw_public_key_size));
-
-  uint8_t id[DICE_ID_SIZE];
+  key = KeyFromRawKey(raw_key, key_type, raw_public_key, &raw_public_key_size);
   DiceDeriveCdiCertificateId(context, raw_public_key, raw_public_key_size, id);
 
   if (cert_type == CertificateType_X509) {
