@@ -56,6 +56,7 @@ To setup the build environment the first time:
 ```bash
 $ git submodule update --init --recursive
 $ source bootstrap.sh
+$ ./apply_local_patches.sh
 $ gn gen out
 ```
 

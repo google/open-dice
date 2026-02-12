@@ -1,0 +1,104 @@
+From 3fb04ee08f39c22f8a791b233964db4d1a6e8a3a Mon Sep 17 00:00:00 2001
+From: Vikram Gaur <vikramgaur@google.com>
+Date: Thu, 05 Feb 2026 15:38:21 -0800
+Subject: [PATCH] Add ML-DSA support
+
+Change-Id: I6c9f047a7b0b560d5606c19663aee6265b55d524
+---
+
+diff --git a/include/cose/cose.h b/include/cose/cose.h
+index c9a5783..824cb8e 100644
+--- a/include/cose/cose.h
++++ b/include/cose/cose.h
+@@ -160,7 +160,10 @@
+ 
+ 	COSE_Algorithm_ECDSA_SHA_256 = -7,
+ 	COSE_Algorithm_ECDSA_SHA_384 = -35,
+-	COSE_Algorithm_ECDSA_SHA_512 = -36
++	COSE_Algorithm_ECDSA_SHA_512 = -36,
++
++	COSE_Algorithm_MLDSA_65 = -49,
++	COSE_Algorithm_MLDSA_87 = -50
+ } COSE_Algorithms;
+ 
+ typedef enum {
+@@ -198,6 +201,7 @@
+ 	COSE_Key_Type_OKP = 1,
+ 	COSE_Key_Type_EC2 = 2,
+ 	COSE_Key_Type_OCTET = 4,
++	COSE_Key_Type_AKP = 7,
+ 	COSE_Key_Type = 1,
+ 	COSE_Key_ID = 2,
+ 	COSE_Parameter_KID = 4,
+@@ -205,7 +209,8 @@
+ 	COSE_Key_EC2_X = -2,
+ 	COSE_Key_EC2_Y = -3,
+ 	COSE_Key_OPK_Curve = -1,
+-	COSE_Key_OPK_X = -2
++	COSE_Key_OPK_X = -2,
++	COSE_Key_AKP_Pub = -1
+ } COSE_Constants;
+ 
+ typedef enum {
+diff --git a/src/Sign1.cpp b/src/Sign1.cpp
+index efd7775..d52c98e 100644
+--- a/src/Sign1.cpp
++++ b/src/Sign1.cpp
+@@ -572,6 +572,14 @@
+ 			break;
+ #endif
+ 
++#ifdef USE_MLDSA
++		case COSE_Algorithm_MLDSA_65:
++		case COSE_Algorithm_MLDSA_87:
++			f = MLDSA_Sign(&pSigner->m_message, INDEX_SIGNATURE + 1, pKey,
++				pbToSign, cbToSign, perr);
++			break;
++#endif
++
+ 		default:
+ 			FAIL_CONDITION(COSE_ERR_UNKNOWN_ALGORITHM);
+ 	}
+@@ -658,6 +666,16 @@
+ 			break;
+ #endif
+ 
++#ifdef USE_MLDSA
++		case COSE_Algorithm_MLDSA_65:
++		case COSE_Algorithm_MLDSA_87:
++			if (!MLDSA_Verify(&pSign->m_message, INDEX_SIGNATURE + 1, pKey,
++					pbToSign, cbToSign, perr)) {
++				goto errorReturn;
++			}
++			break;
++#endif
++
+ 		default:
+ 			FAIL_CONDITION(COSE_ERR_UNKNOWN_ALGORITHM);
+ 			break;
+diff --git a/src/cose_crypto.h b/src/cose_crypto.h
+index 4081296..12d4578 100644
+--- a/src/cose_crypto.h
++++ b/src/cose_crypto.h
+@@ -194,6 +194,21 @@
+ 	size_t cbToSign,
+ 	cose_errback* perr);
+ 
++#ifdef USE_MLDSA
++bool MLDSA_Sign(COSE* pSigner,
++	int index,
++	COSE_KEY* pKey,
++	const byte* rgbToSign,
++	size_t cbToSign,
++	cose_errback* perr);
++bool MLDSA_Verify(COSE* pSigner,
++	int index,
++	COSE_KEY* pKey,
++	const byte* rgbToSign,
++	size_t cbToSign,
++	cose_errback* perr);
++#endif
++
+ /**
+  *  Generate random bytes in a buffer
+  *
