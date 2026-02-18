@@ -25,6 +25,7 @@
 
 #include "cose/cose.h"
 #include "dice/boringssl_ecdsa_utils.h"
+#include "dice/boringssl_mldsa_utils.h"
 #include "dice/dice.h"
 #include "dice/utils.h"
 #include "openssl/asn1.h"
@@ -149,32 +150,24 @@ bssl::UniquePtr<EVP_PKEY> KeyFromRawKey(
     *raw_public_key_size = kPublicKeySize;
     return EcKeyFromCoords(NID_secp384r1, raw_public_key, kPublicKeySize);
   } else if (key_type == dice::test::KeyType_MLDSA_65) {
-    *raw_public_key_size = 1952;
-    auto priv = std::make_unique<MLDSA65_private_key>();
-    MLDSA65_private_key_from_seed(priv.get(), raw_key,
-                                  DICE_PRIVATE_KEY_SEED_SIZE);
-    auto pub = std::make_unique<MLDSA65_public_key>();
-    MLDSA65_public_from_private(pub.get(), priv.get());
-    CBB cbb_pub;
-    CBB_init_fixed(&cbb_pub, raw_public_key, *raw_public_key_size);
-    MLDSA65_marshal_public_key(&cbb_pub, pub.get());
+    const size_t kPublicKeySize = 1952;
+    const size_t kPrivateKeySize = 32;
+    uint8_t pk[kPrivateKeySize];
+    Mldsa65KeypairFromSeed(raw_public_key, pk, raw_key);
+    *raw_public_key_size = kPublicKeySize;
 
     bssl::UniquePtr<EVP_PKEY> key(EVP_PKEY_from_private_seed(
-        EVP_pkey_ml_dsa_65(), raw_key, DICE_PRIVATE_KEY_SEED_SIZE));
+        EVP_pkey_ml_dsa_65(), raw_key, kPrivateKeySize));
     return key;
   } else if (key_type == dice::test::KeyType_MLDSA_87) {
-    *raw_public_key_size = 2592;
-    auto priv = std::make_unique<MLDSA87_private_key>();
-    MLDSA87_private_key_from_seed(priv.get(), raw_key,
-                                  DICE_PRIVATE_KEY_SEED_SIZE);
-    auto pub = std::make_unique<MLDSA87_public_key>();
-    MLDSA87_public_from_private(pub.get(), priv.get());
-    CBB cbb_pub;
-    CBB_init_fixed(&cbb_pub, raw_public_key, *raw_public_key_size);
-    MLDSA87_marshal_public_key(&cbb_pub, pub.get());
+    const size_t kPublicKeySize = 2592;
+    const size_t kPrivateKeySize = 32;
+    uint8_t pk[kPrivateKeySize];
+    Mldsa87KeypairFromSeed(raw_public_key, pk, raw_key);
+    *raw_public_key_size = kPublicKeySize;
 
     bssl::UniquePtr<EVP_PKEY> key(EVP_PKEY_from_private_seed(
-        EVP_pkey_ml_dsa_87(), raw_key, DICE_PRIVATE_KEY_SEED_SIZE));
+        EVP_pkey_ml_dsa_87(), raw_key, kPrivateKeySize));
     return key;
   }
   printf("ERROR: Unsupported key type.\n");
@@ -618,22 +611,17 @@ void CreateCborUdsCertificate(
       break;
     case dice::test::KeyType_MLDSA_65: {
       const size_t kPublicKeySize = 1952;
+      const size_t kPrivateKeySize = 32;
       const size_t kSignatureSize = 3309;
       const int8_t kAlgorithm = -49;
-      auto priv = std::make_unique<MLDSA65_private_key>();
-      MLDSA65_private_key_from_seed(priv.get(), private_key_seed,
-                                    DICE_PRIVATE_KEY_SEED_SIZE);
-      auto pub = std::make_unique<MLDSA65_public_key>();
-      MLDSA65_public_from_private(pub.get(), priv.get());
       uint8_t public_key[kPublicKeySize];
-      CBB cbb_pub;
-      CBB_init_fixed(&cbb_pub, public_key, kPublicKeySize);
-      MLDSA65_marshal_public_key(&cbb_pub, pub.get());
+      uint8_t pk[kPrivateKeySize];
+
+      Mldsa65KeypairFromSeed(public_key, pk, private_key_seed);
 
       auto sign = [&](std::span<uint8_t> tbs) {
         std::vector<uint8_t> signature(kSignatureSize);
-        MLDSA65_sign(signature.data(), priv.get(), tbs.data(), tbs.size(),
-                     nullptr, 0);
+        Mldsa65Sign(signature.data(), tbs.data(), tbs.size(), private_key_seed);
         return signature;
       };
 
@@ -643,22 +631,17 @@ void CreateCborUdsCertificate(
     }
     case dice::test::KeyType_MLDSA_87:
       const size_t kPublicKeySize = 2592;
+      const size_t kPrivateKeySize = 32;
       const size_t kSignatureSize = 4627;
       const int8_t kAlgorithm = -50;
-      auto priv = std::make_unique<MLDSA87_private_key>();
-      MLDSA87_private_key_from_seed(priv.get(), private_key_seed,
-                                    DICE_PRIVATE_KEY_SEED_SIZE);
-      auto pub = std::make_unique<MLDSA87_public_key>();
-      MLDSA87_public_from_private(pub.get(), priv.get());
       uint8_t public_key[kPublicKeySize];
-      CBB cbb_pub;
-      CBB_init_fixed(&cbb_pub, public_key, kPublicKeySize);
-      MLDSA87_marshal_public_key(&cbb_pub, pub.get());
+      uint8_t pk[kPrivateKeySize];
+
+      Mldsa87KeypairFromSeed(public_key, pk, private_key_seed);
 
       auto sign = [&](std::span<uint8_t> tbs) {
         std::vector<uint8_t> signature(kSignatureSize);
-        MLDSA87_sign(signature.data(), priv.get(), tbs.data(), tbs.size(),
-                     nullptr, 0);
+        Mldsa87Sign(signature.data(), tbs.data(), tbs.size(), private_key_seed);
         return signature;
       };
 

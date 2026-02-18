@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "dice/boringssl_mldsa_utils.h"
 #include "dice/config/cose_key_config.h"
 #include "dice/dice.h"
 #include "dice/ops.h"
@@ -58,26 +59,7 @@ DiceResult DiceKeypairFromSeed(
     uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE]) {
   (void)context_not_used;
   (void)principal_not_used;
-
-  memcpy(private_key, seed, DICE_PRIVATE_KEY_BUFFER_SIZE);
-
-  // Get the expanded version
-  struct MLDSA65_private_key priv;
-  if (1 !=
-      MLDSA65_private_key_from_seed(&priv, seed, DICE_PRIVATE_KEY_SEED_SIZE)) {
-    return kDiceResultPlatformError;
-  }
-
-  // Generate public key from expanded version of private key.
-  struct MLDSA65_public_key pub;
-  if (1 != MLDSA65_public_from_private(&pub, &priv)) {
-    return kDiceResultPlatformError;
-  }
-  CBB cbb_pub;
-  if (1 != CBB_init_fixed(&cbb_pub, public_key, DICE_PUBLIC_KEY_BUFFER_SIZE)) {
-    return kDiceResultPlatformError;
-  }
-  if (1 != MLDSA65_marshal_public_key(&cbb_pub, &pub)) {
+  if (1 != Mldsa65KeypairFromSeed(public_key, private_key, seed)) {
     return kDiceResultPlatformError;
   }
   return kDiceResultOk;
@@ -88,13 +70,7 @@ DiceResult DiceSign(void* context_not_used, const uint8_t* message,
                     const uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE],
                     uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE]) {
   (void)context_not_used;
-  struct MLDSA65_private_key parsed_priv;
-  if (1 != MLDSA65_private_key_from_seed(&parsed_priv, private_key,
-                                         DICE_PRIVATE_KEY_SEED_SIZE)) {
-    return kDiceResultPlatformError;
-  }
-  if (1 !=
-      MLDSA65_sign(signature, &parsed_priv, message, message_size, NULL, 0)) {
+  if (1 != Mldsa65Sign(signature, message, message_size, private_key)) {
     return kDiceResultPlatformError;
   }
   return kDiceResultOk;
@@ -105,14 +81,7 @@ DiceResult DiceVerify(void* context_not_used, const uint8_t* message,
                       const uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE],
                       const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE]) {
   (void)context_not_used;
-  CBS cbs_public;
-  CBS_init(&cbs_public, public_key, DICE_PUBLIC_KEY_BUFFER_SIZE);
-  struct MLDSA65_public_key parsed_pub;
-  if (1 != MLDSA65_parse_public_key(&parsed_pub, &cbs_public)) {
-    return kDiceResultPlatformError;
-  }
-  if (1 != MLDSA65_verify(&parsed_pub, signature, DICE_SIGNATURE_BUFFER_SIZE,
-                          message, message_size, NULL, 0)) {
+  if (1 != Mldsa65Verify(message, message_size, signature, public_key)) {
     return kDiceResultPlatformError;
   }
   return kDiceResultOk;
