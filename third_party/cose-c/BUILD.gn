@@ -43,6 +43,20 @@ config("external_config_multialg") {
   ]
 }
 
+config("external_config_mldsa65") {
+  include_dirs = [
+    "src/include",
+    "include/mldsa65",
+  ]
+}
+
+config("external_config_mldsa87") {
+  include_dirs = [
+    "src/include",
+    "include/mldsa87",
+  ]
+}
+
 config("internal_config") {
   visibility = [ ":*" ]  # Only targets in this file can depend on this.
   include_dirs = [ "src/src" ]
@@ -100,6 +114,28 @@ pw_static_library("cose-c_multialg") {
     "src/src/cbor.cpp",
   ]
   public_configs = [ ":external_config_multialg" ]
+  configs = [ ":internal_config" ]
+  public_deps = [
+    "//third_party/boringssl:crypto",
+    "//third_party/cn-cbor:cn-cbor",
+  ]
+}
+
+pw_static_library("cose-c_mldsa65") {
+  public = [ "src/include/cose/cose.h" ]
+  sources = cose_c_sources
+  public_configs = [ ":external_config_mldsa65" ]
+  configs = [ ":internal_config" ]
+  public_deps = [
+    "//third_party/boringssl:crypto",
+    "//third_party/cn-cbor:cn-cbor",
+  ]
+}
+
+pw_static_library("cose-c_mldsa87") {
+  public = [ "src/include/cose/cose.h" ]
+  sources = cose_c_sources
+  public_configs = [ ":external_config_mldsa87" ]
   configs = [ ":internal_config" ]
   public_deps = [
     "//third_party/boringssl:crypto",

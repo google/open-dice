@@ -21,22 +21,24 @@
 #include "cose/cose_configure.h"
 #include "cose_int.h"
 #include "openssl/bn.h"
+#include "openssl/bytestring.h"
 #include "openssl/curve25519.h"
 #include "openssl/ec.h"
 #include "openssl/ec_key.h"
 #include "openssl/ecdsa.h"
 #include "openssl/evp.h"
 #include "openssl/is_boringssl.h"
+#include "openssl/mldsa.h"
 #include "openssl/sha.h"
 
 namespace {
 
 // Checks the type and ops have the expected values.
-bool CheckCoseKeyTypeAndOps(const cn_cbor *key, uint64_t expected_type) {
+bool CheckCoseKeyTypeAndOps(const cn_cbor* key, uint64_t expected_type) {
   const int64_t kCoseKeyOpsLabel = 4;
   const uint64_t kCoseKeyOpsVerify = 2;
 
-  cn_cbor *type = cn_cbor_mapget_int(key, COSE_Key_Type);
+  cn_cbor* type = cn_cbor_mapget_int(key, COSE_Key_Type);
   if (!type) {
     return false;
   }
@@ -44,14 +46,14 @@ bool CheckCoseKeyTypeAndOps(const cn_cbor *key, uint64_t expected_type) {
     return false;
   }
 
-  cn_cbor *ops = cn_cbor_mapget_int(key, kCoseKeyOpsLabel);
+  cn_cbor* ops = cn_cbor_mapget_int(key, kCoseKeyOpsLabel);
   if (ops) {
     if (ops->type != CN_CBOR_ARRAY || ops->length == 0) {
       return false;
     }
     bool found_verify = false;
     for (size_t i = 0; i < ops->length; ++i) {
-      cn_cbor *item = cn_cbor_index(ops, i);
+      cn_cbor* item = cn_cbor_index(ops, i);
       if (!item || item->type != CN_CBOR_UINT) {
         return false;
       }
@@ -67,10 +69,10 @@ bool CheckCoseKeyTypeAndOps(const cn_cbor *key, uint64_t expected_type) {
 }
 
 // Checks that the optional algorithm field is the expected value.
-bool CheckCoseKeyAlg(const cn_cbor *key, int64_t expected_alg) {
+bool CheckCoseKeyAlg(const cn_cbor* key, int64_t expected_alg) {
   const int64_t kCoseKeyAlgLabel = 3;
 
-  cn_cbor *alg = cn_cbor_mapget_int(key, kCoseKeyAlgLabel);
+  cn_cbor* alg = cn_cbor_mapget_int(key, kCoseKeyAlgLabel);
   if (alg) {
     if (alg->type != CN_CBOR_INT || alg->v.sint != expected_alg) {
       return false;
@@ -80,14 +82,14 @@ bool CheckCoseKeyAlg(const cn_cbor *key, int64_t expected_alg) {
 }
 
 // Gets the public key from a well-formed EC2 COSE_Key.
-std::optional<bssl::UniquePtr<EC_KEY>> GetEcKey(cn_cbor *key, int nid,
+std::optional<bssl::UniquePtr<EC_KEY>> GetEcKey(cn_cbor* key, int nid,
                                                 size_t coord_size) {
-  cn_cbor *raw_x = cn_cbor_mapget_int(key, COSE_Key_EC2_X);
+  cn_cbor* raw_x = cn_cbor_mapget_int(key, COSE_Key_EC2_X);
   if (!raw_x || raw_x->type != CN_CBOR_BYTES || raw_x->length != coord_size) {
     return std::nullopt;
   }
 
-  cn_cbor *raw_y = cn_cbor_mapget_int(key, COSE_Key_EC2_Y);
+  cn_cbor* raw_y = cn_cbor_mapget_int(key, COSE_Key_EC2_Y);
   if (!raw_y || raw_y->type != CN_CBOR_BYTES || raw_y->length != coord_size) {
     return std::nullopt;
   }
@@ -113,12 +115,12 @@ std::optional<bssl::UniquePtr<EC_KEY>> GetEcKey(cn_cbor *key, int nid,
 
 // A simple implementation of 'EdDSA_Verify' using boringssl. This function is
 // required by 'COSE_Sign1_validate'.
-bool EdDSA_Verify(COSE *cose_signer, int signature_index, COSE_KEY *cose_key,
-                  const byte *message, size_t message_size, cose_errback *) {
+bool EdDSA_Verify(COSE* cose_signer, int signature_index, COSE_KEY* cose_key,
+                  const byte* message, size_t message_size, cose_errback*) {
   const int64_t kCoseAlgEdDSA = -8;
 
-  cn_cbor *signature = _COSE_arrayget_int(cose_signer, signature_index);
-  cn_cbor *key = cose_key->m_cborKey;
+  cn_cbor* signature = _COSE_arrayget_int(cose_signer, signature_index);
+  cn_cbor* key = cose_key->m_cborKey;
   if (!signature || !key) {
     return false;
   }
@@ -128,8 +130,8 @@ bool EdDSA_Verify(COSE *cose_signer, int signature_index, COSE_KEY *cose_key,
   if (!CheckCoseKeyTypeAndOps(key, COSE_Key_Type_OKP)) {
     return false;
   }
-  cn_cbor *curve = cn_cbor_mapget_int(key, COSE_Key_OPK_Curve);
-  cn_cbor *x = cn_cbor_mapget_int(key, COSE_Key_OPK_X);
+  cn_cbor* curve = cn_cbor_mapget_int(key, COSE_Key_OPK_Curve);
+  cn_cbor* x = cn_cbor_mapget_int(key, COSE_Key_OPK_X);
   if (!curve || !x) {
     return false;
   }
@@ -150,23 +152,23 @@ bool EdDSA_Verify(COSE *cose_signer, int signature_index, COSE_KEY *cose_key,
 }
 
 // A stub for 'EdDSA_Sign'. This is unused, but helps make linkers happy.
-bool EdDSA_Sign(COSE * /*cose_signer*/, int /*signature_index*/,
-                COSE_KEY * /*cose_key*/, const byte * /*message*/,
-                size_t /*message_size*/, cose_errback *) {
+bool EdDSA_Sign(COSE* /*cose_signer*/, int /*signature_index*/,
+                COSE_KEY* /*cose_key*/, const byte* /*message*/,
+                size_t /*message_size*/, cose_errback*) {
   return false;
 }
 
 // A simple implementation of 'ECDSA_Verify' using boringssl. This function is
 // required by 'COSE_Sign1_validate'.
-bool ECDSA_Verify(COSE *cose_signer, int signature_index, COSE_KEY *cose_key,
-                  int cbitsDigest, const byte *message, size_t message_size,
-                  cose_errback *) {
+bool ECDSA_Verify(COSE* cose_signer, int signature_index, COSE_KEY* cose_key,
+                  int cbitsDigest, const byte* message, size_t message_size,
+                  cose_errback*) {
   const int64_t kCoseAlgEs256 = -7;
   const int64_t kCoseAlgEs384 = -35;
 
   (void)cbitsDigest;
-  cn_cbor *signature = _COSE_arrayget_int(cose_signer, signature_index);
-  cn_cbor *key = cose_key->m_cborKey;
+  cn_cbor* signature = _COSE_arrayget_int(cose_signer, signature_index);
+  cn_cbor* key = cose_key->m_cborKey;
   if (!signature || !key) {
     return false;
   }
@@ -175,14 +177,14 @@ bool ECDSA_Verify(COSE *cose_signer, int signature_index, COSE_KEY *cose_key,
     return false;
   }
 
-  cn_cbor *curve = cn_cbor_mapget_int(key, COSE_Key_OPK_Curve);
+  cn_cbor* curve = cn_cbor_mapget_int(key, COSE_Key_OPK_Curve);
   if (!curve || curve->type != CN_CBOR_UINT) {
     return false;
   }
 
   size_t coord_size;
   int nid;
-  const EVP_MD *md_type;
+  const EVP_MD* md_type;
   if (curve->v.uint == COSE_Curve_P256) {
     if (!CheckCoseKeyAlg(key, kCoseAlgEs256)) {
       return false;
@@ -228,8 +230,76 @@ bool ECDSA_Verify(COSE *cose_signer, int signature_index, COSE_KEY *cose_key,
 }
 
 // A stub for 'ECDSA_Sign'. This is unused, but helps make linkers happy.
-bool ECDSA_Sign(COSE * /*cose_signer*/, int /*signature_index*/,
-                COSE_KEY * /*cose_key*/, const byte * /*message*/,
-                size_t /*message_size*/, cose_errback *) {
+bool ECDSA_Sign(COSE* /*cose_signer*/, int /*signature_index*/,
+                COSE_KEY* /*cose_key*/, const byte* /*message*/,
+                size_t /*message_size*/, cose_errback*) {
+  return false;
+}
+
+// A simple implementation of 'MLDSA_Verify' using boringssl. This function is
+// required by 'COSE_Sign1_validate'.
+bool MLDSA_Verify(COSE* cose_signer, int signature_index, COSE_KEY* cose_key,
+                  const byte* message, size_t message_size, cose_errback*) {
+  // Algorithm values according to section 8.1.1 in
+  // https://datatracker.ietf.org/doc/draft-ietf-cose-dilithium/
+  const int64_t kCoseAlgMldsa65 = -49;
+  const int64_t kCoseAlgMldsa87 = -50;
+
+  cn_cbor* signature = _COSE_arrayget_int(cose_signer, signature_index);
+  cn_cbor* key = cose_key->m_cborKey;
+  if (!signature || !key) {
+    return false;
+  }
+  if (signature->type != CN_CBOR_BYTES) {
+    return false;
+  }
+  if (!CheckCoseKeyTypeAndOps(key, COSE_Key_Type_AKP)) {
+    return false;
+  }
+  cn_cbor* pub = cn_cbor_mapget_int(key, COSE_Key_AKP_Pub);
+  if (!pub) {
+    return false;
+  }
+  if (pub->type != CN_CBOR_BYTES) {
+    return false;
+  }
+  if (CheckCoseKeyAlg(key, kCoseAlgMldsa65)) {
+    if (pub->length != 1952 || signature->length != 3309) {
+      return false;
+    }
+    CBS cbs_public = CBS(bssl::Span(pub->v.bytes, pub->length));
+    auto parsed_pub = std::make_unique<MLDSA65_public_key>();
+    if (1 != MLDSA65_parse_public_key(parsed_pub.get(), &cbs_public)) {
+      return false;
+    }
+    if (1 != MLDSA65_verify(parsed_pub.get(), signature->v.bytes,
+                            signature->length, message, message_size, NULL,
+                            0)) {
+      return false;
+    }
+  } else if (CheckCoseKeyAlg(key, kCoseAlgMldsa87)) {
+    if (pub->length != 2592 || signature->length != 4627) {
+      return false;
+    }
+    CBS cbs_public = CBS(bssl::Span(pub->v.bytes, pub->length));
+    auto parsed_pub = std::make_unique<MLDSA87_public_key>();
+    if (1 != MLDSA87_parse_public_key(parsed_pub.get(), &cbs_public)) {
+      return false;
+    }
+    if (1 != MLDSA87_verify(parsed_pub.get(), signature->v.bytes,
+                            signature->length, message, message_size, NULL,
+                            0)) {
+      return false;
+    }
+  } else {
+    return false;
+  }
+  return true;
+}
+
+// A stub for 'MLDSA_Sign'. This is unused, but helps make linkers happy.
+bool MLDSA_Sign(COSE* /*cose_signer*/, int /*signature_index*/,
+                COSE_KEY* /*cose_key*/, const byte* /*message*/,
+                size_t /*message_size*/, cose_errback*) {
   return false;
 }
