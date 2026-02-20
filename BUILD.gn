@@ -541,6 +541,22 @@ pw_executable("boringssl_p384_ops_fuzzer") {
   ]
 }
 
+pw_executable("boringssl_mldsa65_ops_fuzzer") {
+  deps = [
+    ":boringssl_mldsa_utils",
+    ":dice_with_boringssl_mldsa65_ops",
+    ":fuzzer",
+  ]
+}
+
+pw_executable("boringssl_mldsa87_ops_fuzzer") {
+  deps = [
+    ":boringssl_mldsa_utils",
+    ":dice_with_boringssl_mldsa87_ops",
+    ":fuzzer",
+  ]
+}
+
 pw_test("template_cert_op_test") {
   sources = [
     "src/template_cert_op_test.cc",
@@ -653,6 +669,20 @@ pw_test("cbor_mldsa87_cert_op_test") {
   ]
 }
 
+pw_executable("cbor_mldsa65_cert_op_fuzzer") {
+  deps = [
+    ":dice_with_cbor_mldsa65_cert",
+    ":fuzzer",
+  ]
+}
+
+pw_executable("cbor_mldsa87_cert_op_fuzzer") {
+  deps = [
+    ":dice_with_cbor_mldsa87_cert",
+    ":fuzzer",
+  ]
+}
+
 pw_executable("cbor_ed25519_cert_op_fuzzer") {
   deps = [
     ":dice_with_cbor_ed25519_cert",
@@ -753,9 +783,13 @@ group("fuzzers") {
   deps = [
     ":android_fuzzer",
     ":boringssl_ed25519_ops_fuzzer",
+    ":boringssl_mldsa65_ops_fuzzer",
+    ":boringssl_mldsa87_ops_fuzzer",
     ":boringssl_p256_ops_fuzzer",
     ":boringssl_p384_ops_fuzzer",
     ":cbor_ed25519_cert_op_fuzzer",
+    ":cbor_mldsa65_cert_op_fuzzer",
+    ":cbor_mldsa87_cert_op_fuzzer",
     ":cbor_reader_fuzzer",
     ":cbor_writer_fuzzer",
     ":mbedtls_ops_fuzzer",
