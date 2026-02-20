@@ -482,6 +482,8 @@ DiceResult DiceCoseEncodePublicKey(
     CborWriteMap(/*num_pairs=*/5, &out);
   } else if (key_param.cose_key_type == kCoseKeyKtyEc2) {
     CborWriteMap(/*num_pairs=*/6, &out);
+  } else if (key_param.cose_key_type == kCoseKeyKtyAkp) {
+    CborWriteMap(/*num_pairs=*/4, &out);
   } else {
     return kDiceResultInvalidInput;
   }
@@ -495,9 +497,12 @@ DiceResult DiceCoseEncodePublicKey(
   CborWriteInt(kCoseKeyOpsLabel, &out);
   CborWriteArray(/*num_elements=*/1, &out);
   CborWriteInt(kCoseKeyOpsVerify, &out);
-  // Add the curve.
-  CborWriteInt(kCoseKeyCrvLabel, &out);
-  CborWriteInt(key_param.cose_key_curve, &out);
+
+  // Add the curve except for AKP keys
+  if (key_param.cose_key_type != kCoseKeyKtyAkp) {
+    CborWriteInt(kCoseKeyCrvLabel, &out);
+    CborWriteInt(key_param.cose_key_curve, &out);
+  }
 
   // Add the public key.
   if (key_param.cose_key_type == kCoseKeyKtyOkp) {
@@ -510,6 +515,9 @@ DiceResult DiceCoseEncodePublicKey(
     CborWriteBstr(xy_param_size, &public_key[0], &out);
     CborWriteInt(kCoseKeyYLabel, &out);
     CborWriteBstr(xy_param_size, &public_key[xy_param_size], &out);
+  } else if (key_param.cose_key_type == kCoseKeyKtyAkp) {
+    CborWriteInt(kCoseKeyPubLabel, &out);
+    CborWriteBstr(key_param.public_key_size, public_key, &out);
   }
 
   *encoded_size = CborOutSize(&out);

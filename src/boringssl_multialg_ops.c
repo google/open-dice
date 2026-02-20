@@ -19,6 +19,7 @@
 #include <stdio.h>
 
 #include "dice/boringssl_ecdsa_utils.h"
+#include "dice/boringssl_mldsa_utils.h"
 #include "dice/config/cose_key_config.h"
 #include "dice/dice.h"
 #include "dice/ops.h"
@@ -27,14 +28,14 @@
 #if DICE_PRIVATE_KEY_SEED_SIZE != 32
 #error "Private key seed is expected to be 32 bytes."
 #endif
-#if DICE_PUBLIC_KEY_BUFFER_SIZE != 96
-#error "Multialg needs 96 bytes to for the public key (P-384)"
+#if DICE_PUBLIC_KEY_BUFFER_SIZE != 2592
+#error "Multialg needs 2592 bytes to for the public key (ML-DSA-87)"
 #endif
 #if DICE_PRIVATE_KEY_BUFFER_SIZE != 64
 #error "Multialg needs 64 bytes for the private key (Ed25519)"
 #endif
-#if DICE_SIGNATURE_BUFFER_SIZE != 96
-#error "Multialg needs 96 bytes to store the signature (P-384)"
+#if DICE_SIGNATURE_BUFFER_SIZE != 4627
+#error "Multialg needs 4627 bytes to store the signature (ML-DSA-87)"
 #endif
 
 DiceResult DiceGetKeyParam(void* context, DicePrincipal principal,
@@ -69,6 +70,20 @@ DiceResult DiceGetKeyParam(void* context, DicePrincipal principal,
       key_param->cose_key_algorithm = kCoseAlgEs384;
       key_param->cose_key_curve = kCoseCrvP384;
       return kDiceResultOk;
+    case kDiceKeyAlgorithmMldsa65:
+      key_param->public_key_size = 1952;
+      key_param->signature_size = 3309;
+
+      key_param->cose_key_type = kCoseKeyKtyAkp;
+      key_param->cose_key_algorithm = kCoseAlgMldsa65;
+      return kDiceResultOk;
+    case kDiceKeyAlgorithmMldsa87:
+      key_param->public_key_size = 2592;
+      key_param->signature_size = 4627;
+
+      key_param->cose_key_type = kCoseKeyKtyAkp;
+      key_param->cose_key_algorithm = kCoseAlgMldsa87;
+      return kDiceResultOk;
   }
   return kDiceResultPlatformError;
 }
@@ -94,6 +109,16 @@ DiceResult DiceKeypairFromSeed(
       break;
     case kDiceKeyAlgorithmP384:
       if (1 == P384KeypairFromSeed(public_key, private_key, seed)) {
+        return kDiceResultOk;
+      }
+      break;
+    case kDiceKeyAlgorithmMldsa65:
+      if (1 == Mldsa65KeypairFromSeed(public_key, private_key, seed)) {
+        return kDiceResultOk;
+      }
+      break;
+    case kDiceKeyAlgorithmMldsa87:
+      if (1 == Mldsa87KeypairFromSeed(public_key, private_key, seed)) {
         return kDiceResultOk;
       }
       break;
@@ -126,6 +151,16 @@ DiceResult DiceSign(void* context, const uint8_t* message, size_t message_size,
         return kDiceResultOk;
       }
       break;
+    case kDiceKeyAlgorithmMldsa65:
+      if (1 == Mldsa65Sign(signature, message, message_size, private_key)) {
+        return kDiceResultOk;
+      }
+      break;
+    case kDiceKeyAlgorithmMldsa87:
+      if (1 == Mldsa87Sign(signature, message, message_size, private_key)) {
+        return kDiceResultOk;
+      }
+      break;
   }
   return kDiceResultPlatformError;
 }
@@ -153,6 +188,16 @@ DiceResult DiceVerify(void* context, const uint8_t* message,
       break;
     case kDiceKeyAlgorithmP384:
       if (1 == P384Verify(message, message_size, signature, public_key)) {
+        return kDiceResultOk;
+      }
+      break;
+    case kDiceKeyAlgorithmMldsa65:
+      if (1 == Mldsa65Verify(message, message_size, signature, public_key)) {
+        return kDiceResultOk;
+      }
+      break;
+    case kDiceKeyAlgorithmMldsa87:
+      if (1 == Mldsa87Verify(message, message_size, signature, public_key)) {
         return kDiceResultOk;
       }
       break;

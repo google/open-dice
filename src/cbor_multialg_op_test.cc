@@ -32,6 +32,8 @@ using dice::test::CertificateType_Cbor;
 using dice::test::DeriveFakeInputValue;
 using dice::test::DiceStateForTest;
 using dice::test::KeyType_Ed25519;
+using dice::test::KeyType_MLDSA_65;
+using dice::test::KeyType_MLDSA_87;
 using dice::test::KeyType_P256;
 using dice::test::KeyType_P384;
 
@@ -134,6 +136,70 @@ TEST(DiceOpsTest, P384KnownAnswerZeroInput) {
   // not deterministic
   constexpr size_t signature_size = 96;
   EXPECT_EQ(0, memcmp(dice::test::kExpectedCborP384Cert_AndroidZeroInput,
+                      next_state.certificate,
+                      next_state.certificate_size - signature_size));
+}
+
+TEST(DiceOpsTest, Mldsa65KnownAnswerZeroInput) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa65,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa65};
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+  DumpState(CertificateType_Cbor, KeyType_MLDSA_65, "android_zero_input",
+            next_state);
+  // The CDI values should be deterministic.
+  ASSERT_EQ(sizeof(next_state.cdi_attest),
+            sizeof(dice::test::kExpectedCdiAttest_ZeroInput));
+  EXPECT_EQ(0, memcmp(next_state.cdi_attest,
+                      dice::test::kExpectedCdiAttest_ZeroInput, DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(next_state.cdi_seal),
+            sizeof(dice::test::kExpectedCdiSeal_ZeroInput));
+  EXPECT_EQ(0, memcmp(next_state.cdi_seal,
+                      dice::test::kExpectedCdiSeal_ZeroInput, DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborMldsa65Cert_AndroidZeroInput),
+            next_state.certificate_size);
+  // Comparing everything except for the signature, since ECDSA signatures are
+  // not deterministic
+  constexpr size_t signature_size = 3309;
+  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborMldsa65Cert_AndroidZeroInput,
+                      next_state.certificate,
+                      next_state.certificate_size - signature_size));
+}
+
+TEST(DiceOpsTest, Mldsa87KnownAnswerZeroInput) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa87,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa87};
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+  DumpState(CertificateType_Cbor, KeyType_MLDSA_87, "android_zero_input",
+            next_state);
+  // The CDI values should be deterministic.
+  ASSERT_EQ(sizeof(next_state.cdi_attest),
+            sizeof(dice::test::kExpectedCdiAttest_ZeroInput));
+  EXPECT_EQ(0, memcmp(next_state.cdi_attest,
+                      dice::test::kExpectedCdiAttest_ZeroInput, DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(next_state.cdi_seal),
+            sizeof(dice::test::kExpectedCdiSeal_ZeroInput));
+  EXPECT_EQ(0, memcmp(next_state.cdi_seal,
+                      dice::test::kExpectedCdiSeal_ZeroInput, DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborMldsa87Cert_AndroidZeroInput),
+            next_state.certificate_size);
+  // Comparing everything except for the signature, since ECDSA signatures are
+  // not deterministic
+  constexpr size_t signature_size = 4627;
+  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborMldsa87Cert_AndroidZeroInput,
                       next_state.certificate,
                       next_state.certificate_size - signature_size));
 }
@@ -252,6 +318,86 @@ TEST(DiceOpsTest, P384KnownAnswerHashOnlyInput) {
             next_state.certificate_size);
   constexpr size_t signature_size = 96;
   EXPECT_EQ(0, memcmp(dice::test::kExpectedCborP384Cert_AndroidHashOnlyInput,
+                      next_state.certificate,
+                      next_state.certificate_size - signature_size));
+}
+
+TEST(DiceOpsTest, Mldsa65KnownAnswerHashOnlyInput) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa65,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa65};
+  DiceStateForTest current_state = {};
+  DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);
+  DeriveFakeInputValue("cdi_seal", DICE_CDI_SIZE, current_state.cdi_seal);
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  DeriveFakeInputValue("code_hash", DICE_HASH_SIZE, input_values.code_hash);
+  DeriveFakeInputValue("authority_hash", DICE_HASH_SIZE,
+                       input_values.authority_hash);
+  input_values.config_type = kDiceConfigTypeInline;
+  DeriveFakeInputValue("inline_config", DICE_INLINE_CONFIG_SIZE,
+                       input_values.config_value);
+
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+  DumpState(CertificateType_Cbor, KeyType_MLDSA_65, "android_hash_only_input",
+            next_state);
+  ASSERT_EQ(sizeof(next_state.cdi_attest),
+            sizeof(dice::test::kExpectedCdiAttest_HashOnlyInput));
+  EXPECT_EQ(
+      0, memcmp(next_state.cdi_attest,
+                dice::test::kExpectedCdiAttest_HashOnlyInput, DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(next_state.cdi_seal),
+            sizeof(dice::test::kExpectedCdiSeal_HashOnlyInput));
+  EXPECT_EQ(
+      0, memcmp(next_state.cdi_seal, dice::test::kExpectedCdiSeal_HashOnlyInput,
+                DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborMldsa65Cert_AndroidHashOnlyInput),
+            next_state.certificate_size);
+  constexpr size_t signature_size = 3309;
+  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborMldsa65Cert_AndroidHashOnlyInput,
+                      next_state.certificate,
+                      next_state.certificate_size - signature_size));
+}
+
+TEST(DiceOpsTest, Mldsa87KnownAnswerHashOnlyInput) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa87,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa87};
+  DiceStateForTest current_state = {};
+  DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);
+  DeriveFakeInputValue("cdi_seal", DICE_CDI_SIZE, current_state.cdi_seal);
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  DeriveFakeInputValue("code_hash", DICE_HASH_SIZE, input_values.code_hash);
+  DeriveFakeInputValue("authority_hash", DICE_HASH_SIZE,
+                       input_values.authority_hash);
+  input_values.config_type = kDiceConfigTypeInline;
+  DeriveFakeInputValue("inline_config", DICE_INLINE_CONFIG_SIZE,
+                       input_values.config_value);
+
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+  DumpState(CertificateType_Cbor, KeyType_MLDSA_87, "android_hash_only_input",
+            next_state);
+  ASSERT_EQ(sizeof(next_state.cdi_attest),
+            sizeof(dice::test::kExpectedCdiAttest_HashOnlyInput));
+  EXPECT_EQ(
+      0, memcmp(next_state.cdi_attest,
+                dice::test::kExpectedCdiAttest_HashOnlyInput, DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(next_state.cdi_seal),
+            sizeof(dice::test::kExpectedCdiSeal_HashOnlyInput));
+  EXPECT_EQ(
+      0, memcmp(next_state.cdi_seal, dice::test::kExpectedCdiSeal_HashOnlyInput,
+                DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborMldsa87Cert_AndroidHashOnlyInput),
+            next_state.certificate_size);
+  constexpr size_t signature_size = 4627;
+  EXPECT_EQ(0, memcmp(dice::test::kExpectedCborMldsa87Cert_AndroidHashOnlyInput,
                       next_state.certificate,
                       next_state.certificate_size - signature_size));
 }
@@ -414,6 +560,114 @@ TEST(DiceOpsTest, P384KnownAnswerDescriptorInput) {
                       next_state.certificate_size - signature_size));
 }
 
+TEST(DiceOpsTest, Mldsa65KnownAnswerDescriptorInput) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa65,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa65};
+  DiceStateForTest current_state = {};
+  DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);
+  DeriveFakeInputValue("cdi_seal", DICE_CDI_SIZE, current_state.cdi_seal);
+
+  DiceStateForTest next_state = {};
+
+  DiceInputValues input_values = {};
+  DeriveFakeInputValue("code_hash", DICE_HASH_SIZE, input_values.code_hash);
+  uint8_t code_descriptor[100];
+  DeriveFakeInputValue("code_desc", sizeof(code_descriptor), code_descriptor);
+  input_values.code_descriptor = code_descriptor;
+  input_values.code_descriptor_size = sizeof(code_descriptor);
+
+  uint8_t config_descriptor[40];
+  DeriveFakeInputValue("config_desc", sizeof(config_descriptor),
+                       config_descriptor);
+  input_values.config_descriptor = config_descriptor;
+  input_values.config_descriptor_size = sizeof(config_descriptor);
+  input_values.config_type = kDiceConfigTypeDescriptor;
+
+  DeriveFakeInputValue("authority_hash", DICE_HASH_SIZE,
+                       input_values.authority_hash);
+  uint8_t authority_descriptor[65];
+  DeriveFakeInputValue("authority_desc", sizeof(authority_descriptor),
+                       authority_descriptor);
+  input_values.authority_descriptor = authority_descriptor;
+  input_values.authority_descriptor_size = sizeof(authority_descriptor);
+
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+  DumpState(CertificateType_Cbor, KeyType_MLDSA_65, "android_descriptor_input",
+            next_state);
+  // Both CDI values and the certificate should be deterministic.
+  EXPECT_EQ(
+      0, memcmp(next_state.cdi_attest,
+                dice::test::kExpectedCdiAttest_DescriptorInput, DICE_CDI_SIZE));
+  EXPECT_EQ(
+      0, memcmp(next_state.cdi_seal,
+                dice::test::kExpectedCdiSeal_DescriptorInput, DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborMldsa65Cert_AndroidDescriptorInput),
+            next_state.certificate_size);
+  constexpr size_t signature_size = 3309;
+  EXPECT_EQ(0,
+            memcmp(dice::test::kExpectedCborMldsa65Cert_AndroidDescriptorInput,
+                   next_state.certificate,
+                   next_state.certificate_size - signature_size));
+}
+
+TEST(DiceOpsTest, Mldsa87KnownAnswerDescriptorInput) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa87,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa87};
+  DiceStateForTest current_state = {};
+  DeriveFakeInputValue("cdi_attest", DICE_CDI_SIZE, current_state.cdi_attest);
+  DeriveFakeInputValue("cdi_seal", DICE_CDI_SIZE, current_state.cdi_seal);
+
+  DiceStateForTest next_state = {};
+
+  DiceInputValues input_values = {};
+  DeriveFakeInputValue("code_hash", DICE_HASH_SIZE, input_values.code_hash);
+  uint8_t code_descriptor[100];
+  DeriveFakeInputValue("code_desc", sizeof(code_descriptor), code_descriptor);
+  input_values.code_descriptor = code_descriptor;
+  input_values.code_descriptor_size = sizeof(code_descriptor);
+
+  uint8_t config_descriptor[40];
+  DeriveFakeInputValue("config_desc", sizeof(config_descriptor),
+                       config_descriptor);
+  input_values.config_descriptor = config_descriptor;
+  input_values.config_descriptor_size = sizeof(config_descriptor);
+  input_values.config_type = kDiceConfigTypeDescriptor;
+
+  DeriveFakeInputValue("authority_hash", DICE_HASH_SIZE,
+                       input_values.authority_hash);
+  uint8_t authority_descriptor[65];
+  DeriveFakeInputValue("authority_desc", sizeof(authority_descriptor),
+                       authority_descriptor);
+  input_values.authority_descriptor = authority_descriptor;
+  input_values.authority_descriptor_size = sizeof(authority_descriptor);
+
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+  DumpState(CertificateType_Cbor, KeyType_MLDSA_87, "android_descriptor_input",
+            next_state);
+  // Both CDI values and the certificate should be deterministic.
+  EXPECT_EQ(
+      0, memcmp(next_state.cdi_attest,
+                dice::test::kExpectedCdiAttest_DescriptorInput, DICE_CDI_SIZE));
+  EXPECT_EQ(
+      0, memcmp(next_state.cdi_seal,
+                dice::test::kExpectedCdiSeal_DescriptorInput, DICE_CDI_SIZE));
+  ASSERT_EQ(sizeof(dice::test::kExpectedCborMldsa87Cert_AndroidDescriptorInput),
+            next_state.certificate_size);
+  constexpr size_t signature_size = 4627;
+  EXPECT_EQ(0,
+            memcmp(dice::test::kExpectedCborMldsa87Cert_AndroidDescriptorInput,
+                   next_state.certificate,
+                   next_state.certificate_size - signature_size));
+}
+
 TEST(DiceOpsTest, Ed25519NonZeroMode) {
   DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
                       .subject_algorithm = kDiceKeyAlgorithmEd25519};
@@ -449,6 +703,38 @@ TEST(DiceOpsTest, P256NonZeroMode) {
 TEST(DiceOpsTest, P384NonZeroMode) {
   DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP384,
                       .subject_algorithm = kDiceKeyAlgorithmP384};
+  constexpr size_t kModeOffsetInCert = 316;
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  input_values.mode = kDiceModeDebug;
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+  EXPECT_EQ(kDiceModeDebug, next_state.certificate[kModeOffsetInCert]);
+}
+
+TEST(DiceOpsTest, Mldsa65NonZeroMode) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa65,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa65};
+  constexpr size_t kModeOffsetInCert = 316;
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  input_values.mode = kDiceModeDebug;
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultOk, result);
+  EXPECT_EQ(kDiceModeDebug, next_state.certificate[kModeOffsetInCert]);
+}
+
+TEST(DiceOpsTest, Mldsa87NonZeroMode) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa87,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa87};
   constexpr size_t kModeOffsetInCert = 316;
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
@@ -510,6 +796,38 @@ TEST(DiceOpsTest, P384LargeInputs) {
   EXPECT_EQ(kDiceResultBufferTooSmall, result);
 }
 
+TEST(DiceOpsTest, Mldsa65LargeInputs) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa65,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa65};
+  constexpr uint8_t kBigBuffer[1024 * 1024] = {};
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  input_values.code_descriptor = kBigBuffer;
+  input_values.code_descriptor_size = sizeof(kBigBuffer);
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultBufferTooSmall, result);
+}
+
+TEST(DiceOpsTest, Mldsa87LargeInputs) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa87,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa87};
+  constexpr uint8_t kBigBuffer[1024 * 1024] = {};
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  input_values.code_descriptor = kBigBuffer;
+  input_values.code_descriptor_size = sizeof(kBigBuffer);
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultBufferTooSmall, result);
+}
+
 TEST(DiceOpsTest, Ed25519InvalidConfigType) {
   DiceContext context{.authority_algorithm = kDiceKeyAlgorithmEd25519,
                       .subject_algorithm = kDiceKeyAlgorithmEd25519};
@@ -541,6 +859,34 @@ TEST(DiceOpsTest, P256InvalidConfigType) {
 TEST(DiceOpsTest, P384InvalidConfigType) {
   DiceContext context{.authority_algorithm = kDiceKeyAlgorithmP384,
                       .subject_algorithm = kDiceKeyAlgorithmP384};
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  input_values.config_type = (DiceConfigType)55;
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultInvalidInput, result);
+}
+
+TEST(DiceOpsTest, Mldsa65InvalidConfigType) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa65,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa65};
+  DiceStateForTest current_state = {};
+  DiceStateForTest next_state = {};
+  DiceInputValues input_values = {};
+  input_values.config_type = (DiceConfigType)55;
+  DiceResult result = DiceMainFlow(
+      &context, current_state.cdi_attest, current_state.cdi_seal, &input_values,
+      sizeof(next_state.certificate), next_state.certificate,
+      &next_state.certificate_size, next_state.cdi_attest, next_state.cdi_seal);
+  EXPECT_EQ(kDiceResultInvalidInput, result);
+}
+
+TEST(DiceOpsTest, Mldsa87InvalidConfigType) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa87,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa87};
   DiceStateForTest current_state = {};
   DiceStateForTest next_state = {};
   DiceInputValues input_values = {};
@@ -641,6 +987,70 @@ TEST(DiceOpsTest, P384PartialCertChain) {
     char suffix[40];
     pw::string::Format(suffix, "part_cert_chain_%zu", i);
     DumpState(CertificateType_Cbor, KeyType_P384, suffix, states[i + 1]);
+  }
+  // Use the first derived CDI cert as the 'root' of partial chain.
+  EXPECT_TRUE(dice::test::VerifyCertificateChain(
+      CertificateType_Cbor, states[1].certificate, states[1].certificate_size,
+      &states[2], kNumLayers - 1, /*is_partial_chain=*/true));
+}
+
+TEST(DiceOpsTest, Mldsa65PartialCertChain) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa65,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa65};
+  constexpr size_t kNumLayers = 7;
+  DiceStateForTest states[kNumLayers + 1] = {};
+  DiceInputValues inputs[kNumLayers] = {};
+  for (size_t i = 0; i < kNumLayers; ++i) {
+    char seed[40];
+    pw::string::Format(seed, "code_hash_%zu", i);
+    DeriveFakeInputValue(seed, DICE_HASH_SIZE, inputs[i].code_hash);
+    pw::string::Format(seed, "authority_hash_%zu", i);
+    DeriveFakeInputValue(seed, DICE_HASH_SIZE, inputs[i].authority_hash);
+    inputs[i].config_type = kDiceConfigTypeInline;
+    pw::string::Format(seed, "inline_config_%zu", i);
+    DeriveFakeInputValue(seed, DICE_INLINE_CONFIG_SIZE, inputs[i].config_value);
+    inputs[i].mode = kDiceModeNormal;
+    EXPECT_EQ(
+        kDiceResultOk,
+        DiceMainFlow(&context, states[i].cdi_attest, states[i].cdi_seal,
+                     &inputs[i], sizeof(states[i + 1].certificate),
+                     states[i + 1].certificate, &states[i + 1].certificate_size,
+                     states[i + 1].cdi_attest, states[i + 1].cdi_seal));
+    char suffix[40];
+    pw::string::Format(suffix, "part_cert_chain_%zu", i);
+    DumpState(CertificateType_Cbor, KeyType_MLDSA_65, suffix, states[i + 1]);
+  }
+  // Use the first derived CDI cert as the 'root' of partial chain.
+  EXPECT_TRUE(dice::test::VerifyCertificateChain(
+      CertificateType_Cbor, states[1].certificate, states[1].certificate_size,
+      &states[2], kNumLayers - 1, /*is_partial_chain=*/true));
+}
+
+TEST(DiceOpsTest, Mldsa87PartialCertChain) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa87,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa87};
+  constexpr size_t kNumLayers = 7;
+  DiceStateForTest states[kNumLayers + 1] = {};
+  DiceInputValues inputs[kNumLayers] = {};
+  for (size_t i = 0; i < kNumLayers; ++i) {
+    char seed[40];
+    pw::string::Format(seed, "code_hash_%zu", i);
+    DeriveFakeInputValue(seed, DICE_HASH_SIZE, inputs[i].code_hash);
+    pw::string::Format(seed, "authority_hash_%zu", i);
+    DeriveFakeInputValue(seed, DICE_HASH_SIZE, inputs[i].authority_hash);
+    inputs[i].config_type = kDiceConfigTypeInline;
+    pw::string::Format(seed, "inline_config_%zu", i);
+    DeriveFakeInputValue(seed, DICE_INLINE_CONFIG_SIZE, inputs[i].config_value);
+    inputs[i].mode = kDiceModeNormal;
+    EXPECT_EQ(
+        kDiceResultOk,
+        DiceMainFlow(&context, states[i].cdi_attest, states[i].cdi_seal,
+                     &inputs[i], sizeof(states[i + 1].certificate),
+                     states[i + 1].certificate, &states[i + 1].certificate_size,
+                     states[i + 1].cdi_attest, states[i + 1].cdi_seal));
+    char suffix[40];
+    pw::string::Format(suffix, "part_cert_chain_%zu", i);
+    DumpState(CertificateType_Cbor, KeyType_MLDSA_87, suffix, states[i + 1]);
   }
   // Use the first derived CDI cert as the 'root' of partial chain.
   EXPECT_TRUE(dice::test::VerifyCertificateChain(
@@ -753,6 +1163,80 @@ TEST(DiceOpsTest, P384FullCertChain) {
   size_t root_certificate_size = 0;
   dice::test::CreateFakeUdsCertificate(
       &context, states[0].cdi_attest, CertificateType_Cbor, KeyType_P384,
+      root_certificate, &root_certificate_size);
+  EXPECT_TRUE(dice::test::VerifyCertificateChain(
+      CertificateType_Cbor, root_certificate, root_certificate_size, &states[1],
+      kNumLayers, /*is_partial_chain=*/false));
+}
+
+TEST(DiceOpsTest, Mldsa65FullCertChain) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa65,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa65};
+  constexpr size_t kNumLayers = 7;
+  DiceStateForTest states[kNumLayers + 1] = {};
+  DiceInputValues inputs[kNumLayers] = {};
+  for (size_t i = 0; i < kNumLayers; ++i) {
+    char seed[40];
+    pw::string::Format(seed, "code_hash_%zu", i);
+    DeriveFakeInputValue(seed, DICE_HASH_SIZE, inputs[i].code_hash);
+    pw::string::Format(seed, "authority_hash_%zu", i);
+    DeriveFakeInputValue(seed, DICE_HASH_SIZE, inputs[i].authority_hash);
+    inputs[i].config_type = kDiceConfigTypeInline;
+    pw::string::Format(seed, "inline_config_%zu", i);
+    DeriveFakeInputValue(seed, DICE_INLINE_CONFIG_SIZE, inputs[i].config_value);
+    inputs[i].mode = kDiceModeNormal;
+    EXPECT_EQ(
+        kDiceResultOk,
+        DiceMainFlow(&context, states[i].cdi_attest, states[i].cdi_seal,
+                     &inputs[i], sizeof(states[i + 1].certificate),
+                     states[i + 1].certificate, &states[i + 1].certificate_size,
+                     states[i + 1].cdi_attest, states[i + 1].cdi_seal));
+    char suffix[40];
+    pw::string::Format(suffix, "full_cert_chain_%zu", i);
+    DumpState(CertificateType_Cbor, KeyType_MLDSA_65, suffix, states[i + 1]);
+  }
+  // Use a fake self-signed UDS cert as the 'root'.
+  uint8_t root_certificate[dice::test::kTestCertSize];
+  size_t root_certificate_size = 0;
+  dice::test::CreateFakeUdsCertificate(
+      &context, states[0].cdi_attest, CertificateType_Cbor, KeyType_MLDSA_65,
+      root_certificate, &root_certificate_size);
+  EXPECT_TRUE(dice::test::VerifyCertificateChain(
+      CertificateType_Cbor, root_certificate, root_certificate_size, &states[1],
+      kNumLayers, /*is_partial_chain=*/false));
+}
+
+TEST(DiceOpsTest, Mldsa87FullCertChain) {
+  DiceContext context{.authority_algorithm = kDiceKeyAlgorithmMldsa87,
+                      .subject_algorithm = kDiceKeyAlgorithmMldsa87};
+  constexpr size_t kNumLayers = 7;
+  DiceStateForTest states[kNumLayers + 1] = {};
+  DiceInputValues inputs[kNumLayers] = {};
+  for (size_t i = 0; i < kNumLayers; ++i) {
+    char seed[40];
+    pw::string::Format(seed, "code_hash_%zu", i);
+    DeriveFakeInputValue(seed, DICE_HASH_SIZE, inputs[i].code_hash);
+    pw::string::Format(seed, "authority_hash_%zu", i);
+    DeriveFakeInputValue(seed, DICE_HASH_SIZE, inputs[i].authority_hash);
+    inputs[i].config_type = kDiceConfigTypeInline;
+    pw::string::Format(seed, "inline_config_%zu", i);
+    DeriveFakeInputValue(seed, DICE_INLINE_CONFIG_SIZE, inputs[i].config_value);
+    inputs[i].mode = kDiceModeNormal;
+    EXPECT_EQ(
+        kDiceResultOk,
+        DiceMainFlow(&context, states[i].cdi_attest, states[i].cdi_seal,
+                     &inputs[i], sizeof(states[i + 1].certificate),
+                     states[i + 1].certificate, &states[i + 1].certificate_size,
+                     states[i + 1].cdi_attest, states[i + 1].cdi_seal));
+    char suffix[40];
+    pw::string::Format(suffix, "full_cert_chain_%zu", i);
+    DumpState(CertificateType_Cbor, KeyType_MLDSA_87, suffix, states[i + 1]);
+  }
+  // Use a fake self-signed UDS cert as the 'root'.
+  uint8_t root_certificate[dice::test::kTestCertSize];
+  size_t root_certificate_size = 0;
+  dice::test::CreateFakeUdsCertificate(
+      &context, states[0].cdi_attest, CertificateType_Cbor, KeyType_MLDSA_87,
       root_certificate, &root_certificate_size);
   EXPECT_TRUE(dice::test::VerifyCertificateChain(
       CertificateType_Cbor, root_certificate, root_certificate_size, &states[1],
