@@ -56,6 +56,8 @@ pub(crate) mod commands_test;
 pub mod constants;
 pub mod crypto;
 pub mod dice;
+pub mod dpe;
+pub(crate) mod dpe_test;
 pub mod encode;
 #[cfg(test)]
 pub(crate) mod encode_test;

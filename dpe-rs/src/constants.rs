@@ -83,5 +83,9 @@ pub(crate) const DPE_MAX_VERSION_SLOTS: usize = 16;
 /// zero.
 pub(crate) const DPE_MAX_SESSIONS: usize = 8;
 
+/// The maximum number of contexts a DPE can store internally. Must be at least
+/// DPE_MAX_SESSIONS + DPE_NUM_LOCALITIES - 1.
+pub(crate) const DPE_MAX_CONTEXTS: usize = 64;
+
 /// The total number of localities supported by a DPE. Cannot be zero.
 pub(crate) const DPE_NUM_LOCALITIES: usize = 2;
