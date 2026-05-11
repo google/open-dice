@@ -78,3 +78,10 @@ pub(crate) const DPE_MAX_INTERNAL_INPUTS: usize = 8;
 
 /// The maximum number of version slots supported by a DPE context.
 pub(crate) const DPE_MAX_VERSION_SLOTS: usize = 16;
+
+/// The maximum number of open encrypted sessions supported by a DPE. Cannot be
+/// zero.
+pub(crate) const DPE_MAX_SESSIONS: usize = 8;
+
+/// The total number of localities supported by a DPE. Cannot be zero.
+pub(crate) const DPE_NUM_LOCALITIES: usize = 2;

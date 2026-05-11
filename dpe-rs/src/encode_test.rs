@@ -186,7 +186,7 @@ pub(crate) fn encode_internal_inputs(
 pub(crate) fn encode_locality(locality_id: LocalityId) -> SmallMessage {
     let mut encoded_locality = SmallMessage::new();
     cbor_encoder_from_message(&mut encoded_locality)
-        .u16(locality_id.try_into().unwrap())
+        .u32(locality_id.try_into().unwrap())
         .unwrap();
     encoded_locality
 }
@@ -596,8 +596,8 @@ fn internal_inputs_decode() {
 #[test]
 fn locality_decode() {
     test_init();
-    let default = LocalityId(0);
-    let before = LocalityId(0xFFFF);
+    let default = LocalityId::new(0).unwrap();
+    let before = LocalityId::new((DPE_NUM_LOCALITIES - 1) as u32).unwrap();
     let after =
         decode_locality(encode_locality(before).as_slice(), default).unwrap();
     assert_eq!(before, after);
@@ -850,7 +850,7 @@ fn check_error_response() {
     create_plaintext_session_error_response(ErrCode::Canceled, &mut buffer);
     let mut decoder = cbor_decoder_from_message(&buffer);
     assert_eq!(2, decoder.array().unwrap().unwrap());
-    assert_eq!(0, decoder.u16().unwrap());
+    assert_eq!(0, decoder.u64().unwrap());
     assert_eq!(
         ErrCode::Canceled,
         decode_error_response(decoder.bytes().unwrap()).unwrap_err()
@@ -919,7 +919,7 @@ fn decode_invalid_args() {
         .unwrap()
         .bool(true)
         .unwrap()
-        .u16(7)
+        .u64(7)
         .unwrap();
     let arg_types = ArgTypeMap::from_iter([(1, ArgTypeSelector::Bool(false))]);
     assert_eq!(
@@ -976,7 +976,7 @@ fn certificate_chain_encode() {
 
 #[test]
 fn message_header() {
-    let session_id = SessionId(25);
+    let session_id = SessionId::new(DPE_MAX_SESSIONS as u32).unwrap();
     let content = [0u8; 100];
     let mut buffer = Message::from_slice(&content).unwrap();
     encode_and_insert_session_message_header(session_id, &mut buffer).unwrap();
@@ -1130,8 +1130,8 @@ fn profile_descriptor() {
 
 #[test]
 fn handshake_payload() {
-    let session_id = SessionId(11);
+    let session_id = SessionId::new(1).unwrap();
     let payload = encode_handshake_payload(session_id).unwrap();
     let mut decoder = cbor_decoder_from_message(&payload);
-    assert_eq!(session_id.0 as u16, decoder.u16().unwrap());
+    assert_eq!(u32::from(session_id), decoder.u32().unwrap());
 }

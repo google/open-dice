@@ -694,7 +694,8 @@ fn handle_sync_session(
     let input_arg_map =
         decode_args(message_buffer.as_slice(), &input_arg_types)?;
 
-    let target_session = SessionId(input_arg_map.get_or_err(INPUT_ID_SESSION)?);
+    let target_session =
+        SessionId::new(input_arg_map.get_or_err(INPUT_ID_SESSION)?)?;
     let in_counter = input_arg_map.get_or_err(INPUT_ID_COUNTER)?;
     let out_counter = dpe.sync_session(target_session, in_counter)?;
     let mut output_args: ArgMap = Default::default();

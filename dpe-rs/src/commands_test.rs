@@ -115,7 +115,7 @@ impl CommandClient {
     ) {
         debug!("sync_session");
         let mut input_args: ArgMap = Default::default();
-        let _ = input_args.insert_or_err(1, session_id.0).unwrap();
+        let _ = input_args.insert_or_err(1, u32::from(session_id)).unwrap();
         let _ = input_args.insert_or_err(2, counter).unwrap();
         Self::encode_command(CommandSelector::SyncSession, &input_args, buffer);
     }
@@ -696,7 +696,7 @@ impl CommandClient {
 struct FakeDpeCore;
 impl DpeCore for FakeDpeCore {
     fn get_current_locality(&self) -> LocalityId {
-        LocalityId(0)
+        LocalityId::new(0).unwrap()
     }
 
     fn get_profile(&self) -> DpeResult<Message> {
@@ -837,7 +837,9 @@ impl DpeCore for FakeDpeCore {
 #[allow(unused_results)]
 fn fake_commands() {
     let mut fake_dpe: FakeDpeCore = Default::default();
-    fake_dpe.rotate_context_handle(None, false, LocalityId(0)).unwrap();
+    fake_dpe
+        .rotate_context_handle(None, false, LocalityId::new(0).unwrap())
+        .unwrap();
     let mut buffer = Message::new();
 
     CommandClient::get_profile_in(&mut buffer);
@@ -853,7 +855,11 @@ fn fake_commands() {
     handle_command_message(&mut fake_dpe, &mut buffer).unwrap();
     CommandClient::close_session_out(&buffer).unwrap();
 
-    CommandClient::sync_session_in(SessionId(0), 14, &mut buffer);
+    CommandClient::sync_session_in(
+        SessionId::get_plain_text(),
+        14,
+        &mut buffer,
+    );
     handle_command_message(&mut fake_dpe, &mut buffer).unwrap();
     CommandClient::sync_session_out(&buffer).unwrap();
 

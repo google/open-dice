@@ -74,31 +74,64 @@ pub(crate) struct CertificateChain(
     pub(crate) Vec<Certificate, DPE_MAX_CERTIFICATES_PER_CHAIN>,
 );
 
-/// A usize wrapper to represent a LocalityId.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
-pub(crate) struct LocalityId(pub(crate) usize);
+macro_rules! id_type {
+    ($type_name:ident, $max:expr, $desc:expr) => {
+        #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
+        #[doc = "A u32 wrapper to represent a "]
+        #[doc = $desc]
+        #[doc = "."]
+        pub struct $type_name(u32);
 
-impl TryFrom<LocalityId> for u16 {
-    type Error = ErrCode;
-    fn try_from(value: LocalityId) -> DpeResult<Self> {
-        num_traits::FromPrimitive::from_usize(value.0).ok_or_else(|| {
-            error!("Invalid locality ID");
-            ErrCode::InternalError
-        })
+        impl $type_name {
+            #[doc = "Creates a new "]
+            #[doc = $desc]
+            pub fn new(value: u32) -> DpeResult<Self> {
+                if value > $max as u32 {
+                    error!("Invalid {}", stringify!($type_name));
+                    return Err(ErrCode::InvalidArgument);
+                }
+                Ok($type_name(value))
+            }
+        }
+
+        impl From<$type_name> for u32 {
+            fn from(value: $type_name) -> Self {
+                value.0
+            }
+        }
+
+        impl From<$type_name> for usize {
+            fn from(value: $type_name) -> Self {
+                assert!(usize::MAX >= $max);
+                value.0 as usize
+            }
+        }
+
+        impl TryFrom<u32> for $type_name {
+            type Error = ErrCode;
+            fn try_from(value: u32) -> DpeResult<Self> {
+                Self::new(value)
+            }
+        }
+    };
+}
+
+id_type!(LocalityId, DPE_NUM_LOCALITIES - 1, "locality ID");
+id_type!(SessionId, DPE_MAX_SESSIONS, "session ID");
+
+impl LocalityId {
+    pub(crate) fn supports_encrypted_sessions(&self) -> bool {
+        // Only locality zero supports encrypted sessions.
+        self.0 == 0
     }
 }
 
-/// A usize wrapper to represent a SessionId.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
-pub(crate) struct SessionId(pub(crate) usize);
-
-impl TryFrom<SessionId> for u16 {
-    type Error = ErrCode;
-    fn try_from(value: SessionId) -> DpeResult<Self> {
-        num_traits::FromPrimitive::from_usize(value.0).ok_or_else(|| {
-            error!("Invalid session ID");
-            ErrCode::InternalError
-        })
+impl SessionId {
+    pub(crate) fn is_plain_text(&self) -> bool {
+        self.0 == 0
+    }
+    pub(crate) fn get_plain_text() -> Self {
+        Self(0)
     }
 }
 
@@ -295,7 +328,7 @@ pub(crate) fn decode_locality(
     if cbor.is_empty() {
         Ok(current_locality)
     } else {
-        Ok(LocalityId(Decoder::new(cbor).u16()?.into()))
+        LocalityId::new(Decoder::new(cbor).u32()?)
     }
 }
 
@@ -560,7 +593,7 @@ pub(crate) fn create_plaintext_session_error_response(
         let mut prefix = SmallMessage::new();
         let _ = cbor_encoder_from_message(&mut prefix)
             .array(MESSAGE_ARRAY_SIZE)?
-            .u16(0)?;
+            .u64(0)?;
         encode_bytes_prefix(&mut prefix, response_size)?;
         Ok(prefix)
     }
@@ -706,6 +739,21 @@ pub(crate) fn encode_certificate_chain(
     Ok(())
 }
 
+fn decode_and_remove_session_message_header_internal(
+    message: &mut Message,
+) -> DpeResult<SessionId> {
+    let mut decoder = cbor_decoder_from_message(message);
+    // We're expecting a CBOR array with two elements, a session ID and the
+    // message content.
+    if !decoder.array().is_ok_and(|len| len == Some(MESSAGE_ARRAY_SIZE)) {
+        return Err(ErrCode::InvalidCommand);
+    }
+    let session_id = SessionId::new(decoder.u32()?)?;
+    let remainder_position = decoder.decode_bytes_prefix()?;
+    message.remove_prefix(remainder_position)?;
+    Ok(session_id)
+}
+
 /// Decodes and removes a session message header.
 ///
 /// The session ID is returned and the remainder of the message remains in the
@@ -713,19 +761,10 @@ pub(crate) fn encode_certificate_chain(
 pub(crate) fn decode_and_remove_session_message_header(
     message: &mut Message,
 ) -> DpeResult<SessionId> {
-    let mut decoder = cbor_decoder_from_message(message);
-    // We're expecting a CBOR array with two elements, a session ID and the
-    // message content.
-    if !decoder.array().is_ok_and(|len| len == Some(MESSAGE_ARRAY_SIZE)) {
+    decode_and_remove_session_message_header_internal(message).map_err(|_| {
         error!("Failed to decode session message");
-        return Err(ErrCode::InvalidCommand);
-    }
-    let session_id =
-        SessionId(decoder.u16().map_err(|_| ErrCode::InvalidCommand)?.into());
-
-    let remainder_position = decoder.decode_bytes_prefix()?;
-    message.remove_prefix(remainder_position)?;
-    Ok(session_id)
+        ErrCode::InvalidCommand
+    })
 }
 
 /// Encodes and inserts a session message header containing `session_id`.
@@ -736,7 +775,7 @@ pub(crate) fn encode_and_insert_session_message_header(
     let mut prefix = SmallMessage::new();
     let _ = cbor_encoder_from_message(&mut prefix)
         .array(MESSAGE_ARRAY_SIZE)?
-        .u16(session_id.try_into()?)?;
+        .u32(session_id.into())?;
     encode_bytes_prefix(&mut prefix, message.len())?;
     message.insert_prefix(prefix.as_slice())?;
     Ok(())
@@ -793,8 +832,7 @@ pub(crate) fn encode_handshake_payload(
     session_id: SessionId,
 ) -> DpeResult<HandshakePayload> {
     let mut payload = HandshakePayload::new();
-    let _ = cbor_encoder_from_message(&mut payload)
-        .u16(session_id.0.try_into()?)?;
+    let _ = cbor_encoder_from_message(&mut payload).u32(session_id.into())?;
     Ok(payload)
 }
 
