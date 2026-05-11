@@ -47,14 +47,14 @@ byte_array_wrapper!(
 );
 
 /// A session handshake message.
-pub(crate) type HandshakeMessage = SizedMessage<MAX_HANDSHAKE_MESSAGE_SIZE>;
+pub type HandshakeMessage = SizedMessage<MAX_HANDSHAKE_MESSAGE_SIZE>;
 /// A session handshake payload.
-pub(crate) type HandshakePayload = SizedMessage<MAX_HANDSHAKE_PAYLOAD_SIZE>;
+pub type HandshakePayload = SizedMessage<MAX_HANDSHAKE_PAYLOAD_SIZE>;
 /// A signature.
-pub(crate) type Signature = SizedMessage<MAX_SIGNATURE_SIZE>;
+pub type Signature = SizedMessage<MAX_SIGNATURE_SIZE>;
 
 /// A trait for committing previously staged changes.
-pub(crate) trait Commit {
+pub trait Commit {
     /// Commits a previously staged changes. When used with session cipher
     /// state, the staged changes are typically counter increments that result
     /// from encrypt or decrypt operations.
@@ -62,7 +62,7 @@ pub(crate) trait Commit {
 }
 
 /// A trait for maintaining a counter.
-pub(crate) trait Counter {
+pub trait Counter {
     /// Returns the current counter value.
     fn n(&self) -> u64;
     /// Sets the counter value to `n`.
@@ -70,7 +70,7 @@ pub(crate) trait Counter {
 }
 
 /// Provides cryptographic operations for encrypted sessions.
-pub(crate) trait SessionCrypto {
+pub trait SessionCrypto {
     /// A type to represent session cipher states. These are owned by and opaque
     /// to the caller in `new_session_handshake` and `derive_session_handshake`.
     type SessionCipherState: Commit + Counter;
@@ -190,7 +190,7 @@ pub(crate) trait SessionCrypto {
 
 /// Provides cryptographic operations. These operations are specifically for DPE
 /// concepts, defined by a DPE profile, and to be invoked by a DPE instance.
-pub(crate) trait Crypto {
+pub trait Crypto {
     /// An associated [`SessionCrypto`] type.
     type S: SessionCrypto;
 

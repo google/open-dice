@@ -48,9 +48,9 @@
 //! # Notes
 //!
 //! This crate is in development and not ready for production use.
-pub mod args;
-pub mod cbor;
-pub mod commands;
+pub(crate) mod args;
+pub(crate) mod cbor;
+pub(crate) mod commands;
 #[cfg(test)]
 pub(crate) mod commands_test;
 pub mod constants;
@@ -61,4 +61,4 @@ pub mod encode;
 pub(crate) mod encode_test;
 pub mod error;
 pub mod memory;
-pub mod noise;
+pub(crate) mod noise;

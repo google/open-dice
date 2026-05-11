@@ -19,7 +19,7 @@ use log::error;
 /// An enum of error codes as defined in the DPE specification. The
 /// discriminant values match the CBOR encoding values per the specification.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub(crate) enum ErrCode {
+pub enum ErrCode {
     /// An unexpected error has occurred which is not actionable by the client.
     InternalError = 1,
     /// The command could not be decrypted, parsed, or is not supported.
@@ -80,4 +80,4 @@ impl From<u32> for ErrCode {
 }
 
 /// A Result type using a DPE [`ErrCode`] error type.
-pub(crate) type DpeResult<T> = Result<T, ErrCode>;
+pub type DpeResult<T> = Result<T, ErrCode>;
