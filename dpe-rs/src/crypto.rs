@@ -70,10 +70,14 @@ pub trait Counter {
 }
 
 /// Provides cryptographic operations for encrypted sessions.
-pub trait SessionCrypto {
+pub trait SessionCrypto: Clone + core::fmt::Debug + Default {
     /// A type to represent session cipher states. These are owned by and opaque
     /// to the caller in `new_session_handshake` and `derive_session_handshake`.
-    type SessionCipherState: Commit + Counter;
+    type SessionCipherState: Commit
+        + Counter
+        + Clone
+        + core::fmt::Debug
+        + Default;
 
     /// Performs a session responder handshake for a new session.
     ///
@@ -190,7 +194,7 @@ pub trait SessionCrypto {
 
 /// Provides cryptographic operations. These operations are specifically for DPE
 /// concepts, defined by a DPE profile, and to be invoked by a DPE instance.
-pub trait Crypto {
+pub trait Crypto: Clone + core::fmt::Debug + Default {
     /// An associated [`SessionCrypto`] type.
     type S: SessionCrypto;
 

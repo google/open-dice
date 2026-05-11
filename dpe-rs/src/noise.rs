@@ -31,10 +31,7 @@ impl From<noise_protocol::Error> for ErrCode {
     }
 }
 
-impl<NoiseHash> From<&NoiseHash> for Hash
-where
-    NoiseHash: U8Array,
-{
+impl<NoiseHash: U8Array> From<&NoiseHash> for Hash {
     fn from(value: &NoiseHash) -> Self {
         // The Noise hash size may not match HASH_SIZE.
         Hash::from_slice_infallible(value.as_slice())
@@ -130,55 +127,37 @@ pub(crate) struct NoiseSessionCrypto<D: NoiseCryptoDeps> {
     phantom: PhantomData<D>,
 }
 
-impl<D> Clone for NoiseSessionCrypto<D>
-where
-    D: NoiseCryptoDeps,
-{
+impl<D: NoiseCryptoDeps> Clone for NoiseSessionCrypto<D> {
     fn clone(&self) -> Self {
         Self { phantom: Default::default() }
     }
 }
 
-impl<D> Default for NoiseSessionCrypto<D>
-where
-    D: NoiseCryptoDeps,
-{
+impl<D: NoiseCryptoDeps> Default for NoiseSessionCrypto<D> {
     fn default() -> Self {
         Self { phantom: Default::default() }
     }
 }
 
-impl<D> core::fmt::Debug for NoiseSessionCrypto<D>
-where
-    D: NoiseCryptoDeps,
-{
+impl<D: NoiseCryptoDeps> core::fmt::Debug for NoiseSessionCrypto<D> {
     fn fmt(&self, _: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         Ok(())
     }
 }
 
-impl<D> core::hash::Hash for NoiseSessionCrypto<D>
-where
-    D: NoiseCryptoDeps,
-{
+impl<D: NoiseCryptoDeps> core::hash::Hash for NoiseSessionCrypto<D> {
     fn hash<Hr: core::hash::Hasher>(&self, _: &mut Hr) {}
 }
 
-impl<D> PartialEq for NoiseSessionCrypto<D>
-where
-    D: NoiseCryptoDeps,
-{
+impl<D: NoiseCryptoDeps> PartialEq for NoiseSessionCrypto<D> {
     fn eq(&self, _: &Self) -> bool {
         true
     }
 }
 
-impl<D> Eq for NoiseSessionCrypto<D> where D: NoiseCryptoDeps {}
+impl<D: NoiseCryptoDeps> Eq for NoiseSessionCrypto<D> {}
 
-impl<D> SessionCrypto for NoiseSessionCrypto<D>
-where
-    D: NoiseCryptoDeps,
-{
+impl<D: NoiseCryptoDeps> SessionCrypto for NoiseSessionCrypto<D> {
     type SessionCipherState = NoiseCipherState<D::Cipher>;
 
     /// Implements the responder role of a Noise_NK handshake.
@@ -358,10 +337,7 @@ pub(crate) mod test {
 
     /// A SessionClient implements the initiator side of an encrypted session. A
     /// DPE does not use this itself, it is useful for testing.
-    pub(crate) struct SessionClient<D>
-    where
-        D: NoiseCryptoDeps,
-    {
+    pub(crate) struct SessionClient<D: NoiseCryptoDeps> {
         handshake_state:
             Option<noise_protocol::HandshakeState<D::DH, D::Cipher, D::Hash>>,
         /// Cipher state for encrypting messages to a DPE.
@@ -374,10 +350,7 @@ pub(crate) mod test {
         pub(crate) psk_seed: Hash,
     }
 
-    impl<D> Clone for SessionClient<D>
-    where
-        D: NoiseCryptoDeps,
-    {
+    impl<D: NoiseCryptoDeps> Clone for SessionClient<D> {
         fn clone(&self) -> Self {
             Self {
                 handshake_state: self.handshake_state.clone(),
@@ -388,28 +361,19 @@ pub(crate) mod test {
         }
     }
 
-    impl<D> Default for SessionClient<D>
-    where
-        D: NoiseCryptoDeps,
-    {
+    impl<D: NoiseCryptoDeps> Default for SessionClient<D> {
         fn default() -> Self {
             Self::new()
         }
     }
 
-    impl<D> core::fmt::Debug for SessionClient<D>
-    where
-        D: NoiseCryptoDeps,
-    {
+    impl<D: NoiseCryptoDeps> core::fmt::Debug for SessionClient<D> {
         fn fmt(&self, _: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
             Ok(())
         }
     }
 
-    impl<D> SessionClient<D>
-    where
-        D: NoiseCryptoDeps,
-    {
+    impl<D: NoiseCryptoDeps> SessionClient<D> {
         /// Creates a new SessionClient instance. Set up by starting and
         /// finishing a handshake.
         pub(crate) fn new() -> Self {
