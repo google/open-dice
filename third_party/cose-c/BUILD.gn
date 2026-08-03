@@ -78,7 +78,7 @@ pw_static_library("cose-c_ed25519") {
   configs = [ ":internal_config" ]
   public_deps = [
     "//third_party/boringssl:crypto",
-    "//third_party/cn-cbor:cn-cbor",
+    "//third_party/cn-cbor",
   ]
 }
 
@@ -89,7 +89,7 @@ pw_static_library("cose-c_p256") {
   configs = [ ":internal_config" ]
   public_deps = [
     "//third_party/boringssl:crypto",
-    "//third_party/cn-cbor:cn-cbor",
+    "//third_party/cn-cbor",
   ]
 }
 
@@ -100,7 +100,7 @@ pw_static_library("cose-c_p384") {
   configs = [ ":internal_config" ]
   public_deps = [
     "//third_party/boringssl:crypto",
-    "//third_party/cn-cbor:cn-cbor",
+    "//third_party/cn-cbor",
   ]
 }
 
@@ -117,7 +117,7 @@ pw_static_library("cose-c_multialg") {
   configs = [ ":internal_config" ]
   public_deps = [
     "//third_party/boringssl:crypto",
-    "//third_party/cn-cbor:cn-cbor",
+    "//third_party/cn-cbor",
   ]
 }
 
@@ -128,7 +128,7 @@ pw_static_library("cose-c_mldsa65") {
   configs = [ ":internal_config" ]
   public_deps = [
     "//third_party/boringssl:crypto",
-    "//third_party/cn-cbor:cn-cbor",
+    "//third_party/cn-cbor",
   ]
 }
 
@@ -139,6 +139,6 @@ pw_static_library("cose-c_mldsa87") {
   configs = [ ":internal_config" ]
   public_deps = [
     "//third_party/boringssl:crypto",
-    "//third_party/cn-cbor:cn-cbor",
+    "//third_party/cn-cbor",
   ]
 }
