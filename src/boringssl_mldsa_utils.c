@@ -116,13 +116,13 @@ int Mldsa65Verify(const uint8_t* message, size_t message_size,
   CBS_init(&cbs_public, public_key, MLDSA65_PUBLIC_KEY_SIZE);
   struct MLDSA65_public_key parsed_pub;
   if (1 != MLDSA65_parse_public_key(&parsed_pub, &cbs_public)) {
-    return kDiceResultPlatformError;
+    return 0;
   }
   if (1 != MLDSA65_verify(&parsed_pub, signature, MLDSA65_SIGNATURE_SIZE,
                           message, message_size, NULL, 0)) {
-    return kDiceResultPlatformError;
+    return 0;
   }
-  return kDiceResultOk;
+  return 1;
 }
 
 int Mldsa87Verify(const uint8_t* message, size_t message_size,
