@@ -34,12 +34,12 @@
 static int hmac(uint8_t k[64], uint8_t in[64], uint8_t* out,
                 unsigned int out_len) {
   int ret = 0;
+  HMAC_CTX ctx;
+  HMAC_CTX_init(&ctx);
 
   if (out_len != 64) {
     goto out;
   }
-  HMAC_CTX ctx;
-  HMAC_CTX_init(&ctx);
   if (1 != HMAC_Init_ex(&ctx, k, 64, EVP_sha512(), NULL /* impl */)) {
     goto out;
   }
@@ -47,9 +47,9 @@ static int hmac(uint8_t k[64], uint8_t in[64], uint8_t* out,
     goto out;
   }
   ret = HMAC_Final(&ctx, out, &out_len);
-  HMAC_CTX_cleanup(&ctx);
 
 out:
+  HMAC_CTX_cleanup(&ctx);
   return ret;
 }
 
@@ -75,9 +75,9 @@ static int hmac3(uint8_t k[64], uint8_t in1[64], uint8_t in2,
   }
   unsigned int out_len = 64;
   ret = HMAC_Final(&ctx, out, &out_len);
-  HMAC_CTX_cleanup(&ctx);
 
 out:
+  HMAC_CTX_cleanup(&ctx);
   return ret;
 }
 
@@ -126,6 +126,8 @@ err:
   BN_clear_free(candidate);
   candidate = NULL;
 out:
+  OPENSSL_cleanse(k, sizeof(k));
+  OPENSSL_cleanse(v, sizeof(v));
   return candidate;
 }
 
